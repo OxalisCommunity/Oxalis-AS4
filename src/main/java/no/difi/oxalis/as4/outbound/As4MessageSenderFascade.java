@@ -18,6 +18,6 @@ public class As4MessageSenderFascade implements MessageSender {
 
     @Override
     public TransmissionResponse send(TransmissionRequest transmissionRequest) throws OxalisTransmissionException {
-        return null;
+        return messageSenderProvider.get().send(transmissionRequest);
     }
 }

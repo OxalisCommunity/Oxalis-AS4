@@ -10,8 +10,10 @@ import no.difi.oxalis.api.outbound.MessageSender;
 import no.difi.oxalis.api.outbound.TransmissionRequest;
 import no.difi.oxalis.api.outbound.TransmissionResponse;
 import no.difi.oxalis.api.persist.ReceiptPersister;
+import no.difi.oxalis.as4.inbound.As4InboundModule;
 import no.difi.oxalis.as4.outbound.As4OutboundModule;
 import no.difi.oxalis.commons.guice.GuiceModuleLoader;
+import no.difi.oxalis.commons.http.ApacheHttpModule;
 import no.difi.oxalis.test.jetty.AbstractJettyServerTest;
 import no.difi.vefa.peppol.common.model.Endpoint;
 import no.difi.vefa.peppol.common.model.Header;
@@ -29,6 +31,8 @@ public class SimpleSendTest extends AbstractJettyServerTest {
     public Injector getInjector() {
         return Guice.createInjector(
                 new As4OutboundModule(),
+                new As4InboundModule(),
+                new ApacheHttpModule(),
                 Modules.override(new GuiceModuleLoader()).with(new AbstractModule() {
                     @Override
                     protected void configure() {
