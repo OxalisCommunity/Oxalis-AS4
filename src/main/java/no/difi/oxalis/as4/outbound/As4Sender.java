@@ -1,8 +1,10 @@
 package no.difi.oxalis.as4.outbound;
 
 import com.google.common.collect.Lists;
+import no.difi.oxalis.api.outbound.TransmissionRequest;
 import no.difi.oxalis.as4.util.Constants;
 import no.difi.oxalis.as4.util.Marshalling;
+import no.difi.oxalis.commons.security.CertificateUtils;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.*;
 import org.springframework.http.MediaType;
 import org.springframework.oxm.jaxb.Jaxb2Marshaller;
@@ -19,8 +21,8 @@ import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.transform.TransformerException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.time.LocalDate;
+import java.security.cert.X509Certificate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.GregorianCalendar;
@@ -31,19 +33,21 @@ import static no.difi.oxalis.as4.util.Constants.*;
 
 public class As4Sender implements WebServiceMessageCallback {
 
-    private final InputStream payload;
+    private final TransmissionRequest request;
+    private final X509Certificate certificate;
 
-    As4Sender(InputStream payload) {
-        this.payload = payload;
+    As4Sender(TransmissionRequest request, X509Certificate certificate) {
+        this.request = request;
+        this.certificate = certificate;
     }
 
     @Override
     public void doWithMessage(WebServiceMessage webServiceMessage) throws IOException, TransformerException {
         SoapMessage message = (SoapMessage) webServiceMessage;
-        message.addAttachment(newId(), () -> payload, MediaType.APPLICATION_XML_VALUE);
+        message.addAttachment(newId(), () -> request.getPayload(), MediaType.APPLICATION_XML_VALUE);
         addEbmsHeader(message);
-        // DEBUG
-//        try (FileOutputStream fos = new FileOutputStream(Instant.now().getEpochSecond()+".txt");) {
+//         DEBUG
+//        try (FileOutputStream fos = new FileOutputStream("testoutput.xml");) {
 //            message.writeTo(fos);
 //        }
     }
@@ -51,6 +55,7 @@ public class As4Sender implements WebServiceMessageCallback {
     private void addEbmsHeader(SoapMessage message) {
         SoapHeader header = message.getSoapHeader();
         SoapHeaderElement messagingHeader = header.addHeaderElement(Constants.MESSAGING_QNAME);
+        messagingHeader.setMustUnderstand(true);
 
         UserMessage userMessage = UserMessage.builder()
                 .withMessageInfo(createMessageInfo())
@@ -71,7 +76,7 @@ public class As4Sender implements WebServiceMessageCallback {
         ArrayList<PartInfo> partInfos = Lists.newArrayList();
         while (attachments.hasNext()) {
             Attachment a = attachments.next();
-            String cid = "cid:"+a.getContentId();
+            String cid = "cid:"+a.getContentId(); // CipherReference / SignedInfo->Reference
             Property compressionType = Property.builder()
                     .withName("CompressionType")
                     .withValue("application/gzip")
@@ -95,30 +100,35 @@ public class As4Sender implements WebServiceMessageCallback {
 
     private MessageProperties createMessageProperties() {
         return MessageProperties.builder()
-                .withProperty(Property.builder()
-                        .withName("originalSender")
-                        .withValue("test")
-                        .build())
-                .withProperty(Property.builder()
-                        .withName("finalRecipient")
-                        .withValue("test")
-                        .build())
+                .withProperty(
+                        Property.builder()
+                                .withName("originalSender")
+                                .withValue(request.getHeader().getSender().getIdentifier())
+                                .build(),
+                        Property.builder()
+                                .withName("finalRecipient")
+                                .withValue(request.getHeader().getReceiver().getIdentifier())
+                                .build())
                 .build();
     }
 
     private PartyInfo createPartyInfo() {
+
+        String fromName = CertificateUtils.extractCommonName(certificate);
+        String toName = CertificateUtils.extractCommonName(request.getEndpoint().getCertificate());
+
         return PartyInfo.builder()
                 .withFrom(From.builder()
                         .withPartyId(PartyId.builder()
                                 .withType(PARTY_ID_TYPE)
-                                .withValue("?") // orgnr+landkode ??
+                                .withValue(fromName)
                                 .build())
                         .withRole(FROM_ROLE)
                         .build())
                 .withTo(To.builder()
                         .withPartyId(PartyId.builder()
                                 .withType(PARTY_ID_TYPE)
-                                .withValue("?") // orgnr+landkode ??
+                                .withValue(toName)
                                 .build())
                         .withRole(TO_ROLE)
                         .build()
@@ -127,24 +137,17 @@ public class As4Sender implements WebServiceMessageCallback {
 
     private CollaborationInfo createCollaborationInfo() {
         return CollaborationInfo.builder()
-                // DocumentIdentification -> InstanceIdentifier ?
                 .withConversationId(newId())
-                // BusinessScope -> DocumentId ?
-                .withAction("urn:oasis:names:specification:ubl:schema:xsd:Invoice-2::Invoice##urn:www.cenbii.eu:transaction:biitrns010:ver2.0:extended:urn:www.peppol.eu:bis:peppol4a:ver2.0::2.1")
-                // BusinessScope -> ProcessId ?
-                .withService(createService())
-                .build();
-    }
-
-    private Service createService() {
-        return Service.builder()
-                .withType("foo") // ??
-                .withValue("urn:www.cenbii.eu:profile:bii04:ver1.0") // InstanceIdentifier
+                .withAction(request.getHeader().getDocumentType().getIdentifier())
+                .withService(Service.builder()
+                        .withType(SERVICE_TYPE)
+                        .withValue(request.getHeader().getProcess().getIdentifier())
+                        .build())
                 .build();
     }
 
     private MessageInfo createMessageInfo() {
-        GregorianCalendar gcal = GregorianCalendar.from(LocalDate.now().atStartOfDay(ZoneId.systemDefault()));
+        GregorianCalendar gcal = GregorianCalendar.from(LocalDateTime.now().atZone(ZoneId.systemDefault()));
         XMLGregorianCalendar xmlDate;
         try {
             xmlDate = DatatypeFactory.newInstance().newXMLGregorianCalendar(gcal);
@@ -153,8 +156,8 @@ public class As4Sender implements WebServiceMessageCallback {
         }
 
         return MessageInfo.builder()
-                .withMessageId(newId()) // newid?
-                .withTimestamp(xmlDate) // CreationDateAndTime ?
+                .withMessageId(newId())
+                .withTimestamp(xmlDate)
                 .build();
     }
 

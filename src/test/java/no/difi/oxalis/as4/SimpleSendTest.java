@@ -15,9 +15,7 @@ import no.difi.oxalis.as4.outbound.As4OutboundModule;
 import no.difi.oxalis.commons.guice.GuiceModuleLoader;
 import no.difi.oxalis.commons.http.ApacheHttpModule;
 import no.difi.oxalis.test.jetty.AbstractJettyServerTest;
-import no.difi.vefa.peppol.common.model.Endpoint;
-import no.difi.vefa.peppol.common.model.Header;
-import no.difi.vefa.peppol.common.model.TransportProfile;
+import no.difi.vefa.peppol.common.model.*;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -55,7 +53,11 @@ public class SimpleSendTest extends AbstractJettyServerTest {
 
             @Override
             public Header getHeader() {
-                return Header.newInstance();
+                return Header.newInstance()
+                        .sender(ParticipantIdentifier.of("0007:5567125082"))
+                        .receiver(ParticipantIdentifier.of("0007:4455454480"))
+                        .documentType(DocumentTypeIdentifier.of("urn:oasis:names:specification:ubl:schema:xsd:Invoice-2::Invoice##urn:www.cenbii.eu:transaction:biicoretrdm010:ver1.0:#urn:www.peppol.eu:bis:peppol4a:ver1.0::2.0"))
+                        .process(ProcessIdentifier.of("urn:www.cenbii.eu:profile:bii04:ver1.0"));
             }
 
             @Override

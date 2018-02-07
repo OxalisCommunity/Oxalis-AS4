@@ -1,5 +1,6 @@
 package no.difi.oxalis.as4.outbound;
 
+import com.google.inject.Inject;
 import no.difi.oxalis.api.outbound.TransmissionRequest;
 import no.difi.oxalis.api.outbound.TransmissionResponse;
 import no.difi.oxalis.as4.util.Marshalling;
@@ -11,12 +12,20 @@ import org.springframework.ws.transport.http.HttpComponentsMessageSender;
 import javax.xml.soap.MessageFactory;
 import javax.xml.soap.SOAPConstants;
 import javax.xml.soap.SOAPException;
+import java.security.cert.X509Certificate;
 
 public class As4MessageSender {
 
+    private X509Certificate certificate;
+
+    @Inject
+    public As4MessageSender(X509Certificate certificate) {
+        this.certificate = certificate;
+    }
+
     public TransmissionResponse send(TransmissionRequest request) {
         WebServiceTemplate template = createTemplate();
-        As4Sender sender = new As4Sender(request.getPayload());
+        As4Sender sender = new As4Sender(request, certificate);
         template.sendAndReceive(request.getEndpoint().getAddress().toString(), sender, new TransmissionResponseExtractor());
         return null;
     }
