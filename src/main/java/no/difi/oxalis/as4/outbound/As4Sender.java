@@ -46,10 +46,6 @@ public class As4Sender implements WebServiceMessageCallback {
         SoapMessage message = (SoapMessage) webServiceMessage;
         message.addAttachment(newId(), () -> request.getPayload(), MediaType.APPLICATION_XML_VALUE);
         addEbmsHeader(message);
-//         DEBUG
-//        try (FileOutputStream fos = new FileOutputStream("testoutput.xml");) {
-//            message.writeTo(fos);
-//        }
     }
 
     private void addEbmsHeader(SoapMessage message) {
@@ -76,7 +72,7 @@ public class As4Sender implements WebServiceMessageCallback {
         ArrayList<PartInfo> partInfos = Lists.newArrayList();
         while (attachments.hasNext()) {
             Attachment a = attachments.next();
-            String cid = "cid:"+a.getContentId(); // CipherReference / SignedInfo->Reference
+            String cid = "cid:"+a.getContentId();
             Property compressionType = Property.builder()
                     .withName("CompressionType")
                     .withValue("application/gzip")
