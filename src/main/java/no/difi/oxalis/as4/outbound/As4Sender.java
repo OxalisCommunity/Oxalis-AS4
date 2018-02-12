@@ -44,7 +44,8 @@ public class As4Sender implements WebServiceMessageCallback {
     @Override
     public void doWithMessage(WebServiceMessage webServiceMessage) throws IOException, TransformerException {
         SoapMessage message = (SoapMessage) webServiceMessage;
-        message.addAttachment(newId(), () -> request.getPayload(), MediaType.APPLICATION_XML_VALUE);
+        // Must be octet-stream for encrypted attachments
+        message.addAttachment(newId(), () -> request.getPayload(), MediaType.APPLICATION_OCTET_STREAM_VALUE);
         addEbmsHeader(message);
     }
 

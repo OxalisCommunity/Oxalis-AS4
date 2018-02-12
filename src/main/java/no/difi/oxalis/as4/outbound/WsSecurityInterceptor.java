@@ -9,7 +9,10 @@ public class WsSecurityInterceptor extends Wss4jSecurityInterceptor {
     @Override
     protected RequestData initializeRequestData(MessageContext messageContext) {
         RequestData requestData = super.initializeRequestData(messageContext);
-        requestData.setAttachmentCallbackHandler(new AttachmentCallbackHandler((SoapMessage)messageContext.getRequest()));
+        AttachmentCallbackHandler attachmentCallbackHandler = new AttachmentCallbackHandler((SoapMessage) messageContext.getRequest());
+        requestData.setAttachmentCallbackHandler(attachmentCallbackHandler);
+        requestData.setAddInclusivePrefixes(true);
         return requestData;
     }
+
 }
