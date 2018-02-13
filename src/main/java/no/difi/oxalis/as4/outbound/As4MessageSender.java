@@ -11,7 +11,6 @@ import org.apache.wss4j.common.crypto.Merlin;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.springframework.ws.client.core.WebServiceTemplate;
 import org.springframework.ws.client.support.interceptor.ClientInterceptor;
-import org.springframework.ws.soap.SoapVersion;
 import org.springframework.ws.soap.saaj.SaajSoapMessageFactory;
 import org.springframework.ws.transport.http.HttpComponentsMessageSender;
 
@@ -49,12 +48,8 @@ public class As4MessageSender {
     }
 
     private SaajSoapMessageFactory createSoapMessageFactory() {
-        SaajSoapMessageFactory factory;
         try {
-            factory = new SaajSoapMessageFactory(MessageFactory.newInstance(SOAPConstants.SOAP_1_2_PROTOCOL));
-            factory.setSoapVersion(SoapVersion.SOAP_12);
-            factory.afterPropertiesSet();
-            return factory;
+            return new SaajSoapMessageFactory(MessageFactory.newInstance(SOAPConstants.SOAP_1_2_PROTOCOL));
         } catch (SOAPException e) {
             throw new RuntimeException("Error creating SoapMessageFactory", e);
         }
@@ -123,7 +118,6 @@ public class As4MessageSender {
     }
 
     private HttpComponentsMessageSender createMessageSender() {
-        HttpComponentsMessageSender messageSender = new HttpComponentsMessageSender();
-        return messageSender;
+        return new HttpComponentsMessageSender();
     }
 }
