@@ -1,12 +1,12 @@
 package no.difi.oxalis.as4.outbound;
 
+import no.difi.oxalis.as4.util.InputStreamDataSource;
 import org.apache.wss4j.common.ext.AttachmentRequestCallback;
 import org.apache.wss4j.common.ext.AttachmentResultCallback;
 import org.springframework.ws.soap.SoapMessage;
 import org.springframework.ws.soap.saaj.SaajSoapMessage;
 
 import javax.activation.DataHandler;
-import javax.activation.DataSource;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.UnsupportedCallbackException;
@@ -14,8 +14,6 @@ import javax.xml.soap.AttachmentPart;
 import javax.xml.soap.MimeHeader;
 import javax.xml.soap.SOAPException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -104,39 +102,6 @@ public class AttachmentCallbackHandler implements CallbackHandler {
                 iterator.remove();
             }
         }
-    }
-
-    private static class InputStreamDataSource implements DataSource {
-
-        private final InputStream inputStream;
-
-        private final String contentType;
-
-        public InputStreamDataSource(InputStream inputStream, String contentType) {
-            this.inputStream = inputStream;
-            this.contentType = contentType;
-        }
-
-        @Override
-        public InputStream getInputStream () throws IOException {
-            return inputStream;
-        }
-
-        @Override
-        public OutputStream getOutputStream () {
-            throw new UnsupportedOperationException("Read-only");
-        }
-
-        @Override
-        public String getContentType () {
-            return contentType;
-        }
-
-        @Override
-        public String getName () {
-            throw new UnsupportedOperationException("DataSource name not available");
-        }
-
     }
 
 }
