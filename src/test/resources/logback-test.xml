@@ -34,9 +34,10 @@
     <logger name="oxalis-com" level="debug"/>
     <logger name="oxalis-out" level="debug"/>
     <logger name="org.apache" level="debug"/>
-    <logger name="org.springframework.ws.client.MessageTracing.sent" level="trace"/>
-    <logger name="org.springframework.ws.client.MessageTracing.received" level="trace"/>
-    <logger name="org.springframework.ws.server.MessageTracing" level="trace"/>
+    <!-- WARNING: probably a bug, but spring consumes the attachment when logging. do not turn on unless needed! -->
+    <!--<logger name="org.springframework.ws.client.MessageTracing.sent" level="trace"/>-->
+    <!--<logger name="org.springframework.ws.client.MessageTracing.received" level="trace"/>-->
+    <!--<logger name="org.springframework.ws.server.MessageTracing" level="trace"/>-->
 
     <root level="debug">
         <appender-ref ref="STDOUT"/>

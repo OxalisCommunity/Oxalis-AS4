@@ -36,14 +36,11 @@ public class As4Servlet extends HttpServlet {
         try {
             SOAPMessage soapMessage = messageFactory.createMessage(getHeaders(req), req.getInputStream());
 
-//            FileOutputStream fos = new FileOutputStream(new File("output.mime"));
-//            soapMessage.writeTo(fos);
-
             Iterator<AttachmentPart> attachments = soapMessage.getAttachments();
             while (attachments.hasNext()) {
                 AttachmentPart attachment = attachments.next();
                 String s = IOUtils.toString(attachment.getRawContent(), StandardCharsets.UTF_8);
-                System.out.println("Attachment content: "+s);
+                System.out.println("Attachment content: \n"+s);
             }
         } catch (SOAPException e) {
             throw new RuntimeException("Cannot create message factory", e);
