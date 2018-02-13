@@ -3,7 +3,6 @@ package no.difi.oxalis.as4.outbound;
 import com.google.common.collect.Lists;
 import no.difi.oxalis.api.outbound.TransmissionRequest;
 import no.difi.oxalis.as4.util.Constants;
-import no.difi.oxalis.as4.util.InputStreamDataSource;
 import no.difi.oxalis.as4.util.Marshalling;
 import no.difi.oxalis.commons.security.CertificateUtils;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.*;
@@ -17,12 +16,10 @@ import org.springframework.ws.soap.SoapHeaderElement;
 import org.springframework.ws.soap.SoapMessage;
 import org.springframework.ws.soap.saaj.SaajSoapMessage;
 
-import javax.activation.DataHandler;
 import javax.xml.bind.JAXBElement;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
-import javax.xml.soap.AttachmentPart;
 import javax.xml.transform.TransformerException;
 import java.io.IOException;
 import java.security.cert.X509Certificate;
@@ -49,12 +46,12 @@ public class As4Sender implements WebServiceMessageCallback {
     public void doWithMessage(WebServiceMessage webServiceMessage) throws IOException, TransformerException {
         SaajSoapMessage message = (SaajSoapMessage) webServiceMessage;
         // Must be octet-stream for encrypted attachments
-//        message.addAttachment(newId(), () -> request.getPayload(), MediaType.APPLICATION_OCTET_STREAM_VALUE);
-        AttachmentPart attachmentPart = message.getSaajMessage()
-                .createAttachmentPart(new DataHandler(
-                        new InputStreamDataSource(request.getPayload(), MediaType.APPLICATION_OCTET_STREAM_VALUE)));
-        attachmentPart.setContentId(newId());
-        message.getSaajMessage().addAttachmentPart(attachmentPart);
+        message.addAttachment(newId(), () -> request.getPayload(), MediaType.APPLICATION_OCTET_STREAM_VALUE);
+//        AttachmentPart attachmentPart = message.getSaajMessage()
+//                .createAttachmentPart(new DataHandler(
+//                        new InputStreamDataSource(request.getPayload(), MediaType.APPLICATION_OCTET_STREAM_VALUE)));
+//        attachmentPart.setContentId(newId());
+//        message.getSaajMessage().addAttachmentPart(attachmentPart);
         addEbmsHeader(message);
     }
 
