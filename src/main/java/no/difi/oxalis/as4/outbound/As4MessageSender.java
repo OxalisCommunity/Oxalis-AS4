@@ -93,8 +93,7 @@ public class As4MessageSender {
         String alias = settings.getString(KeyStoreConf.KEY_ALIAS);
         String password = settings.getString(KeyStoreConf.PASSWORD);
         interceptor.setSecurementPassword(password);
-        // TODO: add signature processing to inbound module
-        interceptor.setSecurementActions("Encrypt");
+        interceptor.setSecurementActions("Encrypt Signature");
 
         interceptor.setSecurementSignatureUser(alias);
         interceptor.setSecurementSignatureCrypto(crypto);

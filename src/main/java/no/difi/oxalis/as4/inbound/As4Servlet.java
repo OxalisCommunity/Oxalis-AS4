@@ -42,15 +42,19 @@ public class As4Servlet extends CXFNonSpringServlet {
         encryptCrypto.setCryptoProvider(BouncyCastleProvider.PROVIDER_NAME);
         encryptCrypto.setKeyStore(keyStore);
 
+
         // Properties
-        // TODO: setup signature processing
         Map<String, Object> inProps = Maps.newHashMap();
-        inProps.put(WSHandlerConstants.ACTION, WSHandlerConstants.ENCRYPT);
+        inProps.put(WSHandlerConstants.ACTION, WSHandlerConstants.ENCRYPT+" "+WSHandlerConstants.SIGNATURE);
         String alias = settings.getString(KeyStoreConf.KEY_ALIAS);
         String password = settings.getString(KeyStoreConf.KEY_PASSWORD);
         PasswordCallbackHandler cb = new PasswordCallbackHandler(password);
         inProps.put(WSHandlerConstants.PW_CALLBACK_REF, cb);
         inProps.put(WSHandlerConstants.ENCRYPTION_PARTS, "{}cid:Attachments");
+        inProps.put(WSHandlerConstants.SIGNATURE_PARTS, "{}{}Body; {}cid:Attachments");
+        inProps.put(WSHandlerConstants.SIG_KEY_ID, "DirectReference");
+        inProps.put(WSHandlerConstants.USE_SINGLE_CERTIFICATE, "true");
+        inProps.put(WSHandlerConstants.USE_REQ_SIG_CERT, "true");
 
         WsInInterceptor interceptor = new WsInInterceptor(inProps, encryptCrypto, alias);
         org.apache.cxf.endpoint.Endpoint endpoint = endpointImpl.getServer().getEndpoint();

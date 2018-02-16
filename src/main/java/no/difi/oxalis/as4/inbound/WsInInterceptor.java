@@ -16,19 +16,20 @@ import java.util.Optional;
 
 public class WsInInterceptor extends WSS4JInInterceptor {
 
-    private Crypto encryptCrypto;
-    private String encryptAlias;
+    private Crypto crypto;
+    private String alias;
 
-    WsInInterceptor(Map<String,Object> props, Crypto encryptCrypto, String encryptAlias) {
+    WsInInterceptor(Map<String,Object> props, Crypto crypto, String alias) {
         super(props);
-        this.encryptCrypto = encryptCrypto;
-        this.encryptAlias = encryptAlias;
+        this.crypto = crypto;
+        this.alias = alias;
     }
 
     @Override
     public void handleMessage(SoapMessage msg) throws Fault {
-        msg.put(SecurityConstants.ENCRYPT_CRYPTO, encryptCrypto);
-        msg.put(SecurityConstants.ENCRYPT_USERNAME, encryptAlias);
+        msg.put(SecurityConstants.ENCRYPT_CRYPTO, crypto);
+        msg.put(SecurityConstants.SIGNATURE_CRYPTO, crypto);
+        msg.put(SecurityConstants.ENCRYPT_USERNAME, alias);
         super.handleMessage(msg);
 
         SOAPMessage soapMessage = msg.getContent(SOAPMessage.class);
