@@ -43,7 +43,8 @@ public class As4MessageSender {
     public TransmissionResponse send(TransmissionRequest request) {
         WebServiceTemplate template = createTemplate(request);
         As4Sender sender = new As4Sender(request, certificate);
-        template.sendAndReceive(request.getEndpoint().getAddress().toString(), sender, new TransmissionResponseExtractor());
+        TransmissionResponseExtractor responseExtractor = new TransmissionResponseExtractor();
+        template.sendAndReceive(request.getEndpoint().getAddress().toString(), sender, responseExtractor);
         return null;
     }
 
@@ -92,7 +93,8 @@ public class As4MessageSender {
         String alias = settings.getString(KeyStoreConf.KEY_ALIAS);
         String password = settings.getString(KeyStoreConf.PASSWORD);
         interceptor.setSecurementPassword(password);
-        interceptor.setSecurementActions("Signature Encrypt");
+        // TODO: add signature processing to inbound module
+        interceptor.setSecurementActions("Encrypt");
 
         interceptor.setSecurementSignatureUser(alias);
         interceptor.setSecurementSignatureCrypto(crypto);
@@ -108,10 +110,12 @@ public class As4MessageSender {
         interceptor.setSecurementEncryptionKeyIdentifier("DirectReference");
         interceptor.setSecurementEncryptionParts("{}cid:Attachments");
 
+        interceptor.setSecurementMustUnderstand(true);
+
         try {
             interceptor.afterPropertiesSet();
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new RuntimeException("Could not set up security interceptor", e);
         }
 
         return interceptor;

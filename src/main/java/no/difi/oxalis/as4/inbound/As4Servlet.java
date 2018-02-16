@@ -1,52 +1,60 @@
 package no.difi.oxalis.as4.inbound;
 
+import com.google.common.collect.Maps;
+import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import org.apache.commons.io.IOUtils;
+import no.difi.oxalis.api.settings.Settings;
+import no.difi.oxalis.commons.security.KeyStoreConf;
+import org.apache.cxf.BusFactory;
+import org.apache.cxf.jaxws.EndpointImpl;
+import org.apache.cxf.transport.servlet.CXFNonSpringServlet;
+import org.apache.wss4j.common.crypto.Merlin;
+import org.apache.wss4j.dom.handler.WSHandlerConstants;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import javax.servlet.ServletConfig;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.xml.soap.*;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import javax.xml.soap.MimeHeaders;
+import javax.xml.ws.Endpoint;
+import java.security.KeyStore;
+import java.security.Security;
 import java.util.Enumeration;
-import java.util.Iterator;
+import java.util.Map;
 import java.util.StringTokenizer;
 
 @Singleton
-public class As4Servlet extends HttpServlet {
+public class As4Servlet extends CXFNonSpringServlet {
 
-    private MessageFactory messageFactory = null;
+    @Inject
+    private KeyStore keyStore;
 
-    @Override
-    public void init(ServletConfig servletConfig) throws ServletException {
-        super.init(servletConfig);
-        try {
-            messageFactory = MessageFactory.newInstance(SOAPConstants.SOAP_1_2_PROTOCOL);
-        }
-        catch (SOAPException ex) {
-            throw new ServletException("Unable to create message factory" + ex.getMessage());
-        }
-    }
+    @Inject
+    private Settings<KeyStoreConf> settings;
 
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        try {
-            SOAPMessage soapMessage = messageFactory.createMessage(getHeaders(req), req.getInputStream());
+    protected void loadBus(ServletConfig servletConfig) {
+        super.loadBus(servletConfig);
+        BusFactory.setDefaultBus(getBus());
+        EndpointImpl endpointImpl = (EndpointImpl) Endpoint.publish("/", new As4Provider());
 
-            Iterator<AttachmentPart> attachments = soapMessage.getAttachments();
-            while (attachments.hasNext()) {
-                AttachmentPart attachment = attachments.next();
-                String s = IOUtils.toString(attachment.getRawContent(), StandardCharsets.UTF_8);
-                System.out.println("Attachment content: \n"+s);
-            }
-        } catch (SOAPException e) {
-            throw new RuntimeException("Cannot create message factory", e);
-        }
+        Security.addProvider(new BouncyCastleProvider());
+        Merlin encryptCrypto = new Merlin();
+        encryptCrypto.setCryptoProvider(BouncyCastleProvider.PROVIDER_NAME);
+        encryptCrypto.setKeyStore(keyStore);
 
-        resp.setStatus(HttpServletResponse.SC_OK);
+        // Properties
+        // TODO: setup signature processing
+        Map<String, Object> inProps = Maps.newHashMap();
+        inProps.put(WSHandlerConstants.ACTION, WSHandlerConstants.ENCRYPT);
+        String alias = settings.getString(KeyStoreConf.KEY_ALIAS);
+        String password = settings.getString(KeyStoreConf.KEY_PASSWORD);
+        PasswordCallbackHandler cb = new PasswordCallbackHandler(password);
+        inProps.put(WSHandlerConstants.PW_CALLBACK_REF, cb);
+        inProps.put(WSHandlerConstants.ENCRYPTION_PARTS, "{}cid:Attachments");
+
+        WsInInterceptor interceptor = new WsInInterceptor(inProps, encryptCrypto, alias);
+        org.apache.cxf.endpoint.Endpoint endpoint = endpointImpl.getServer().getEndpoint();
+        endpoint.getInInterceptors().add(interceptor);
     }
 
     private MimeHeaders getHeaders(HttpServletRequest httpServletRequest) {

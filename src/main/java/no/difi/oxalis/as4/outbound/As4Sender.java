@@ -47,18 +47,14 @@ public class As4Sender implements WebServiceMessageCallback {
         SaajSoapMessage message = (SaajSoapMessage) webServiceMessage;
         // Must be octet-stream for encrypted attachments
         message.addAttachment(newId(), () -> request.getPayload(), MediaType.APPLICATION_OCTET_STREAM_VALUE);
-//        AttachmentPart attachmentPart = message.getSaajMessage()
-//                .createAttachmentPart(new DataHandler(
-//                        new InputStreamDataSource(request.getPayload(), MediaType.APPLICATION_OCTET_STREAM_VALUE)));
-//        attachmentPart.setContentId(newId());
-//        message.getSaajMessage().addAttachmentPart(attachmentPart);
         addEbmsHeader(message);
     }
 
     private void addEbmsHeader(SoapMessage message) {
         SoapHeader header = message.getSoapHeader();
         SoapHeaderElement messagingHeader = header.addHeaderElement(Constants.MESSAGING_QNAME);
-        messagingHeader.setMustUnderstand(true);
+        // TODO: add header processing to inbound module and set mustUnderstand=true
+//        messagingHeader.setMustUnderstand(true);
 
         UserMessage userMessage = UserMessage.builder()
                 .withMessageInfo(createMessageInfo())
