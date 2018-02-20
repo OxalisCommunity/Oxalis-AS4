@@ -14,6 +14,9 @@ public class As4InboundModule extends ServletModule {
                 .to(As4Servlet.class)
                 .asEagerSingleton();
 
+        bind(As4Provider.class);
+        bind(As4InboundHandler.class);
+
         serve("/as4*").with(Key.get(HttpServlet.class, Names.named("oxalis-as4")));
     }
 }

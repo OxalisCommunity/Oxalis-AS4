@@ -31,11 +31,14 @@ public class As4Servlet extends CXFNonSpringServlet {
     @Inject
     private Settings<KeyStoreConf> settings;
 
+    @Inject
+    private As4Provider provider;
+
     @Override
     protected void loadBus(ServletConfig servletConfig) {
         super.loadBus(servletConfig);
         BusFactory.setDefaultBus(getBus());
-        EndpointImpl endpointImpl = (EndpointImpl) Endpoint.publish("/", new As4Provider());
+        EndpointImpl endpointImpl = (EndpointImpl) Endpoint.publish("/", provider);
 
         Security.addProvider(new BouncyCastleProvider());
         Merlin encryptCrypto = new Merlin();

@@ -54,7 +54,7 @@ public class As4Sender implements WebServiceMessageCallback {
         SoapHeader header = message.getSoapHeader();
         SoapHeaderElement messagingHeader = header.addHeaderElement(Constants.MESSAGING_QNAME);
         // TODO: add header processing to inbound module and set mustUnderstand=true
-//        messagingHeader.setMustUnderstand(true);
+        messagingHeader.setMustUnderstand(true);
 
         UserMessage userMessage = UserMessage.builder()
                 .withMessageInfo(createMessageInfo())

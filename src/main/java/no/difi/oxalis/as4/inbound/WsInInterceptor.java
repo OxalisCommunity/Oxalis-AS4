@@ -1,5 +1,6 @@
 package no.difi.oxalis.as4.inbound;
 
+import no.difi.oxalis.as4.util.Constants;
 import org.apache.cxf.binding.soap.SoapMessage;
 import org.apache.cxf.helpers.CastUtils;
 import org.apache.cxf.interceptor.Fault;
@@ -8,11 +9,13 @@ import org.apache.cxf.ws.security.SecurityConstants;
 import org.apache.cxf.ws.security.wss4j.WSS4JInInterceptor;
 import org.apache.wss4j.common.crypto.Crypto;
 
+import javax.xml.namespace.QName;
 import javax.xml.soap.AttachmentPart;
 import javax.xml.soap.SOAPMessage;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 public class WsInInterceptor extends WSS4JInInterceptor {
 
@@ -45,5 +48,12 @@ public class WsInInterceptor extends WSS4JInInterceptor {
                 }
             }
         }
+    }
+
+    @Override
+    public Set<QName> getUnderstoodHeaders() {
+        Set<QName> understoodHeaders = super.getUnderstoodHeaders();
+        understoodHeaders.add(Constants.MESSAGING_QNAME);
+        return understoodHeaders;
     }
 }
