@@ -14,6 +14,7 @@ public class TransmissionResponseExtractor implements WebServiceMessageExtractor
     public TransmissionResponse extractData(WebServiceMessage webServiceMessage) throws IOException, TransformerException {
         // TODO: process response
         SoapMessage soapMessage = (SoapMessage) webServiceMessage;
+        System.out.println(soapMessage);
         return null;
     }
 }
