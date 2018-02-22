@@ -14,7 +14,7 @@ import no.difi.oxalis.api.transmission.TransmissionVerifier;
 import no.difi.oxalis.as4.lang.OxalisAs4Exception;
 import no.difi.oxalis.as4.util.Constants;
 import no.difi.oxalis.as4.util.Marshalling;
-import no.difi.oxalis.as4.util.SecurityHeaderParser;
+import no.difi.oxalis.as4.util.SOAPHeaderParser;
 import no.difi.oxalis.commons.io.PeekingInputStream;
 import no.difi.oxalis.commons.io.UnclosableInputStream;
 import no.difi.vefa.peppol.common.code.DigestMethod;
@@ -79,7 +79,7 @@ public class As4InboundHandler {
         Path payloadPath = persistPayload(peekingInputStream, sbdh, ti);
 
         // Extract senders certificate from header
-        X509Certificate senderCertificate = SecurityHeaderParser.getSenderCertificate(header);
+        X509Certificate senderCertificate = SOAPHeaderParser.getSenderCertificate(header);
 
         // Timestamp
         Timestamp ts = getTimestamp(header);
@@ -89,10 +89,10 @@ public class As4InboundHandler {
         }
         String refId = userMessage.getPayloadInfo().getPartInfo().get(0).getHref();
         // Get attachment digest from header
-        Digest attachmentDigest = Digest.of(DigestMethod.SHA256, SecurityHeaderParser.getAttachmentDigest(refId, header));
+        Digest attachmentDigest = Digest.of(DigestMethod.SHA256, SOAPHeaderParser.getAttachmentDigest(refId, header));
 
         // Get reference list
-        List<ReferenceType> referenceList = SecurityHeaderParser.getReferenceList(header);
+        List<ReferenceType> referenceList = SOAPHeaderParser.getReferenceListFromSignedInfo(header);
 
         SOAPMessage response = createSOAPResponse(ts, userMessage.getMessageInfo().getMessageId(), referenceList);
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -178,7 +178,7 @@ public class As4InboundHandler {
 
     private Timestamp getTimestamp(SOAPHeader header) throws OxalisAs4Exception {
         Timestamp ts;
-        byte[] signature = SecurityHeaderParser.getSignature(header);
+        byte[] signature = SOAPHeaderParser.getSignature(header);
         try {
             ts = timestampProvider.generate(signature, Direction.IN);
         } catch (TimestampException e) {

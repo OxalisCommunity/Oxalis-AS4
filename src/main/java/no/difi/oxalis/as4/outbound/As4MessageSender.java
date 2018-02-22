@@ -66,7 +66,10 @@ public class As4MessageSender {
         template.setMarshaller(Marshalling.getInstance());
         template.setUnmarshaller(Marshalling.getInstance());
         template.setMessageSender(createMessageSender());
-        template.setInterceptors(new ClientInterceptor[] {createWsSecurityInterceptor(request.getEndpoint().getCertificate())});
+        template.setInterceptors(new ClientInterceptor[] {
+                createWsSecurityInterceptor(request.getEndpoint().getCertificate()),
+                new ReferenceValidatorInterceptor()
+        });
         return template;
     }
 

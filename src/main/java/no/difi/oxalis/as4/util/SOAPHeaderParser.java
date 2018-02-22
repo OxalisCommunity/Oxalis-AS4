@@ -17,13 +17,14 @@ import java.security.cert.X509Certificate;
 import java.util.Base64;
 import java.util.List;
 
-public class SecurityHeaderParser {
+public class SOAPHeaderParser {
 
     private static final String NS_ALL = "*";
     private static final String BST = "BinarySecurityToken";
     private static final String SIG = "Signature";
     private static final String SIG_VAL = "SignatureValue";
     private static final String SIG_INFO = "SignedInfo";
+    private static final String NRI = "NonRepudiationInformation";
     private static final String KEY_INFO = "KeyInfo";
     private static final String REF = "Reference";
     private static final String DIGEST_VAL = "DigestValue";
@@ -94,14 +95,26 @@ public class SecurityHeaderParser {
         return sigValNode.item(0).getTextContent().replace("\r\n", "").getBytes(StandardCharsets.UTF_8);
     }
 
-    public static List<ReferenceType> getReferenceList(SOAPHeader header) throws OxalisAs4Exception {
+    public static List<ReferenceType> getReferenceListFromSignedInfo(SOAPHeader header) throws OxalisAs4Exception {
         NodeList sigInfoNode = header.getElementsByTagNameNS(NS_ALL, SIG_INFO);
         if (sigInfoNode.getLength() != 1) {
             throw new OxalisAs4Exception("Zero or multiple Signature elements in header");
         }
         Element sigInfoElement = (Element) sigInfoNode.item(0);
+        return refListFromElement(sigInfoElement);
+    }
 
-        NodeList refNodes = sigInfoElement.getElementsByTagNameNS(NS_ALL, REF);
+    public static List<ReferenceType> getReferenceListFromNonRepudiationInformation(SOAPHeader header) throws OxalisAs4Exception {
+        NodeList nriNode = header.getElementsByTagNameNS(NS_ALL, NRI);
+        if (nriNode.getLength() != 1) {
+            throw new OxalisAs4Exception("Zero or multiple Signature elements in header");
+        }
+        Element nriElement = (Element) nriNode.item(0);
+        return refListFromElement(nriElement);
+    }
+
+    private static List<ReferenceType> refListFromElement(Element element) throws OxalisAs4Exception {
+        NodeList refNodes = element.getElementsByTagNameNS(NS_ALL, REF);
         List<ReferenceType> referenceList = Lists.newArrayList();
 
         try {
