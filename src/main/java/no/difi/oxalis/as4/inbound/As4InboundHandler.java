@@ -12,6 +12,7 @@ import no.difi.oxalis.api.timestamp.Timestamp;
 import no.difi.oxalis.api.timestamp.TimestampProvider;
 import no.difi.oxalis.api.transmission.TransmissionVerifier;
 import no.difi.oxalis.as4.lang.OxalisAs4Exception;
+import no.difi.oxalis.as4.util.Constants;
 import no.difi.oxalis.as4.util.Marshalling;
 import no.difi.oxalis.as4.util.SecurityHeaderParser;
 import no.difi.oxalis.commons.io.PeekingInputStream;
@@ -23,21 +24,30 @@ import no.difi.vefa.peppol.common.model.TransportProfile;
 import no.difi.vefa.peppol.sbdh.SbdReader;
 import no.difi.vefa.peppol.sbdh.lang.SbdhException;
 import org.apache.cxf.helpers.CastUtils;
-import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.Messaging;
-import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.UserMessage;
+import org.oasis_open.docs.ebxml_bp.ebbp_signals_2.MessagePartNRInformation;
+import org.oasis_open.docs.ebxml_bp.ebbp_signals_2.NonRepudiationInformation;
+import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.*;
+import org.w3.xmldsig.ReferenceType;
 import org.w3c.dom.Node;
 
+import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
-import javax.xml.soap.AttachmentPart;
-import javax.xml.soap.SOAPException;
-import javax.xml.soap.SOAPHeader;
-import javax.xml.soap.SOAPMessage;
+import javax.xml.datatype.DatatypeConfigurationException;
+import javax.xml.datatype.DatatypeFactory;
+import javax.xml.datatype.XMLGregorianCalendar;
+import javax.xml.soap.*;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.security.cert.X509Certificate;
+import java.util.GregorianCalendar;
 import java.util.Iterator;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Singleton
 public class As4InboundHandler {
@@ -81,14 +91,25 @@ public class As4InboundHandler {
         // Get attachment digest from header
         Digest attachmentDigest = Digest.of(DigestMethod.SHA256, SecurityHeaderParser.getAttachmentDigest(refId, header));
 
+        // Get reference list
+        List<ReferenceType> referenceList = SecurityHeaderParser.getReferenceList(header);
+
+        SOAPMessage response = createSOAPResponse(ts, userMessage.getMessageInfo().getMessageId(), referenceList);
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        try {
+            response.writeTo(bos);
+        } catch (SOAPException | IOException e) {
+            throw new OxalisAs4Exception("Could not write SOAP response", e);
+        }
+
         As4InboundMetadata as4InboundMetadata = new As4InboundMetadata(
                 ti,
                 sbdh,
                 ts,
                 TransportProfile.AS4,
-                attachmentDigest, //digest
+                attachmentDigest,
                 senderCertificate,
-                null //primary receipt
+                bos.toByteArray()
         );
 
         try {
@@ -97,7 +118,62 @@ public class As4InboundHandler {
             throw new OxalisAs4Exception("Error persisting AS4 metadata", e);
         }
 
-        return request;
+        return response;
+    }
+
+    private SOAPMessage createSOAPResponse(Timestamp ts,
+                                           String refToMessageId,
+                                           List<ReferenceType> referenceList) throws OxalisAs4Exception {
+        SignalMessage signalMessage;
+        SOAPHeaderElement messagingHeader;
+        SOAPMessage message;
+        try {
+            MessageFactory messageFactory = MessageFactory.newInstance(SOAPConstants.SOAP_1_2_PROTOCOL);
+            message = messageFactory.createMessage();
+            SOAPHeader soapHeader = message.getSOAPHeader();
+            messagingHeader = soapHeader.addHeaderElement(Constants.MESSAGING_QNAME);
+        } catch (SOAPException e) {
+            throw new OxalisAs4Exception("Could not create SOAP message", e);
+        }
+
+        GregorianCalendar gc = new GregorianCalendar();
+        gc.setTime(ts.getDate());
+        XMLGregorianCalendar xmlGc;
+        try {
+            xmlGc = DatatypeFactory.newInstance().newXMLGregorianCalendar(gc);
+        } catch (DatatypeConfigurationException e) {
+            throw new OxalisAs4Exception("Could not create XMLGregorianCalendar from timestamp", e);
+        }
+
+        MessageInfo messageInfo = MessageInfo.builder()
+                .withTimestamp(xmlGc)
+                .withMessageId(UUID.randomUUID().toString())
+                .withRefToMessageId(refToMessageId)
+                .build();
+
+        List<MessagePartNRInformation> mpList = referenceList.stream()
+                .map(r -> MessagePartNRInformation.builder().withReference(r).build())
+                .collect(Collectors.toList());
+
+        NonRepudiationInformation nri = NonRepudiationInformation.builder()
+                .addMessagePartNRInformation(mpList)
+                .build();
+
+        signalMessage = SignalMessage.builder()
+                .withMessageInfo(messageInfo)
+                .withReceipt(Receipt.builder().withAny(nri).build())
+                .build();
+
+        JAXBElement<SignalMessage> userMessageJAXBElement = new JAXBElement<>(Constants.SIGNAL_MESSAGE_QNAME,
+                (Class<SignalMessage>) signalMessage.getClass(), signalMessage);
+        try {
+            Marshaller marshaller = Marshalling.getInstance().getJaxbContext().createMarshaller();
+            marshaller.marshal(userMessageJAXBElement, messagingHeader);
+        } catch (JAXBException e) {
+            throw new OxalisAs4Exception("Could not marshal signal message to header", e);
+        }
+
+        return message;
     }
 
     private Timestamp getTimestamp(SOAPHeader header) throws OxalisAs4Exception {

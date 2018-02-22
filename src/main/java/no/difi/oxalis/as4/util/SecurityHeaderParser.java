@@ -1,9 +1,13 @@
 package no.difi.oxalis.as4.util;
 
+import com.google.common.collect.Lists;
 import no.difi.oxalis.as4.lang.OxalisAs4Exception;
+import org.w3.xmldsig.ReferenceType;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
 import javax.xml.soap.SOAPHeader;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
@@ -11,6 +15,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
+import java.util.List;
 
 public class SecurityHeaderParser {
 
@@ -87,5 +92,26 @@ public class SecurityHeaderParser {
             throw new OxalisAs4Exception("Zero or multiple SignatureValue elements in header");
         }
         return sigValNode.item(0).getTextContent().replace("\r\n", "").getBytes(StandardCharsets.UTF_8);
+    }
+
+    public static List<ReferenceType> getReferenceList(SOAPHeader header) throws OxalisAs4Exception {
+        NodeList sigInfoNode = header.getElementsByTagNameNS(NS_ALL, SIG_INFO);
+        if (sigInfoNode.getLength() != 1) {
+            throw new OxalisAs4Exception("Zero or multiple Signature elements in header");
+        }
+        Element sigInfoElement = (Element) sigInfoNode.item(0);
+
+        NodeList refNodes = sigInfoElement.getElementsByTagNameNS(NS_ALL, REF);
+        List<ReferenceType> referenceList = Lists.newArrayList();
+
+        try {
+            Unmarshaller unmarshaller = Marshalling.getInstance().getJaxbContext().createUnmarshaller();
+            for (int i=0; i<refNodes.getLength(); i++) {
+                referenceList.add(unmarshaller.unmarshal(refNodes.item(i), ReferenceType.class).getValue());
+            }
+        } catch (JAXBException e) {
+            throw new OxalisAs4Exception("Could not unmarshal reference node", e);
+        }
+        return referenceList;
     }
 }
