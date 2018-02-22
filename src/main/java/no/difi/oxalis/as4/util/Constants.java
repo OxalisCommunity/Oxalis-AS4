@@ -16,5 +16,5 @@ public class Constants {
     public static final QName SIGNAL_MESSAGE_QNAME = new QName(EBMS_NAMESPACE, "SignalMessage");
 
     public static final String RSA_SHA256 = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256";
-    public static final String AES_128_GCM = "http://www.w3.org/2009/xmlenc11#aes128-gcm";
+    public static final String DIGEST_ALGORITHM_SHA256 = "sha256";
 }

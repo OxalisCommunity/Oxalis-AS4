@@ -4,6 +4,7 @@ import com.google.inject.Inject;
 import no.difi.oxalis.api.outbound.TransmissionRequest;
 import no.difi.oxalis.api.outbound.TransmissionResponse;
 import no.difi.oxalis.api.settings.Settings;
+import no.difi.oxalis.api.timestamp.TimestampProvider;
 import no.difi.oxalis.as4.util.Marshalling;
 import no.difi.oxalis.commons.security.KeyStoreConf;
 import org.apache.wss4j.common.WSS4JConstants;
@@ -32,20 +33,24 @@ public class As4MessageSender {
     private X509Certificate certificate;
     private KeyStore keyStore;
     private Settings<KeyStoreConf> settings;
+    private TimestampProvider timestampProvider;
 
     @Inject
-    public As4MessageSender(X509Certificate certificate, KeyStore keyStore, Settings<KeyStoreConf> settings) {
+    public As4MessageSender(X509Certificate certificate,
+                            KeyStore keyStore,
+                            Settings<KeyStoreConf> settings,
+                            TimestampProvider timestampProvider) {
         this.certificate = certificate;
         this.keyStore = keyStore;
         this.settings = settings;
+        this.timestampProvider = timestampProvider;
     }
 
     public TransmissionResponse send(TransmissionRequest request) {
         WebServiceTemplate template = createTemplate(request);
         As4Sender sender = new As4Sender(request, certificate);
-        TransmissionResponseExtractor responseExtractor = new TransmissionResponseExtractor();
-        template.sendAndReceive(request.getEndpoint().getAddress().toString(), sender, responseExtractor);
-        return null;
+        TransmissionResponseExtractor responseExtractor = new TransmissionResponseExtractor(request, timestampProvider);
+        return template.sendAndReceive(request.getEndpoint().getAddress().toString(), sender, responseExtractor);
     }
 
     private SaajSoapMessageFactory createSoapMessageFactory() {

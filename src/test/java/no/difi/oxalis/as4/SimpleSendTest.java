@@ -66,6 +66,6 @@ public class SimpleSendTest extends AbstractJettyServerTest {
             }
         });
 
-        Assert.assertNull(response);
+        Assert.assertNotNull(response);
     }
 }
