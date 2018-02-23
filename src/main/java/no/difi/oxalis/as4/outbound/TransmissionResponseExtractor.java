@@ -62,8 +62,6 @@ public class TransmissionResponseExtractor implements WebServiceMessageExtractor
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         soapMessage.writeTo(bos);
 
-        // TODO verify references
-
         return new As4TransmissionResponse(
                 ti,
                 request,
