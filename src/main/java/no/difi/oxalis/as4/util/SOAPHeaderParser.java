@@ -2,8 +2,11 @@ package no.difi.oxalis.as4.util;
 
 import com.google.common.collect.Lists;
 import no.difi.oxalis.as4.lang.OxalisAs4Exception;
+import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.Messaging;
+import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.UserMessage;
 import org.w3.xmldsig.ReferenceType;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import javax.xml.bind.JAXBException;
@@ -20,6 +23,7 @@ import java.util.List;
 public class SOAPHeaderParser {
 
     private static final String NS_ALL = "*";
+    private static final String MESSAGING = "Messaging";
     private static final String BST = "BinarySecurityToken";
     private static final String SIG = "Signature";
     private static final String SIG_VAL = "SignatureValue";
@@ -126,5 +130,20 @@ public class SOAPHeaderParser {
             throw new OxalisAs4Exception("Could not unmarshal reference node", e);
         }
         return referenceList;
+    }
+
+    public static UserMessage getUserMessage(SOAPHeader header) throws OxalisAs4Exception {
+        Node messagingNode = header.getElementsByTagNameNS(NS_ALL, MESSAGING).item(0);
+        Messaging messaging;
+        Unmarshaller unmarshaller;
+        try {
+            unmarshaller = Marshalling.getInstance().getJaxbContext().createUnmarshaller();
+            messaging = unmarshaller.unmarshal(messagingNode, Messaging.class).getValue();
+        } catch (JAXBException e) {
+            throw new OxalisAs4Exception("Could not unmarshal Messaging node from header");
+        }
+        return messaging.getUserMessage().stream()
+                .findFirst()
+                .orElseThrow(() -> new OxalisAs4Exception("No UserMessage present in header"));
     }
 }

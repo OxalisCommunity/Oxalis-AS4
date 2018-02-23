@@ -26,14 +26,15 @@ import no.difi.vefa.peppol.sbdh.lang.SbdhException;
 import org.apache.cxf.helpers.CastUtils;
 import org.oasis_open.docs.ebxml_bp.ebbp_signals_2.MessagePartNRInformation;
 import org.oasis_open.docs.ebxml_bp.ebbp_signals_2.NonRepudiationInformation;
-import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.*;
+import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.MessageInfo;
+import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.Receipt;
+import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.SignalMessage;
+import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.UserMessage;
 import org.w3.xmldsig.ReferenceType;
-import org.w3c.dom.Node;
 
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
-import javax.xml.bind.Unmarshaller;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
@@ -73,7 +74,7 @@ public class As4InboundHandler {
         // Validate SBDH
         validateSBDH(sbdh);
 
-        UserMessage userMessage = getUserMessage(header);
+        UserMessage userMessage = SOAPHeaderParser.getUserMessage(header);
         TransmissionIdentifier ti = TransmissionIdentifier.of(userMessage.getMessageInfo().getMessageId());
 
         Path payloadPath = persistPayload(peekingInputStream, sbdh, ti);
@@ -202,21 +203,6 @@ public class As4InboundHandler {
             throw new OxalisAs4Exception("Error processing payload input stream", e);
         }
         return payloadPath;
-    }
-
-    private UserMessage getUserMessage(SOAPHeader header) throws OxalisAs4Exception {
-        Node messagingNode = header.getElementsByTagNameNS("*", "Messaging").item(0);
-        Messaging messaging;
-        Unmarshaller unmarshaller;
-        try {
-            unmarshaller = Marshalling.getInstance().getJaxbContext().createUnmarshaller();
-            messaging = unmarshaller.unmarshal(messagingNode, Messaging.class).getValue();
-        } catch (JAXBException e) {
-            throw new OxalisAs4Exception("Could not unmarshal Messaging node from header");
-        }
-        return messaging.getUserMessage().stream()
-                .findFirst()
-                .orElseThrow(() -> new OxalisAs4Exception("No UserMessage present in header"));
     }
 
     private void validateSBDH(Header sbdh) throws OxalisAs4Exception {
