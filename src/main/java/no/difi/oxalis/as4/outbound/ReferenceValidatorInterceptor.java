@@ -45,7 +45,7 @@ public class ReferenceValidatorInterceptor implements ClientInterceptor {
 
     @Override
     public boolean handleFault(MessageContext messageContext) throws WebServiceClientException {
-        return false;
+        return true;
     }
 
     @Override
