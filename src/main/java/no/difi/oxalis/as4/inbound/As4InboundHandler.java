@@ -30,6 +30,9 @@ import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.MessageInfo;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.Receipt;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.SignalMessage;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.UserMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.util.StreamUtils;
 import org.w3.xmldsig.ReferenceType;
 
 import javax.xml.bind.JAXBElement;
@@ -39,15 +42,16 @@ import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.soap.*;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.cert.X509Certificate;
-import java.util.GregorianCalendar;
-import java.util.Iterator;
-import java.util.List;
-import java.util.UUID;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Singleton
@@ -61,6 +65,7 @@ public class As4InboundHandler {
 
     @Inject
     private TimestampProvider timestampProvider;
+
 
     public SOAPMessage handle(SOAPMessage request) throws OxalisAs4Exception {
         SOAPHeader header = getSoapHeader(request);
@@ -233,10 +238,14 @@ public class As4InboundHandler {
 
         InputStream attachmentStream;
         try {
-            attachmentStream = attachments.next().getDataHandler().getInputStream();
-        } catch (IOException | SOAPException e) {
+            AttachmentPart attachmentPart = attachments.next();
+
+            attachmentStream = attachmentPart.getDataHandler().getInputStream();
+
+        } catch ( IOException | SOAPException e) {
             throw new OxalisAs4Exception("Could not get attachment input stream", e);
         }
+
         PeekingInputStream peekingInputStream;
         try {
             peekingInputStream = new PeekingInputStream(attachmentStream);

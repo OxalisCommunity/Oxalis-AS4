@@ -4,6 +4,8 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import no.difi.oxalis.as4.lang.OxalisAs4Exception;
 import org.apache.cxf.transport.http.AbstractHTTPDestination;
+import org.apache.xml.security.algorithms.JCEMapper;
+import org.apache.xml.security.encryption.XMLCipher;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
@@ -31,6 +33,11 @@ public class As4Provider implements Provider<SOAPMessage> {
         HttpServletRequest httpReq = (HttpServletRequest) ctx.get(AbstractHTTPDestination.HTTP_REQUEST);
         HttpServletResponse httpRes = (HttpServletResponse) ctx.get(AbstractHTTPDestination.HTTP_RESPONSE);
         httpRes.setStatus(HttpServletResponse.SC_OK);
+
+
+//        JCEMapper.register("http://custom.difi.no/2018/07/xmlenc#rsa-oaep-sha256-mgf1",
+//                new JCEMapper.Algorithm("RSA", "RSA/ECB/OAEPWithSHA-256AndMGF1Padding", "KeyTransport"));
+
 
         try {
             return handler.handle(request);

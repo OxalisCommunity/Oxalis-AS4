@@ -5,6 +5,7 @@ import no.difi.oxalis.api.outbound.TransmissionRequest;
 import no.difi.oxalis.as4.util.Constants;
 import no.difi.oxalis.as4.util.Marshalling;
 import no.difi.oxalis.commons.security.CertificateUtils;
+import org.apache.xml.security.algorithms.JCEMapper;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.*;
 import org.springframework.http.MediaType;
 import org.springframework.oxm.jaxb.Jaxb2Marshaller;
@@ -40,6 +41,9 @@ public class As4Sender implements WebServiceMessageCallback {
     As4Sender(TransmissionRequest request, X509Certificate certificate) {
         this.request = request;
         this.certificate = certificate;
+
+        JCEMapper.register("http://custom.difi.no/2018/07/xmlenc#rsa-oaep-sha256-mgf1",
+                new JCEMapper.Algorithm("RSA", "RSA/ECB/OAEPWithSHA-256AndMGF1Padding", "KeyTransport"));
     }
 
     @Override
@@ -136,7 +140,7 @@ public class As4Sender implements WebServiceMessageCallback {
     private CollaborationInfo createCollaborationInfo() {
         return CollaborationInfo.builder()
                 .withConversationId(newId())
-                .withAction(request.getHeader().getDocumentType().getIdentifier())
+                .withAction(request.getHeader().getDocumentType().toString())
                 .withService(Service.builder()
                         .withType(SERVICE_TYPE)
                         .withValue(request.getHeader().getProcess().getIdentifier())

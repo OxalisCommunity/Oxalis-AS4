@@ -9,6 +9,7 @@ import no.difi.oxalis.as4.util.Marshalling;
 import no.difi.oxalis.commons.security.KeyStoreConf;
 import org.apache.wss4j.common.WSS4JConstants;
 import org.apache.wss4j.common.crypto.Merlin;
+import org.apache.wss4j.dom.WSConstants;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.springframework.ws.client.core.WebServiceTemplate;
 import org.springframework.ws.client.support.interceptor.ClientInterceptor;
@@ -107,7 +108,7 @@ public class As4MessageSender {
         interceptor.setSecurementSignatureCrypto(crypto);
         interceptor.setValidationSignatureCrypto(crypto);
         interceptor.setSecurementSignatureAlgorithm(RSA_SHA256);
-        interceptor.setSecurementSignatureDigestAlgorithm(DigestMethod.SHA256);
+        interceptor.setSecurementSignatureDigestAlgorithm(DigestMethod.SHA256); // Usikker på om dette er riktig
         interceptor.setSecurementSignatureKeyIdentifier("DirectReference");
         interceptor.setSecurementSignatureParts("{}{}Body; {}cid:Attachments");
 
@@ -116,6 +117,8 @@ public class As4MessageSender {
         interceptor.setSecurementEncryptionSymAlgorithm(WSS4JConstants.AES_128_GCM);
         interceptor.setSecurementEncryptionKeyIdentifier("DirectReference");
         interceptor.setSecurementEncryptionParts("{}cid:Attachments");
+
+        interceptor.setSecurementEncryptionKeyTransportAlgorithm(WSS4JConstants.KEYTRANSPORT_RSAOAEP_XENC11);
 
         interceptor.setSecurementMustUnderstand(true);
 

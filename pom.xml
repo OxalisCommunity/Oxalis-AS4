@@ -52,6 +52,7 @@
         <dependency>
             <groupId>no.difi.oxalis</groupId>
             <artifactId>oxalis-commons</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>no.difi.oxalis</groupId>
@@ -105,11 +106,13 @@
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcmail-jdk15on</artifactId>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>javax.mail</groupId>
             <artifactId>mail</artifactId>
+            <scope>provided</scope>
         </dependency>
         <!-- <dependency>
             <groupId>javax.mail</groupId>
