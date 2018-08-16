@@ -41,9 +41,6 @@ public class As4Sender implements WebServiceMessageCallback {
     As4Sender(TransmissionRequest request, X509Certificate certificate) {
         this.request = request;
         this.certificate = certificate;
-
-        JCEMapper.register("http://custom.difi.no/2018/07/xmlenc#rsa-oaep-sha256-mgf1",
-                new JCEMapper.Algorithm("RSA", "RSA/ECB/OAEPWithSHA-256AndMGF1Padding", "KeyTransport"));
     }
 
     @Override
@@ -87,7 +84,7 @@ public class As4Sender implements WebServiceMessageCallback {
                     .withName("MimeType")
                     .withValue("application/xml")
                     .build();
-            PartProperties partProperties = PartProperties.builder().withProperty(compressionType, mimeType).build();
+            PartProperties partProperties = PartProperties.builder().withProperty(/*compressionType,*/ mimeType).build();
             PartInfo partInfo = PartInfo.builder()
                     .withHref(cid)
                     .withPartProperties(partProperties)

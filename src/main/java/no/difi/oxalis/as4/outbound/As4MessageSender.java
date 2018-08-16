@@ -7,9 +7,9 @@ import no.difi.oxalis.api.settings.Settings;
 import no.difi.oxalis.api.timestamp.TimestampProvider;
 import no.difi.oxalis.as4.util.Marshalling;
 import no.difi.oxalis.commons.security.KeyStoreConf;
+import org.apache.cxf.transport.common.gzip.GZIPOutInterceptor;
 import org.apache.wss4j.common.WSS4JConstants;
 import org.apache.wss4j.common.crypto.Merlin;
-import org.apache.wss4j.dom.WSConstants;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.springframework.ws.client.core.WebServiceTemplate;
 import org.springframework.ws.client.support.interceptor.ClientInterceptor;
@@ -102,7 +102,7 @@ public class As4MessageSender {
         String alias = settings.getString(KeyStoreConf.KEY_ALIAS);
         String password = settings.getString(KeyStoreConf.PASSWORD);
         interceptor.setSecurementPassword(password);
-        interceptor.setSecurementActions("Encrypt Signature");
+        interceptor.setSecurementActions("Signature Encrypt");
 
         interceptor.setSecurementSignatureUser(alias);
         interceptor.setSecurementSignatureCrypto(crypto);
@@ -110,12 +110,14 @@ public class As4MessageSender {
         interceptor.setSecurementSignatureAlgorithm(RSA_SHA256);
         interceptor.setSecurementSignatureDigestAlgorithm(DigestMethod.SHA256); // Usikker på om dette er riktig
         interceptor.setSecurementSignatureKeyIdentifier("DirectReference");
-        interceptor.setSecurementSignatureParts("{}{}Body; {}cid:Attachments");
+        interceptor.setSecurementSignatureParts("{}{}Body; {}cid:Attachments; {}{http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/}Messaging"); //Body, Attatchment, og Envelope:Messaging
 
         interceptor.setSecurementEncryptionUser("endpoint");
         interceptor.setSecurementEncryptionCrypto(endpointCrypto);
         interceptor.setSecurementEncryptionSymAlgorithm(WSS4JConstants.AES_128_GCM);
-        interceptor.setSecurementEncryptionKeyIdentifier("DirectReference");
+//        interceptor.setSecurementEncryptionKeyIdentifier("DirectReference");
+        interceptor.setSecurementEncryptionKeyIdentifier("SKIKeyIdentifier");
+
         interceptor.setSecurementEncryptionParts("{}cid:Attachments");
 
         interceptor.setSecurementEncryptionKeyTransportAlgorithm(WSS4JConstants.KEYTRANSPORT_RSAOAEP_XENC11);

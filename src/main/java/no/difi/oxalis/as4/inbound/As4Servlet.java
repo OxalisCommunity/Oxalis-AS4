@@ -6,8 +6,10 @@ import com.google.inject.Singleton;
 import no.difi.oxalis.api.settings.Settings;
 import no.difi.oxalis.commons.security.KeyStoreConf;
 import no.difi.vefa.peppol.security.api.CertificateValidator;
+import org.apache.cxf.Bus;
 import org.apache.cxf.BusFactory;
 import org.apache.cxf.jaxws.EndpointImpl;
+import org.apache.cxf.transport.common.gzip.GZIPOutInterceptor;
 import org.apache.cxf.transport.servlet.CXFNonSpringServlet;
 import org.apache.wss4j.common.crypto.Merlin;
 import org.apache.wss4j.dom.handler.WSHandlerConstants;
@@ -45,7 +47,16 @@ public class As4Servlet extends CXFNonSpringServlet {
     @Override
     protected void loadBus(ServletConfig servletConfig) {
         super.loadBus(servletConfig);
-        BusFactory.setDefaultBus(getBus());
+
+
+        Bus buss = getBus();
+
+        GZIPOutInterceptor gzipOutInterceptor = new GZIPOutInterceptor();
+
+        bus.getOutInterceptors().add(gzipOutInterceptor);
+
+
+        BusFactory.setDefaultBus(bus);
 //        new DomibusAlgorithmSuiteLoader(getBus());
         EndpointImpl endpointImpl = (EndpointImpl) Endpoint.publish("/", provider);
 
