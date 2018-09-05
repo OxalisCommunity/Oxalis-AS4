@@ -24,6 +24,7 @@ import no.difi.vefa.peppol.common.model.TransportProfile;
 import no.difi.vefa.peppol.sbdh.SbdReader;
 import no.difi.vefa.peppol.sbdh.lang.SbdhException;
 import org.apache.cxf.helpers.CastUtils;
+import org.apache.cxf.helpers.IOUtils;
 import org.oasis_open.docs.ebxml_bp.ebbp_signals_2.MessagePartNRInformation;
 import org.oasis_open.docs.ebxml_bp.ebbp_signals_2.NonRepudiationInformation;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.MessageInfo;
@@ -53,19 +54,23 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.zip.GZIPInputStream;
 
 @Singleton
 public class As4InboundHandler {
 
-    @Inject
     private TransmissionVerifier transmissionVerifier;
 
-    @Inject
     private PersisterHandler persisterHandler;
 
-    @Inject
     private TimestampProvider timestampProvider;
 
+    @Inject
+    public As4InboundHandler(TransmissionVerifier transmissionVerifier, PersisterHandler persisterHandler, TimestampProvider timestampProvider) {
+        this.transmissionVerifier = transmissionVerifier;
+        this.persisterHandler = persisterHandler;
+        this.timestampProvider = timestampProvider;
+    }
 
     public SOAPMessage handle(SOAPMessage request) throws OxalisAs4Exception {
         SOAPHeader header = getSoapHeader(request);
@@ -220,7 +225,18 @@ public class As4InboundHandler {
 
     private Header getSbdh(PeekingInputStream peekingInputStream) throws OxalisAs4Exception {
         Header sbdh;
-        try (SbdReader sbdReader = SbdReader.newInstance(peekingInputStream)) {
+
+
+        try {
+            String theString = IOUtils.toString(new GZIPInputStream(peekingInputStream));
+
+            System.out.println(theString);
+        }catch (Exception r){
+
+        }
+
+
+        try (SbdReader sbdReader = SbdReader.newInstance(new GZIPInputStream(peekingInputStream))) {
             sbdh = sbdReader.getHeader();
         } catch (SbdhException | IOException e) {
             throw new OxalisAs4Exception("Could not extract SBDH from payload");

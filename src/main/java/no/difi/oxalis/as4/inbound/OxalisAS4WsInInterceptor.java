@@ -1,5 +1,6 @@
 package no.difi.oxalis.as4.inbound;
 
+import no.difi.oxalis.as4.lang.OxalisAs4Exception;
 import no.difi.oxalis.as4.util.Constants;
 import org.apache.cxf.binding.soap.SoapMessage;
 import org.apache.cxf.helpers.CastUtils;
@@ -34,19 +35,6 @@ public class OxalisAS4WsInInterceptor extends WSS4JInInterceptor {
         msg.put(SecurityConstants.SIGNATURE_USERNAME, alias);
         msg.put(SecurityConstants.USERNAME, alias);
 
-        try {
-            System.out.println("========= Handle message: Alias and Properties =========");
-            System.out.println(alias);
-            CryptoType type = new CryptoType(CryptoType.TYPE.ALIAS);
-            type.setAlias(alias);
-            Arrays.asList(crypto.getX509Certificates(type)).forEach(s->System.out.println("- " + s.getSubjectDN()));
-            msg.forEach((a,b)->System.out.println(a.toString() + " = " + b.toString()));
-        }catch (Exception e){
-
-        }
-
-
-
         super.handleMessage(msg);
 
         SOAPMessage soapMessage = msg.getContent(SOAPMessage.class);
@@ -56,9 +44,10 @@ public class OxalisAS4WsInInterceptor extends WSS4JInInterceptor {
                 while (it.hasNext()) {
                     AttachmentPart part = it.next();
                     Optional<Attachment> first = msg.getAttachments().stream()
-                            .filter(a -> a.getId().equals(part.getContentId()))
+                            .filter(a -> a.getId().equals(part.getContentId().replaceAll("<|>", "")))
                             .findFirst();
                     first.ifPresent(a -> part.setDataHandler(a.getDataHandler()));
+                    first.orElseThrow(() -> new RuntimeException("Unable to find attachment")); // Todo: must send fault message
                 }
             }
         }

@@ -9,6 +9,7 @@ import no.difi.vefa.peppol.security.api.CertificateValidator;
 import org.apache.cxf.Bus;
 import org.apache.cxf.BusFactory;
 import org.apache.cxf.jaxws.EndpointImpl;
+import org.apache.cxf.transport.common.gzip.GZIPInInterceptor;
 import org.apache.cxf.transport.common.gzip.GZIPOutInterceptor;
 import org.apache.cxf.transport.servlet.CXFNonSpringServlet;
 import org.apache.wss4j.common.crypto.Merlin;
@@ -48,15 +49,12 @@ public class As4Servlet extends CXFNonSpringServlet {
     protected void loadBus(ServletConfig servletConfig) {
         super.loadBus(servletConfig);
 
-
         Bus buss = getBus();
 
         GZIPOutInterceptor gzipOutInterceptor = new GZIPOutInterceptor();
-
         bus.getOutInterceptors().add(gzipOutInterceptor);
-
-
         BusFactory.setDefaultBus(bus);
+
 //        new DomibusAlgorithmSuiteLoader(getBus());
         EndpointImpl endpointImpl = (EndpointImpl) Endpoint.publish("/", provider);
 
@@ -80,6 +78,7 @@ public class As4Servlet extends CXFNonSpringServlet {
         // Properties
         Map<String, Object> inProps = Maps.newHashMap();
         inProps.put(WSHandlerConstants.ACTION, WSHandlerConstants.ENCRYPT+" "+WSHandlerConstants.SIGNATURE);
+
         String alias = settings.getString(KeyStoreConf.KEY_ALIAS);
         String password = settings.getString(KeyStoreConf.KEY_PASSWORD);
         PasswordCallbackHandler cb = new PasswordCallbackHandler(password);
@@ -97,7 +96,7 @@ public class As4Servlet extends CXFNonSpringServlet {
 
         OxalisAS4WsInInterceptor interceptor = new OxalisAS4WsInInterceptor(inProps, encryptCrypto, alias);
         org.apache.cxf.endpoint.Endpoint endpoint = endpointImpl.getServer().getEndpoint();
-//        endpoint.getInInterceptors().add(new GZIPInInterceptor());
+        endpoint.getInInterceptors().add(new GZIPInInterceptor());
         endpoint.getInInterceptors().add(interceptor);
     }
 

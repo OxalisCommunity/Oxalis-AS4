@@ -5,6 +5,7 @@ import no.difi.oxalis.api.outbound.TransmissionRequest;
 import no.difi.oxalis.as4.util.Constants;
 import no.difi.oxalis.as4.util.Marshalling;
 import no.difi.oxalis.commons.security.CertificateUtils;
+import org.apache.cxf.transport.common.gzip.GZIPOutInterceptor;
 import org.apache.xml.security.algorithms.JCEMapper;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.*;
 import org.springframework.http.MediaType;
@@ -23,6 +24,9 @@ import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.transform.TransformerException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.security.cert.X509Certificate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -47,6 +51,7 @@ public class As4Sender implements WebServiceMessageCallback {
     public void doWithMessage(WebServiceMessage webServiceMessage) throws IOException, TransformerException {
         SaajSoapMessage message = (SaajSoapMessage) webServiceMessage;
         // Must be octet-stream for encrypted attachments
+
         message.addAttachment(newId(), () -> request.getPayload(), MediaType.APPLICATION_OCTET_STREAM_VALUE);
         addEbmsHeader(message);
     }
