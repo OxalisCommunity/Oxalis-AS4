@@ -27,10 +27,12 @@
     <parent>
         <groupId>no.difi.oxalis</groupId>
         <artifactId>oxalis</artifactId>
-        <version>4.0.0-RC3</version>
+        <version>4.0.2</version>
     </parent>
 
     <artifactId>oxalis-as4</artifactId>
+    <version>4.1.0-SNAPSHOT</version>
+
     <packaging>jar</packaging>
 
     <name>Oxalis :: AS4</name>
@@ -179,11 +181,11 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <schemaDirectory>${basedir}/src/main/resources/xsd</schemaDirectory>
+                    <schemaDirectory>src/main/xsd</schemaDirectory>
                     <schemaIncludes>
                         <include>**/*.xsd</include>
                     </schemaIncludes>
-                    <bindingDirectory>${basedir}/src/main/resources/xsd</bindingDirectory>
+                    <bindingDirectory>src/main/xsd</bindingDirectory>
                     <bindingIncludes>
                         <include>bindings.xml</include>
                     </bindingIncludes>

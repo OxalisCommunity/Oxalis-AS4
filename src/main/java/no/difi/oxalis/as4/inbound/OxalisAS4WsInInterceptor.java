@@ -1,6 +1,5 @@
 package no.difi.oxalis.as4.inbound;
 
-import no.difi.oxalis.as4.lang.OxalisAs4Exception;
 import no.difi.oxalis.as4.util.Constants;
 import org.apache.cxf.binding.soap.SoapMessage;
 import org.apache.cxf.helpers.CastUtils;
@@ -9,19 +8,21 @@ import org.apache.cxf.message.Attachment;
 import org.apache.cxf.ws.security.SecurityConstants;
 import org.apache.cxf.ws.security.wss4j.WSS4JInInterceptor;
 import org.apache.wss4j.common.crypto.Crypto;
-import org.apache.wss4j.common.crypto.CryptoType;
 
 import javax.xml.namespace.QName;
 import javax.xml.soap.AttachmentPart;
 import javax.xml.soap.SOAPMessage;
-import java.util.*;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 public class OxalisAS4WsInInterceptor extends WSS4JInInterceptor {
 
     private Crypto crypto;
     private String alias;
 
-    OxalisAS4WsInInterceptor(Map<String,Object> props, Crypto crypto, String alias) {
+    OxalisAS4WsInInterceptor(Map<String, Object> props, Crypto crypto, String alias) {
         super(props);
         this.crypto = crypto;
         this.alias = alias;

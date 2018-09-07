@@ -71,18 +71,17 @@ public class As4Servlet extends CXFNonSpringServlet {
             trust_store.load(is, "test123".toCharArray());
 
             encryptCrypto.setTrustStore(trust_store);
-        }catch (Exception e){
+        } catch (Exception e) {
             System.err.println("Unable to load TrustStore!");
         }
 
         // Properties
         Map<String, Object> inProps = Maps.newHashMap();
-        inProps.put(WSHandlerConstants.ACTION, WSHandlerConstants.ENCRYPT+" "+WSHandlerConstants.SIGNATURE);
+        inProps.put(WSHandlerConstants.ACTION, WSHandlerConstants.ENCRYPT + " " + WSHandlerConstants.SIGNATURE);
 
         String alias = settings.getString(KeyStoreConf.KEY_ALIAS);
         String password = settings.getString(KeyStoreConf.KEY_PASSWORD);
         PasswordCallbackHandler cb = new PasswordCallbackHandler(password);
-
 
 
         inProps.put(WSHandlerConstants.PW_CALLBACK_REF, cb);
@@ -119,7 +118,7 @@ public class As4Servlet extends CXFNonSpringServlet {
         try {
             response.setStatus(HttpServletResponse.SC_OK);
             response.getWriter().write("Hello AS4 world\n");
-        }catch ( IOException e ){
+        } catch (IOException e) {
             throw new ServletException("Unable to send response", e);
         }
     }

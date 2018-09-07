@@ -40,7 +40,7 @@ public class SOAPHeaderParser {
         }
         Element sigInfoElement = (Element) sigInfoNode.item(0);
         NodeList refNodes = sigInfoElement.getElementsByTagNameNS(NS_ALL, REF);
-        for (int i=0; i<refNodes.getLength(); i++) {
+        for (int i = 0; i < refNodes.getLength(); i++) {
             Element refElement = (Element) refNodes.item(i);
             if (refId.equals(refElement.getAttribute("URI"))) {
                 NodeList digestValueNode = refElement.getElementsByTagNameNS(NS_ALL, DIGEST_VAL);
@@ -70,7 +70,7 @@ public class SOAPHeaderParser {
         String refUri = ((Element) refNode.item(0)).getAttribute("URI").replace("#", "");
 
         NodeList bstNodes = header.getElementsByTagNameNS(NS_ALL, BST);
-        for (int i=0; i<bstNodes.getLength(); i++) {
+        for (int i = 0; i < bstNodes.getLength(); i++) {
             Element bstElem = (Element) bstNodes.item(i);
             if (bstElem.getAttribute("wsu:Id").equals(refUri)) {
                 try {
@@ -78,7 +78,7 @@ public class SOAPHeaderParser {
                     byte[] buf = Base64.getDecoder().decode(pem);
                     return (X509Certificate) CertificateFactory.getInstance("X.509").generateCertificate(new ByteArrayInputStream(buf));
                 } catch (CertificateException e) {
-                    throw new OxalisAs4Exception("Could not create certificate from BinarySecurityToken",  e);
+                    throw new OxalisAs4Exception("Could not create certificate from BinarySecurityToken", e);
                 }
             }
         }
@@ -123,7 +123,7 @@ public class SOAPHeaderParser {
 
         try {
             Unmarshaller unmarshaller = Marshalling.getInstance().getJaxbContext().createUnmarshaller();
-            for (int i=0; i<refNodes.getLength(); i++) {
+            for (int i = 0; i < refNodes.getLength(); i++) {
                 referenceList.add(unmarshaller.unmarshal(refNodes.item(i), ReferenceType.class).getValue());
             }
         } catch (JAXBException e) {

@@ -31,9 +31,6 @@ import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.MessageInfo;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.Receipt;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.SignalMessage;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.UserMessage;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.util.StreamUtils;
 import org.w3.xmldsig.ReferenceType;
 
 import javax.xml.bind.JAXBElement;
@@ -43,16 +40,15 @@ import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.soap.*;
-import java.io.*;
-import java.nio.file.Files;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.cert.X509Certificate;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.GregorianCalendar;
+import java.util.Iterator;
+import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
@@ -231,7 +227,7 @@ public class As4InboundHandler {
             String theString = IOUtils.toString(new GZIPInputStream(peekingInputStream));
 
             System.out.println(theString);
-        }catch (Exception r){
+        } catch (Exception r) {
 
         }
 
@@ -258,7 +254,7 @@ public class As4InboundHandler {
 
             attachmentStream = attachmentPart.getDataHandler().getInputStream();
 
-        } catch ( IOException | SOAPException e) {
+        } catch (IOException | SOAPException e) {
             throw new OxalisAs4Exception("Could not get attachment input stream", e);
         }
 

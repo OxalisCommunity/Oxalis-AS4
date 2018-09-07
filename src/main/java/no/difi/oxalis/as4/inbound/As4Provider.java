@@ -4,8 +4,6 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import no.difi.oxalis.as4.lang.OxalisAs4Exception;
 import org.apache.cxf.transport.http.AbstractHTTPDestination;
-import org.apache.xml.security.algorithms.JCEMapper;
-import org.apache.xml.security.encryption.XMLCipher;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;

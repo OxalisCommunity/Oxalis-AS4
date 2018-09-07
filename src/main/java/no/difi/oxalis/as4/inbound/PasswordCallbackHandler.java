@@ -20,25 +20,25 @@ public class PasswordCallbackHandler implements CallbackHandler {
     @Override
     public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
 
-        for(Callback callback : callbacks){
+        for (Callback callback : callbacks) {
 
-            if(callback instanceof WSPasswordCallback){
+            if (callback instanceof WSPasswordCallback) {
 
                 WSPasswordCallback cb = (WSPasswordCallback) callback;
                 cb.setPassword(encryptPassword);
 
-            }else if(callback instanceof PasswordCallback){
+            } else if (callback instanceof PasswordCallback) {
 
                 PasswordCallback cb = (PasswordCallback) callback;
-                if(encryptPassword != null) {
+                if (encryptPassword != null) {
 
                     cb.setPassword(encryptPassword.toCharArray());
-                }else{
+                } else {
 
                     cb.setPassword(new char[0]);
                 }
 
-            }else{
+            } else {
 
                 throw new UnsupportedEncodingException("Unable to process callback of type " + callback.getClass().getSimpleName());
             }

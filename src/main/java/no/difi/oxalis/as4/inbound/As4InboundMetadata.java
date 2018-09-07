@@ -2,6 +2,7 @@ package no.difi.oxalis.as4.inbound;
 
 import no.difi.oxalis.api.inbound.InboundMetadata;
 import no.difi.oxalis.api.model.TransmissionIdentifier;
+import no.difi.oxalis.api.tag.Tag;
 import no.difi.oxalis.api.timestamp.Timestamp;
 import no.difi.vefa.peppol.common.model.*;
 
@@ -90,5 +91,10 @@ public class As4InboundMetadata implements InboundMetadata {
     @Override
     public Receipt primaryReceipt() {
         return primaryReceipt;
+    }
+
+    @Override
+    public Tag getTag() {
+        return Tag.NONE;
     }
 }

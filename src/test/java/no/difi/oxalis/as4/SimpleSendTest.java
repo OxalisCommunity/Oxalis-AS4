@@ -36,10 +36,10 @@ import java.util.TreeMap;
 public class SimpleSendTest extends AbstractJettyServerTest {
 
     private MemoryPersister memoryPersister = new MemoryPersister();
+
     private byte[] testPayload;
 
-
-    public SimpleSendTest() throws Exception{
+    public SimpleSendTest() throws Exception {
         InputStream is = getClass().getResourceAsStream("/as2-peppol-bis-invoice-sbdh.xml");
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
 
@@ -63,7 +63,8 @@ public class SimpleSendTest extends AbstractJettyServerTest {
                 Modules.override(new GuiceModuleLoader()).with(new AbstractModule() {
                     @Override
                     protected void configure() {
-                        bind(ReceiptPersister.class).toInstance((m,p) -> {});
+                        bind(ReceiptPersister.class).toInstance((m, p) -> {
+                        });
                         bind(PayloadPersister.class).toInstance(memoryPersister);
                     }
                 })
@@ -71,7 +72,7 @@ public class SimpleSendTest extends AbstractJettyServerTest {
     }
 
     @BeforeTest
-    public void reset(){
+    public void reset() {
         memoryPersister.reset();
     }
 
@@ -110,7 +111,7 @@ public class SimpleSendTest extends AbstractJettyServerTest {
         Object[] persistedPayload = memoryPersister.getValues().get(response.getTransmissionIdentifier().getIdentifier());
         Assert.assertNotNull(persistedPayload);
 
-        TransmissionIdentifier responseTransmissionIdentifier = (TransmissionIdentifier)persistedPayload[0];
+        TransmissionIdentifier responseTransmissionIdentifier = (TransmissionIdentifier) persistedPayload[0];
         Assert.assertEquals(response.getTransmissionIdentifier(), responseTransmissionIdentifier);
 
         Header responseHeader = (Header) persistedPayload[1];
@@ -119,7 +120,7 @@ public class SimpleSendTest extends AbstractJettyServerTest {
         Assert.assertEquals(testPayload, responePayload);
     }
 
-    static class MemoryPersister implements PayloadPersister{
+    static class MemoryPersister implements PayloadPersister {
 
         private Map<String, Object[]> values = new TreeMap<>();
 
@@ -142,11 +143,11 @@ public class SimpleSendTest extends AbstractJettyServerTest {
             return null;
         }
 
-        public void reset(){
+        public void reset() {
             values.clear();
         }
 
-        public Map<String, Object[]> getValues(){
+        public Map<String, Object[]> getValues() {
             return Collections.unmodifiableMap(values);
         }
     }

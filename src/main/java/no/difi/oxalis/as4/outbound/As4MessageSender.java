@@ -7,7 +7,6 @@ import no.difi.oxalis.api.settings.Settings;
 import no.difi.oxalis.api.timestamp.TimestampProvider;
 import no.difi.oxalis.as4.util.Marshalling;
 import no.difi.oxalis.commons.security.KeyStoreConf;
-import org.apache.cxf.transport.common.gzip.GZIPOutInterceptor;
 import org.apache.wss4j.common.WSS4JConstants;
 import org.apache.wss4j.common.crypto.Merlin;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -67,7 +66,7 @@ public class As4MessageSender {
         template.setMarshaller(Marshalling.getInstance());
         template.setUnmarshaller(Marshalling.getInstance());
         template.setMessageSender(createMessageSender());
-        template.setInterceptors(new ClientInterceptor[] {
+        template.setInterceptors(new ClientInterceptor[]{
                 createWsSecurityInterceptor(request.getEndpoint().getCertificate()),
                 new ReferenceValidatorInterceptor()
         });
