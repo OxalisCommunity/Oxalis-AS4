@@ -73,6 +73,12 @@
             <artifactId>slf4j-api</artifactId>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.cxf</groupId>
+            <artifactId>cxf-rt-features-logging</artifactId>
+            <version>3.2.2</version>
+            <scope>test</scope>
+        </dependency>
 
         <!-- Logging -->
         <dependency>

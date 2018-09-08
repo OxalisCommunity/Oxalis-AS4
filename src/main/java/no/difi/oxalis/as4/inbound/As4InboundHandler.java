@@ -24,7 +24,8 @@ import no.difi.vefa.peppol.common.model.TransportProfile;
 import no.difi.vefa.peppol.sbdh.SbdReader;
 import no.difi.vefa.peppol.sbdh.lang.SbdhException;
 import org.apache.cxf.helpers.CastUtils;
-import org.apache.cxf.helpers.IOUtils;
+import org.apache.cxf.ws.security.SecurityConstants;
+import org.apache.wss4j.common.crypto.CryptoType;
 import org.oasis_open.docs.ebxml_bp.ebbp_signals_2.MessagePartNRInformation;
 import org.oasis_open.docs.ebxml_bp.ebbp_signals_2.NonRepudiationInformation;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.MessageInfo;
@@ -61,6 +62,8 @@ public class As4InboundHandler {
 
     private TimestampProvider timestampProvider;
 
+
+
     @Inject
     public As4InboundHandler(TransmissionVerifier transmissionVerifier, PersisterHandler persisterHandler, TimestampProvider timestampProvider) {
         this.transmissionVerifier = transmissionVerifier;
@@ -86,7 +89,16 @@ public class As4InboundHandler {
         Path payloadPath = persistPayload(peekingInputStream, sbdh, ti);
 
         // Extract senders certificate from header
-        X509Certificate senderCertificate = SOAPHeaderParser.getSenderCertificate(header);
+        CryptoType cryptoType = new CryptoType(CryptoType.TYPE.ALIAS);
+        cryptoType.setAlias("cefsupport1gw");
+        X509Certificate senderCertificate = null;
+        try{
+            senderCertificate = As4Servlet.encryptCrypto.getX509Certificates(cryptoType)[0];
+        }catch (Exception e){
+
+        }
+
+//        X509Certificate senderCertificate = SOAPHeaderParser.getSenderCertificate(header);
 
         // Timestamp
         Timestamp ts = getTimestamp(header);
@@ -219,24 +231,15 @@ public class As4InboundHandler {
         }
     }
 
-    private Header getSbdh(PeekingInputStream peekingInputStream) throws OxalisAs4Exception {
+    private Header getSbdh(InputStream is) throws OxalisAs4Exception {
         Header sbdh;
 
-
-        try {
-            String theString = IOUtils.toString(new GZIPInputStream(peekingInputStream));
-
-            System.out.println(theString);
-        } catch (Exception r) {
-
-        }
-
-
-        try (SbdReader sbdReader = SbdReader.newInstance(new GZIPInputStream(peekingInputStream))) {
+        try (SbdReader sbdReader = SbdReader.newInstance(is)) {
             sbdh = sbdReader.getHeader();
         } catch (SbdhException | IOException e) {
             throw new OxalisAs4Exception("Could not extract SBDH from payload");
         }
+
         return sbdh;
     }
 
@@ -260,7 +263,7 @@ public class As4InboundHandler {
 
         PeekingInputStream peekingInputStream;
         try {
-            peekingInputStream = new PeekingInputStream(attachmentStream);
+            peekingInputStream = new PeekingInputStream(new GZIPInputStream(attachmentStream));
         } catch (IOException e) {
             throw new OxalisAs4Exception("Could not create peeking stream from attachment", e);
         }

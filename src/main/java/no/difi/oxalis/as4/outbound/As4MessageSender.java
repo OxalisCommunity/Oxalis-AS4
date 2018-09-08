@@ -5,6 +5,7 @@ import no.difi.oxalis.api.outbound.TransmissionRequest;
 import no.difi.oxalis.api.outbound.TransmissionResponse;
 import no.difi.oxalis.api.settings.Settings;
 import no.difi.oxalis.api.timestamp.TimestampProvider;
+import no.difi.oxalis.as4.util.CompressionUtil;
 import no.difi.oxalis.as4.util.Marshalling;
 import no.difi.oxalis.commons.security.KeyStoreConf;
 import org.apache.wss4j.common.WSS4JConstants;
@@ -34,21 +35,24 @@ public class As4MessageSender {
     private KeyStore keyStore;
     private Settings<KeyStoreConf> settings;
     private TimestampProvider timestampProvider;
+    private CompressionUtil compressionUtil;
 
     @Inject
     public As4MessageSender(X509Certificate certificate,
                             KeyStore keyStore,
                             Settings<KeyStoreConf> settings,
-                            TimestampProvider timestampProvider) {
+                            TimestampProvider timestampProvider,
+                            CompressionUtil compressionUtil) {
         this.certificate = certificate;
         this.keyStore = keyStore;
         this.settings = settings;
         this.timestampProvider = timestampProvider;
+        this.compressionUtil = compressionUtil;
     }
 
     public TransmissionResponse send(TransmissionRequest request) {
         WebServiceTemplate template = createTemplate(request);
-        As4Sender sender = new As4Sender(request, certificate);
+        As4Sender sender = new As4Sender(request, certificate, compressionUtil);
         TransmissionResponseExtractor responseExtractor = new TransmissionResponseExtractor(request, timestampProvider);
         return template.sendAndReceive(request.getEndpoint().getAddress().toString(), sender, responseExtractor);
     }

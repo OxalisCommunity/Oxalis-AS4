@@ -6,12 +6,12 @@ import com.google.inject.Singleton;
 import no.difi.oxalis.api.settings.Settings;
 import no.difi.oxalis.commons.security.KeyStoreConf;
 import no.difi.vefa.peppol.security.api.CertificateValidator;
-import org.apache.cxf.Bus;
-import org.apache.cxf.BusFactory;
+import org.apache.cxf.binding.soap.interceptor.SoapInterceptor;
 import org.apache.cxf.jaxws.EndpointImpl;
-import org.apache.cxf.transport.common.gzip.GZIPInInterceptor;
-import org.apache.cxf.transport.common.gzip.GZIPOutInterceptor;
 import org.apache.cxf.transport.servlet.CXFNonSpringServlet;
+import org.apache.cxf.ws.security.SecurityConstants;
+import org.apache.wss4j.common.ConfigurationConstants;
+import org.apache.wss4j.common.crypto.Crypto;
 import org.apache.wss4j.common.crypto.Merlin;
 import org.apache.wss4j.dom.handler.WSHandlerConstants;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -25,7 +25,6 @@ import javax.xml.ws.Endpoint;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.KeyStore;
-import java.security.Security;
 import java.util.Enumeration;
 import java.util.Map;
 import java.util.StringTokenizer;
@@ -45,58 +44,80 @@ public class As4Servlet extends CXFNonSpringServlet {
     @Inject
     private CertificateValidator certificateValidator;
 
+    public static Merlin encryptCrypto = new Merlin();
+
     @Override
     protected void loadBus(ServletConfig servletConfig) {
         super.loadBus(servletConfig);
 
-        Bus buss = getBus();
-
-        GZIPOutInterceptor gzipOutInterceptor = new GZIPOutInterceptor();
-        bus.getOutInterceptors().add(gzipOutInterceptor);
-        BusFactory.setDefaultBus(bus);
-
-//        new DomibusAlgorithmSuiteLoader(getBus());
         EndpointImpl endpointImpl = (EndpointImpl) Endpoint.publish("/", provider);
 
-        Security.addProvider(new BouncyCastleProvider());
-        Merlin encryptCrypto = new Merlin();
         encryptCrypto.setCryptoProvider(BouncyCastleProvider.PROVIDER_NAME);
         encryptCrypto.setKeyStore(keyStore);
+        encryptCrypto.setTrustStore(getTrustStore());
 
-        InputStream is = getClass().getResourceAsStream("/eutest_gateway_truststore.jks");
-        KeyStore trust_store;
+        SoapInterceptor wsInInterceptor = createWsInInterceptor(encryptCrypto);
+        SoapInterceptor wsOutInterceptor = createWsOutInterceptor(encryptCrypto);
 
+        endpointImpl.getInInterceptors().add(wsInInterceptor);
+        endpointImpl.getOutInterceptors().add(wsOutInterceptor);
+
+    }
+
+    private KeyStore getTrustStore(){
         try {
+            InputStream is = getClass().getResourceAsStream("/eutest_gateway_truststore.jks");
+
+            KeyStore trust_store;
             trust_store = KeyStore.getInstance("jks");
             trust_store.load(is, "test123".toCharArray());
 
-            encryptCrypto.setTrustStore(trust_store);
+            return trust_store;
         } catch (Exception e) {
-            System.err.println("Unable to load TrustStore!");
+            throw new RuntimeException("Unable to load TrustStore!");
         }
+    }
 
-        // Properties
+
+    private SoapInterceptor createWsInInterceptor(Crypto crypto){
+        String alias = settings.getString(KeyStoreConf.KEY_ALIAS);
+        String password = settings.getString(KeyStoreConf.KEY_PASSWORD);
+        PasswordCallbackHandler cb = new PasswordCallbackHandler(password);
+
         Map<String, Object> inProps = Maps.newHashMap();
         inProps.put(WSHandlerConstants.ACTION, WSHandlerConstants.ENCRYPT + " " + WSHandlerConstants.SIGNATURE);
+        inProps.put(WSHandlerConstants.PW_CALLBACK_REF, cb);
+        inProps.put(WSHandlerConstants.ENCRYPTION_PARTS, "{}cid:Attachments");
+        inProps.put(WSHandlerConstants.SIGNATURE_PARTS, "{}{}Body; {}{http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/} Messaging; {}cid:Attachments;");
+        inProps.put(WSHandlerConstants.SIG_KEY_ID, "DirectReference");
+        inProps.put(WSHandlerConstants.USE_SINGLE_CERTIFICATE, "true");
+        inProps.put(WSHandlerConstants.USE_REQ_SIG_CERT, "true");
+//        inProps.put(SecurityConstants.SIGNATURE_TOKEN_VALIDATOR, new CertificateValidatorSignatureTrustValidator(certificateValidator));
+
+
+        return new OxalisAS4WsInInterceptor(inProps, encryptCrypto, alias);
+    }
+
+    private SoapInterceptor createWsOutInterceptor(Crypto crypto){
 
         String alias = settings.getString(KeyStoreConf.KEY_ALIAS);
         String password = settings.getString(KeyStoreConf.KEY_PASSWORD);
         PasswordCallbackHandler cb = new PasswordCallbackHandler(password);
 
-
-        inProps.put(WSHandlerConstants.PW_CALLBACK_REF, cb);
-        inProps.put(WSHandlerConstants.ENCRYPTION_PARTS, "{}cid:Attachments");
-        inProps.put(WSHandlerConstants.SIGNATURE_PARTS, "{}{}Body; {}cid:Attachments");
-        inProps.put(WSHandlerConstants.SIG_KEY_ID, "DirectReference");
-        inProps.put(WSHandlerConstants.USE_SINGLE_CERTIFICATE, "true");
-        inProps.put(WSHandlerConstants.USE_REQ_SIG_CERT, "true");
+        Map<String, Object> outProps = Maps.newHashMap();
+        outProps.put(WSHandlerConstants.ACTION, WSHandlerConstants.SIGNATURE);
+        outProps.put(WSHandlerConstants.PW_CALLBACK_REF, cb);
+        outProps.put(WSHandlerConstants.SIGNATURE_PARTS, "{}{}Body; {}{http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/} Messaging;{}cid:Attachments;");
+        outProps.put(WSHandlerConstants.SIG_KEY_ID, "DirectReference");
+        outProps.put(WSHandlerConstants.USE_SINGLE_CERTIFICATE, "true");
+        outProps.put(WSHandlerConstants.USE_REQ_SIG_CERT, "true");
+        outProps.put(ConfigurationConstants.USER, alias);
+        outProps.put(SecurityConstants.ENCRYPT_CRYPTO, crypto);
+        outProps.put(ConfigurationConstants.SIG_PROP_REF_ID, SecurityConstants.ENCRYPT_CRYPTO);
 //        inProps.put(SecurityConstants.SIGNATURE_TOKEN_VALIDATOR, new CertificateValidatorSignatureTrustValidator(certificateValidator));
-//        inProps.put(ConfigurationConstants.ENC_MGF_ALGO, WSS4JConstants.MGF_SHA256);
 
-        OxalisAS4WsInInterceptor interceptor = new OxalisAS4WsInInterceptor(inProps, encryptCrypto, alias);
-        org.apache.cxf.endpoint.Endpoint endpoint = endpointImpl.getServer().getEndpoint();
-        endpoint.getInInterceptors().add(new GZIPInInterceptor());
-        endpoint.getInInterceptors().add(interceptor);
+
+        return new OxalisAs4WsOutInterceptor(outProps, crypto, alias);
     }
 
     private MimeHeaders getHeaders(HttpServletRequest httpServletRequest) {
