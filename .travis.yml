@@ -1,11 +1,20 @@
 language: java
 jdk:
-  - oraclejdk8
+- oraclejdk8
 install:
-  - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V -Pdist
+- mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V -Pdist
 script:
-  - mvn test -B
-  - mvn javadoc:javadoc -B
+- mvn test -B
+- mvn javadoc:javadoc -B
 cache:
   directories:
-    - '$HOME/.m2/repository'
+  - "$HOME/.m2/repository"
+deploy:
+  provider: releases
+  api_key:
+    secure: pMbJBLrONQy+nqjH5bsto88NHYFtHNqM/bVbGgTO29xIM24qCRgGd03rxW9/MZbmkc6RzyAFyhI3sx98WtuQn0xDFYUqwGLggIgUyWdKNQMT1RQcrTMWoNOw6JYTYfdES6VwxkzzHei+7JwpQ8dsC8uZY9hf1sWMVyx7M3uqfcm7ThHB0AsB0uLtq7G4hovrF/MzM2JKFiV7NuPKtgPMdDJ6mH0L3Nsxd7h5yt/g5PNUuKgqqft2dAmuLZ6evZaB9j5nSe9qWANjVyHpzabcPZYNzMSU3szHkY+mq/SLurnYAe34GCUKWsZpeouJSiUnCB1qJIv0EThnSVibIwYxPeJp+P4LL7EttlnxsVA9c7PJ3jhyLSwYZ0nc3gSMvNme7if7231tS9/KbSlp57sdp7FFDsi1NSB7pdVqwNfv6rrIIFYR793nz9Ii4caA1zog/VGbbglkoZXTFC4G3njjRSJg691LtgoCn9w66nazv2MN1rn0oUzbPkWIxi/d5M767VQi+OZzClZDxh1g407sEQ5SMm2Ux9fk9VQrhgL3e7e769sahGW1jCi9b89LyhfkNNnfyeEiXfWR5TeWsCHBo/djCOfhdRg/9A7xeAkVpFyAvsoOYE7rMCrIcHZ/e6rnpN1fb1YeFYuvSEFpTN1542mtCyRNHCi5m/jnptvu/gI=
+  file_glob: true
+  file: '**/target/*.{zip,tar.gz}'
+  skip_cleanup: true
+  on:
+    tags: true
