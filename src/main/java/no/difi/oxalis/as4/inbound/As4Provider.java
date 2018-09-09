@@ -32,14 +32,9 @@ public class As4Provider implements Provider<SOAPMessage> {
         HttpServletResponse httpRes = (HttpServletResponse) ctx.get(AbstractHTTPDestination.HTTP_RESPONSE);
         httpRes.setStatus(HttpServletResponse.SC_OK);
 
-//        JCEMapper.register("http://custom.difi.no/2018/07/xmlenc#rsa-oaep-sha256-mgf1",
-//                new JCEMapper.Algorithm("RSA", "RSA/ECB/OAEPWithSHA-256AndMGF1Padding", "KeyTransport"));
-
-
         try {
             return handler.handle(request);
         } catch (OxalisAs4Exception e) {
-            // TODO: process error
             httpRes.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             throw new RuntimeException(e);
         }

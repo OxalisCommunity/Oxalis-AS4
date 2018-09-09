@@ -22,7 +22,6 @@ public class OxalisAs4WsOutInterceptor extends WSS4JOutInterceptor {
     public void handleMessage(SoapMessage msg) throws Fault {
         msg.put(SecurityConstants.ENCRYPT_CRYPTO, crypto);
         msg.put(SecurityConstants.SIGNATURE_CRYPTO, crypto);
-//        msg.put(SecurityConstants.ENCRYPT_USERNAME, alias);
         msg.put(SecurityConstants.SIGNATURE_USERNAME, alias);
         msg.put(SecurityConstants.USERNAME, alias);
 

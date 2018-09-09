@@ -19,4 +19,8 @@ public interface Constants {
 
     String RSA_SHA256 = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256";
     String DIGEST_ALGORITHM_SHA256 = "sha256";
+
+//    String AGREEMENT_REF = "urn:fdc:peppol.eu:2017:agreements:tia:ap_provider";
+    String AGREEMENT_REF = null;
+
 }

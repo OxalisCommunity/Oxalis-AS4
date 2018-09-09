@@ -24,8 +24,7 @@ import no.difi.vefa.peppol.common.model.TransportProfile;
 import no.difi.vefa.peppol.sbdh.SbdReader;
 import no.difi.vefa.peppol.sbdh.lang.SbdhException;
 import org.apache.cxf.helpers.CastUtils;
-import org.apache.cxf.ws.security.SecurityConstants;
-import org.apache.wss4j.common.crypto.CryptoType;
+import org.apache.cxf.helpers.XPathUtils;
 import org.oasis_open.docs.ebxml_bp.ebbp_signals_2.MessagePartNRInformation;
 import org.oasis_open.docs.ebxml_bp.ebbp_signals_2.NonRepudiationInformation;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.MessageInfo;
@@ -41,15 +40,15 @@ import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.soap.*;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.util.GregorianCalendar;
-import java.util.Iterator;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
@@ -61,7 +60,6 @@ public class As4InboundHandler {
     private PersisterHandler persisterHandler;
 
     private TimestampProvider timestampProvider;
-
 
 
     @Inject
@@ -88,18 +86,6 @@ public class As4InboundHandler {
 
         Path payloadPath = persistPayload(peekingInputStream, sbdh, ti);
 
-        // Extract senders certificate from header
-        CryptoType cryptoType = new CryptoType(CryptoType.TYPE.ALIAS);
-        cryptoType.setAlias("cefsupport1gw");
-        X509Certificate senderCertificate = null;
-        try{
-            senderCertificate = As4Servlet.encryptCrypto.getX509Certificates(cryptoType)[0];
-        }catch (Exception e){
-
-        }
-
-//        X509Certificate senderCertificate = SOAPHeaderParser.getSenderCertificate(header);
-
         // Timestamp
         Timestamp ts = getTimestamp(header);
 
@@ -121,6 +107,7 @@ public class As4InboundHandler {
             throw new OxalisAs4Exception("Could not write SOAP response", e);
         }
 
+        X509Certificate senderCertificate = extractSenderCertificate(header);
         As4InboundMetadata as4InboundMetadata = new As4InboundMetadata(
                 ti,
                 sbdh,
@@ -138,6 +125,25 @@ public class As4InboundHandler {
         }
 
         return response;
+    }
+
+    private X509Certificate extractSenderCertificate(SOAPHeader header) throws OxalisAs4Exception{
+        Map<String, String> ns = new TreeMap<>();
+        ns.put("wsse", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd");
+        XPathUtils xu = new XPathUtils(ns);
+        String cert = xu.getValueString("//wsse:BinarySecurityToken[1]/text()", header);
+
+        if(cert == null){
+            throw new OxalisAs4Exception("Unable to locate sender certificate");
+        }
+
+        try {
+            CertificateFactory cf = CertificateFactory.getInstance("X.509");
+            byte[] certBytes = Base64.getDecoder().decode(cert.replaceAll("\r|\n",""));
+            return (X509Certificate) cf.generateCertificate(new ByteArrayInputStream(certBytes));
+        }catch (CertificateException e){
+            throw new OxalisAs4Exception("Unable to parse sender certificate", e);
+        }
     }
 
     private SOAPMessage createSOAPResponse(Timestamp ts,
@@ -161,7 +167,7 @@ public class As4InboundHandler {
         try {
             xmlGc = DatatypeFactory.newInstance().newXMLGregorianCalendar(gc);
         } catch (DatatypeConfigurationException e) {
-            throw new OxalisAs4Exception("Could not create XMLGregorianCalendar from timestamp", e);
+            throw new OxalisAs4Exception("Could not parse timestamp", e);
         }
 
         MessageInfo messageInfo = MessageInfo.builder()
@@ -265,7 +271,7 @@ public class As4InboundHandler {
         try {
             peekingInputStream = new PeekingInputStream(new GZIPInputStream(attachmentStream));
         } catch (IOException e) {
-            throw new OxalisAs4Exception("Could not create peeking stream from attachment", e);
+            throw new OxalisAs4Exception("Could not obtain attachment inputStream", e);
         }
         return peekingInputStream;
     }

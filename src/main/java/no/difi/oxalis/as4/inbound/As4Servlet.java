@@ -92,7 +92,7 @@ public class As4Servlet extends CXFNonSpringServlet {
         inProps.put(WSHandlerConstants.SIG_KEY_ID, "DirectReference");
         inProps.put(WSHandlerConstants.USE_SINGLE_CERTIFICATE, "true");
         inProps.put(WSHandlerConstants.USE_REQ_SIG_CERT, "true");
-//        inProps.put(SecurityConstants.SIGNATURE_TOKEN_VALIDATOR, new CertificateValidatorSignatureTrustValidator(certificateValidator));
+        inProps.put(SecurityConstants.SIGNATURE_TOKEN_VALIDATOR, new CertificateValidatorSignatureTrustValidator(certificateValidator));
 
 
         return new OxalisAS4WsInInterceptor(inProps, encryptCrypto, alias);
@@ -114,7 +114,7 @@ public class As4Servlet extends CXFNonSpringServlet {
         outProps.put(ConfigurationConstants.USER, alias);
         outProps.put(SecurityConstants.ENCRYPT_CRYPTO, crypto);
         outProps.put(ConfigurationConstants.SIG_PROP_REF_ID, SecurityConstants.ENCRYPT_CRYPTO);
-//        inProps.put(SecurityConstants.SIGNATURE_TOKEN_VALIDATOR, new CertificateValidatorSignatureTrustValidator(certificateValidator));
+        outProps.put(SecurityConstants.SIGNATURE_TOKEN_VALIDATOR, new CertificateValidatorSignatureTrustValidator(certificateValidator));
 
 
         return new OxalisAs4WsOutInterceptor(outProps, crypto, alias);

@@ -82,7 +82,7 @@ public class As4Sender implements WebServiceMessageCallback {
         ArrayList<PartInfo> partInfos = Lists.newArrayList();
         while (attachments.hasNext()) {
             Attachment a = attachments.next();
-            String cid = "cid:"+a.getContentId();
+            String cid = "cid:<"+a.getContentId()+">";
             Property compressionType = Property.builder()
                     .withName("CompressionType")
                     .withValue("application/gzip")
@@ -142,14 +142,23 @@ public class As4Sender implements WebServiceMessageCallback {
     }
 
     private CollaborationInfo createCollaborationInfo() {
-        return CollaborationInfo.builder()
+        CollaborationInfo.Builder cib = CollaborationInfo.builder()
                 .withConversationId(newId())
                 .withAction(request.getHeader().getDocumentType().toString())
                 .withService(Service.builder()
                         .withType(SERVICE_TYPE)
                         .withValue(request.getHeader().getProcess().getIdentifier())
-                        .build())
-                .build();
+                        .build()
+                );
+
+        if (AGREEMENT_REF != null) {
+            cib = cib.withAgreementRef(AgreementRef.builder()
+                    .withValue(AGREEMENT_REF)
+                    .build()
+            );
+        }
+
+        return cib.build();
     }
 
     private MessageInfo createMessageInfo() {

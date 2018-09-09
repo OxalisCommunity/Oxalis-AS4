@@ -111,14 +111,13 @@ public class As4MessageSender {
         interceptor.setSecurementSignatureCrypto(crypto);
         interceptor.setValidationSignatureCrypto(crypto);
         interceptor.setSecurementSignatureAlgorithm(RSA_SHA256);
-        interceptor.setSecurementSignatureDigestAlgorithm(DigestMethod.SHA256); // Usikker på om dette er riktig
+        interceptor.setSecurementSignatureDigestAlgorithm(DigestMethod.SHA256);
         interceptor.setSecurementSignatureKeyIdentifier("DirectReference");
-        interceptor.setSecurementSignatureParts("{}{}Body; {}cid:Attachments; {}{http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/}Messaging"); //Body, Attatchment, og Envelope:Messaging
+        interceptor.setSecurementSignatureParts("{}{}Body; {}cid:Attachments; {}{http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/}Messaging");
 
         interceptor.setSecurementEncryptionUser("endpoint");
         interceptor.setSecurementEncryptionCrypto(endpointCrypto);
         interceptor.setSecurementEncryptionSymAlgorithm(WSS4JConstants.AES_128_GCM);
-//        interceptor.setSecurementEncryptionKeyIdentifier("DirectReference");
         interceptor.setSecurementEncryptionKeyIdentifier("SKIKeyIdentifier");
 
         interceptor.setSecurementEncryptionParts("{}cid:Attachments");
