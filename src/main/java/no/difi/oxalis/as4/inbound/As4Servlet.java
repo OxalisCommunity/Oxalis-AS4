@@ -66,11 +66,11 @@ public class As4Servlet extends CXFNonSpringServlet {
 
     private KeyStore getTrustStore(){
         try {
-            InputStream is = getClass().getResourceAsStream("/eutest_gateway_truststore.jks");
+            InputStream is = getClass().getResourceAsStream("/peppol_trust_g2.jks");
 
             KeyStore trust_store;
             trust_store = KeyStore.getInstance("jks");
-            trust_store.load(is, "test123".toCharArray());
+            trust_store.load(is, "changeit".toCharArray());
 
             return trust_store;
         } catch (Exception e) {
