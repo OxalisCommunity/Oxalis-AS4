@@ -77,8 +77,7 @@ public class As4Servlet extends CXFNonSpringServlet {
             throw new RuntimeException("Unable to load TrustStore!");
         }
     }
-
-
+    
     private SoapInterceptor createWsInInterceptor(Crypto crypto){
         String alias = settings.getString(KeyStoreConf.KEY_ALIAS);
         String password = settings.getString(KeyStoreConf.KEY_PASSWORD);
@@ -108,14 +107,14 @@ public class As4Servlet extends CXFNonSpringServlet {
         outProps.put(WSHandlerConstants.ACTION, WSHandlerConstants.SIGNATURE);
         outProps.put(WSHandlerConstants.PW_CALLBACK_REF, cb);
         outProps.put(WSHandlerConstants.SIGNATURE_PARTS, "{}{}Body; {}{http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/} Messaging;{}cid:Attachments;");
-        outProps.put(WSHandlerConstants.SIG_KEY_ID, "DirectReference");
+        outProps.put(WSHandlerConstants.SIG_KEY_ID, "SKIKeyIdentifier");
         outProps.put(WSHandlerConstants.USE_SINGLE_CERTIFICATE, "true");
         outProps.put(WSHandlerConstants.USE_REQ_SIG_CERT, "true");
         outProps.put(ConfigurationConstants.USER, alias);
         outProps.put(SecurityConstants.ENCRYPT_CRYPTO, crypto);
         outProps.put(ConfigurationConstants.SIG_PROP_REF_ID, SecurityConstants.ENCRYPT_CRYPTO);
+        outProps.put(WSHandlerConstants.ENABLE_SIGNATURE_CONFIRMATION, "true" );
         outProps.put(SecurityConstants.SIGNATURE_TOKEN_VALIDATOR, new CertificateValidatorSignatureTrustValidator(certificateValidator));
-
 
         return new OxalisAs4WsOutInterceptor(outProps, crypto, alias);
     }

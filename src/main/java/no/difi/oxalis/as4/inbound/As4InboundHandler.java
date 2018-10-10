@@ -92,6 +92,7 @@ public class As4InboundHandler {
         if (userMessage.getPayloadInfo().getPartInfo().size() != 1) {
             throw new OxalisAs4Exception("Should only be one PartInfo in header");
         }
+
         String refId = userMessage.getPayloadInfo().getPartInfo().get(0).getHref();
         // Get attachment digest from header
         Digest attachmentDigest = Digest.of(DigestMethod.SHA256, SOAPHeaderParser.getAttachmentDigest(refId, header));
@@ -100,6 +101,7 @@ public class As4InboundHandler {
         List<ReferenceType> referenceList = SOAPHeaderParser.getReferenceListFromSignedInfo(header);
 
         SOAPMessage response = createSOAPResponse(ts, userMessage.getMessageInfo().getMessageId(), referenceList);
+
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         try {
             response.writeTo(bos);
@@ -153,16 +155,22 @@ public class As4InboundHandler {
         SOAPHeaderElement messagingHeader;
         SOAPMessage message;
         try {
+
             MessageFactory messageFactory = MessageFactory.newInstance(SOAPConstants.SOAP_1_2_PROTOCOL);
             message = messageFactory.createMessage();
+
             SOAPHeader soapHeader = message.getSOAPHeader();
+
             messagingHeader = soapHeader.addHeaderElement(Constants.MESSAGING_QNAME);
+            messagingHeader.setMustUnderstand(true);
+
         } catch (SOAPException e) {
             throw new OxalisAs4Exception("Could not create SOAP message", e);
         }
 
         GregorianCalendar gc = new GregorianCalendar();
         gc.setTime(ts.getDate());
+
         XMLGregorianCalendar xmlGc;
         try {
             xmlGc = DatatypeFactory.newInstance().newXMLGregorianCalendar(gc);
@@ -205,8 +213,11 @@ public class As4InboundHandler {
         Timestamp ts;
         byte[] signature = SOAPHeaderParser.getSignature(header);
         try {
+
             ts = timestampProvider.generate(signature, Direction.IN);
+
         } catch (TimestampException e) {
+
             throw new OxalisAs4Exception("Error generating timestamp", e);
         }
         return ts;

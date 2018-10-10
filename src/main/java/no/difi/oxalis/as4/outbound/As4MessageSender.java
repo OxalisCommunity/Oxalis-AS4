@@ -119,6 +119,7 @@ public class As4MessageSender {
         interceptor.setSecurementEncryptionCrypto(endpointCrypto);
         interceptor.setSecurementEncryptionSymAlgorithm(WSS4JConstants.AES_128_GCM);
         interceptor.setSecurementEncryptionKeyIdentifier("SKIKeyIdentifier");
+        interceptor.setEnableSignatureConfirmation(true);
 
         interceptor.setSecurementEncryptionParts("{}cid:Attachments");
 

@@ -82,7 +82,7 @@ public class As4Sender implements WebServiceMessageCallback {
         ArrayList<PartInfo> partInfos = Lists.newArrayList();
         while (attachments.hasNext()) {
             Attachment a = attachments.next();
-            String cid = "cid:<"+a.getContentId()+">";
+            String cid = "cid:"+a.getContentId();
             Property compressionType = Property.builder()
                     .withName("CompressionType")
                     .withValue("application/gzip")
