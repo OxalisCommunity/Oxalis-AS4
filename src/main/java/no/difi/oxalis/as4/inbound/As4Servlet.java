@@ -4,6 +4,7 @@ import com.google.common.collect.Maps;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import no.difi.oxalis.api.settings.Settings;
+import no.difi.oxalis.as4.util.Constants;
 import no.difi.oxalis.commons.security.KeyStoreConf;
 import no.difi.vefa.peppol.security.api.CertificateValidator;
 import org.apache.cxf.binding.soap.interceptor.SoapInterceptor;
@@ -14,7 +15,9 @@ import org.apache.wss4j.common.ConfigurationConstants;
 import org.apache.wss4j.common.crypto.Crypto;
 import org.apache.wss4j.common.crypto.Merlin;
 import org.apache.wss4j.dom.handler.WSHandlerConstants;
+import org.apache.wss4j.policy.SPConstants;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.opensaml.xmlsec.signature.support.SignatureConstants;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -111,6 +114,8 @@ public class As4Servlet extends CXFNonSpringServlet {
         outProps.put(WSHandlerConstants.USE_SINGLE_CERTIFICATE, "true");
         outProps.put(WSHandlerConstants.USE_REQ_SIG_CERT, "true");
         outProps.put(ConfigurationConstants.USER, alias);
+        outProps.put(WSHandlerConstants.SIG_ALGO, Constants.RSA_SHA256);
+        outProps.put(WSHandlerConstants.SIG_DIGEST_ALGO, SPConstants.SHA256);
         outProps.put(SecurityConstants.ENCRYPT_CRYPTO, crypto);
         outProps.put(ConfigurationConstants.SIG_PROP_REF_ID, SecurityConstants.ENCRYPT_CRYPTO);
         outProps.put(WSHandlerConstants.ENABLE_SIGNATURE_CONFIRMATION, "true" );
