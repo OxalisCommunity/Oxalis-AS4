@@ -3,7 +3,9 @@ package no.difi.oxalis.as4.inbound;
 import com.google.common.collect.Maps;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.google.inject.name.Named;
 import no.difi.oxalis.api.settings.Settings;
+import no.difi.oxalis.as4.config.TrustStore;
 import no.difi.oxalis.as4.util.Constants;
 import no.difi.oxalis.commons.security.KeyStoreConf;
 import no.difi.vefa.peppol.security.api.CertificateValidator;
@@ -17,7 +19,6 @@ import org.apache.wss4j.common.crypto.Merlin;
 import org.apache.wss4j.dom.handler.WSHandlerConstants;
 import org.apache.wss4j.policy.SPConstants;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.opensaml.xmlsec.signature.support.SignatureConstants;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -27,6 +28,8 @@ import javax.xml.soap.MimeHeaders;
 import javax.xml.ws.Endpoint;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.KeyStore;
 import java.util.Enumeration;
 import java.util.Map;
@@ -40,6 +43,13 @@ public class As4Servlet extends CXFNonSpringServlet {
 
     @Inject
     private Settings<KeyStoreConf> settings;
+
+    @Inject
+    private Settings<TrustStore> trustStoreSettings;
+
+    @Inject
+    @Named("conf")
+    private Path confFolder;
 
     @Inject
     private As4Provider provider;
@@ -69,12 +79,12 @@ public class As4Servlet extends CXFNonSpringServlet {
 
     private KeyStore getTrustStore(){
         try {
-            InputStream is = getClass().getResourceAsStream("/peppol_trust_g2.jks");
-
             KeyStore trust_store;
             trust_store = KeyStore.getInstance("jks");
-            trust_store.load(is, "changeit".toCharArray());
-
+            Path path = trustStoreSettings.getPath(TrustStore.PATH, confFolder);
+            try (InputStream is = Files.newInputStream(path)) {
+                trust_store.load(is, trustStoreSettings.getString(TrustStore.PASSWORD).toCharArray());
+            }
             return trust_store;
         } catch (Exception e) {
             throw new RuntimeException("Unable to load TrustStore!");
@@ -118,7 +128,7 @@ public class As4Servlet extends CXFNonSpringServlet {
         outProps.put(WSHandlerConstants.SIG_DIGEST_ALGO, SPConstants.SHA256);
         outProps.put(SecurityConstants.ENCRYPT_CRYPTO, crypto);
         outProps.put(ConfigurationConstants.SIG_PROP_REF_ID, SecurityConstants.ENCRYPT_CRYPTO);
-        outProps.put(WSHandlerConstants.ENABLE_SIGNATURE_CONFIRMATION, "true" );
+        outProps.put(WSHandlerConstants.ENABLE_SIGNATURE_CONFIRMATION, "false" );
         outProps.put(SecurityConstants.SIGNATURE_TOKEN_VALIDATOR, new CertificateValidatorSignatureTrustValidator(certificateValidator));
 
         return new OxalisAs4WsOutInterceptor(outProps, crypto, alias);
