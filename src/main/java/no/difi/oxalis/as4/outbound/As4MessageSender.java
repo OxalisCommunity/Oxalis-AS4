@@ -5,6 +5,7 @@ import no.difi.oxalis.api.outbound.TransmissionRequest;
 import no.difi.oxalis.api.outbound.TransmissionResponse;
 import no.difi.oxalis.api.settings.Settings;
 import no.difi.oxalis.api.timestamp.TimestampProvider;
+import no.difi.oxalis.as4.api.MessageIdGenerator;
 import no.difi.oxalis.as4.util.CompressionUtil;
 import no.difi.oxalis.as4.util.Marshalling;
 import no.difi.oxalis.commons.security.KeyStoreConf;
@@ -31,28 +32,31 @@ import static no.difi.oxalis.as4.util.Constants.RSA_SHA256;
 
 public class As4MessageSender {
 
-    private X509Certificate certificate;
-    private KeyStore keyStore;
-    private Settings<KeyStoreConf> settings;
-    private TimestampProvider timestampProvider;
-    private CompressionUtil compressionUtil;
+    private final X509Certificate certificate;
+    private final KeyStore keyStore;
+    private final Settings<KeyStoreConf> settings;
+    private final TimestampProvider timestampProvider;
+    private final CompressionUtil compressionUtil;
+    private final MessageIdGenerator messageIdGenerator;
 
     @Inject
     public As4MessageSender(X509Certificate certificate,
                             KeyStore keyStore,
                             Settings<KeyStoreConf> settings,
                             TimestampProvider timestampProvider,
-                            CompressionUtil compressionUtil) {
+                            CompressionUtil compressionUtil,
+                            MessageIdGenerator messageIdGenerator) {
         this.certificate = certificate;
         this.keyStore = keyStore;
         this.settings = settings;
         this.timestampProvider = timestampProvider;
         this.compressionUtil = compressionUtil;
+        this.messageIdGenerator = messageIdGenerator;
     }
 
     public TransmissionResponse send(TransmissionRequest request) {
         WebServiceTemplate template = createTemplate(request);
-        As4Sender sender = new As4Sender(request, certificate, compressionUtil);
+        As4Sender sender = new As4Sender(request, certificate, compressionUtil, messageIdGenerator);
         TransmissionResponseExtractor responseExtractor = new TransmissionResponseExtractor(request, timestampProvider);
         return template.sendAndReceive(request.getEndpoint().getAddress().toString(), sender, responseExtractor);
     }

@@ -2,9 +2,11 @@ package no.difi.oxalis.as4.outbound;
 
 import com.google.common.collect.Lists;
 import no.difi.oxalis.api.outbound.TransmissionRequest;
+import no.difi.oxalis.as4.api.MessageIdGenerator;
 import no.difi.oxalis.as4.util.CompressionUtil;
 import no.difi.oxalis.as4.util.Constants;
 import no.difi.oxalis.as4.util.Marshalling;
+import no.difi.oxalis.as4.util.MessageIdUtil;
 import no.difi.oxalis.commons.security.CertificateUtils;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.*;
 import org.springframework.http.MediaType;
@@ -30,7 +32,6 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.GregorianCalendar;
 import java.util.Iterator;
-import java.util.UUID;
 
 import static no.difi.oxalis.as4.util.Constants.*;
 
@@ -38,13 +39,14 @@ public class As4Sender implements WebServiceMessageCallback {
 
     private final TransmissionRequest request;
     private final X509Certificate certificate;
+    private final CompressionUtil compressionUtil;
+    private final MessageIdGenerator messageIdGenerator;
 
-    private CompressionUtil compressionUtil;
-
-    As4Sender(TransmissionRequest request, X509Certificate certificate, CompressionUtil compressionUtil) {
+    As4Sender(TransmissionRequest request, X509Certificate certificate, CompressionUtil compressionUtil, MessageIdGenerator messageIdGenerator) {
         this.request = request;
         this.certificate = certificate;
         this.compressionUtil = compressionUtil;
+        this.messageIdGenerator = messageIdGenerator;
     }
 
     @Override
@@ -82,7 +84,7 @@ public class As4Sender implements WebServiceMessageCallback {
         ArrayList<PartInfo> partInfos = Lists.newArrayList();
         while (attachments.hasNext()) {
             Attachment a = attachments.next();
-            String cid = "cid:"+a.getContentId();
+            String cid = "cid:" + a.getContentId();
             Property compressionType = Property.builder()
                     .withName("CompressionType")
                     .withValue("application/gzip")
@@ -177,6 +179,6 @@ public class As4Sender implements WebServiceMessageCallback {
     }
 
     private String newId() {
-        return UUID.randomUUID().toString();
+        return MessageIdUtil.unwrap(messageIdGenerator.generate(request));
     }
 }

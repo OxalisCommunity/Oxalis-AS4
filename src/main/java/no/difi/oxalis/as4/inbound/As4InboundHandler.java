@@ -11,9 +11,11 @@ import no.difi.oxalis.api.persist.PersisterHandler;
 import no.difi.oxalis.api.timestamp.Timestamp;
 import no.difi.oxalis.api.timestamp.TimestampProvider;
 import no.difi.oxalis.api.transmission.TransmissionVerifier;
+import no.difi.oxalis.as4.api.MessageIdGenerator;
 import no.difi.oxalis.as4.lang.OxalisAs4Exception;
 import no.difi.oxalis.as4.util.Constants;
 import no.difi.oxalis.as4.util.Marshalling;
+import no.difi.oxalis.as4.util.MessageIdUtil;
 import no.difi.oxalis.as4.util.SOAPHeaderParser;
 import no.difi.oxalis.commons.io.PeekingInputStream;
 import no.difi.oxalis.commons.io.UnclosableInputStream;
@@ -55,18 +57,17 @@ import java.util.zip.GZIPInputStream;
 @Singleton
 public class As4InboundHandler {
 
-    private TransmissionVerifier transmissionVerifier;
-
-    private PersisterHandler persisterHandler;
-
-    private TimestampProvider timestampProvider;
-
+    private final TransmissionVerifier transmissionVerifier;
+    private final PersisterHandler persisterHandler;
+    private final TimestampProvider timestampProvider;
+    private final MessageIdGenerator messageIdGenerator;
 
     @Inject
-    public As4InboundHandler(TransmissionVerifier transmissionVerifier, PersisterHandler persisterHandler, TimestampProvider timestampProvider) {
+    public As4InboundHandler(TransmissionVerifier transmissionVerifier, PersisterHandler persisterHandler, TimestampProvider timestampProvider, MessageIdGenerator messageIdGenerator) {
         this.transmissionVerifier = transmissionVerifier;
         this.persisterHandler = persisterHandler;
         this.timestampProvider = timestampProvider;
+        this.messageIdGenerator = messageIdGenerator;
     }
 
     public SOAPMessage handle(SOAPMessage request) throws OxalisAs4Exception {
@@ -82,7 +83,13 @@ public class As4InboundHandler {
         validateSBDH(sbdh);
 
         UserMessage userMessage = SOAPHeaderParser.getUserMessage(header);
-        TransmissionIdentifier ti = TransmissionIdentifier.of(userMessage.getMessageInfo().getMessageId());
+        String messageId = userMessage.getMessageInfo().getMessageId();
+
+        if (!MessageIdUtil.verify(MessageIdUtil.wrap(messageId)))
+            throw new OxalisAs4Exception(
+                    "Invalid Message-ID '" + messageId + "' in inbound message.");
+
+        TransmissionIdentifier ti = TransmissionIdentifier.of(messageId);
 
         Path payloadPath = persistPayload(peekingInputStream, sbdh, ti);
 
@@ -97,10 +104,12 @@ public class As4InboundHandler {
         // Get attachment digest from header
         Digest attachmentDigest = Digest.of(DigestMethod.SHA256, SOAPHeaderParser.getAttachmentDigest(refId, header));
 
+        X509Certificate senderCertificate = extractSenderCertificate(header);
+
         // Get reference list
         List<ReferenceType> referenceList = SOAPHeaderParser.getReferenceListFromSignedInfo(header);
 
-        SOAPMessage response = createSOAPResponse(ts, userMessage.getMessageInfo().getMessageId(), referenceList);
+        SOAPMessage response = createSOAPResponse(ti, sbdh, ts, senderCertificate, messageId, referenceList);
 
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         try {
@@ -109,7 +118,6 @@ public class As4InboundHandler {
             throw new OxalisAs4Exception("Could not write SOAP response", e);
         }
 
-        X509Certificate senderCertificate = extractSenderCertificate(header);
         As4InboundMetadata as4InboundMetadata = new As4InboundMetadata(
                 ti,
                 sbdh,
@@ -129,26 +137,29 @@ public class As4InboundHandler {
         return response;
     }
 
-    private X509Certificate extractSenderCertificate(SOAPHeader header) throws OxalisAs4Exception{
+    private X509Certificate extractSenderCertificate(SOAPHeader header) throws OxalisAs4Exception {
         Map<String, String> ns = new TreeMap<>();
         ns.put("wsse", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd");
         XPathUtils xu = new XPathUtils(ns);
         String cert = xu.getValueString("//wsse:BinarySecurityToken[1]/text()", header);
 
-        if(cert == null){
+        if (cert == null) {
             throw new OxalisAs4Exception("Unable to locate sender certificate");
         }
 
         try {
             CertificateFactory cf = CertificateFactory.getInstance("X.509");
-            byte[] certBytes = Base64.getDecoder().decode(cert.replaceAll("\r|\n",""));
+            byte[] certBytes = Base64.getDecoder().decode(cert.replaceAll("\r|\n", ""));
             return (X509Certificate) cf.generateCertificate(new ByteArrayInputStream(certBytes));
-        }catch (CertificateException e){
+        } catch (CertificateException e) {
             throw new OxalisAs4Exception("Unable to parse sender certificate", e);
         }
     }
 
-    private SOAPMessage createSOAPResponse(Timestamp ts,
+    private SOAPMessage createSOAPResponse(TransmissionIdentifier ti,
+                                           Header header,
+                                           Timestamp ts,
+                                           X509Certificate senderCertificate,
                                            String refToMessageId,
                                            List<ReferenceType> referenceList) throws OxalisAs4Exception {
         SignalMessage signalMessage;
@@ -178,9 +189,17 @@ public class As4InboundHandler {
             throw new OxalisAs4Exception("Could not parse timestamp", e);
         }
 
+        // Generate Message-Id
+        String messageId = messageIdGenerator.generate(new As4InboundMetadata(ti, header, ts,
+                null, null, senderCertificate, null));
+
+        if (!MessageIdUtil.verify(messageId))
+            throw new OxalisAs4Exception(
+                    "Invalid Message-ID '" + messageId + "' generated.");
+
         MessageInfo messageInfo = MessageInfo.builder()
                 .withTimestamp(xmlGc)
-                .withMessageId(UUID.randomUUID().toString())
+                .withMessageId(MessageIdUtil.unwrap(messageId))
                 .withRefToMessageId(refToMessageId)
                 .build();
 
