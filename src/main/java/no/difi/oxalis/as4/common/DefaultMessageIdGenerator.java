@@ -24,8 +24,7 @@ package no.difi.oxalis.as4.common;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import no.difi.oxalis.api.inbound.InboundMetadata;
-import no.difi.oxalis.api.outbound.TransmissionRequest;
+import lombok.SneakyThrows;
 import no.difi.oxalis.api.settings.Settings;
 import no.difi.oxalis.api.util.Type;
 import no.difi.oxalis.as4.api.MessageIdGenerator;
@@ -33,40 +32,35 @@ import no.difi.oxalis.as4.config.As4Conf;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.UUID;
 
 @Singleton
 @Type("default")
 public class DefaultMessageIdGenerator implements MessageIdGenerator {
 
-    private String hostname;
-
-    private AtomicLong atomicLong = new AtomicLong();
-
-    @Inject
-    public DefaultMessageIdGenerator(Settings<As4Conf> settings) {
-        try {
-            hostname = settings.getString(As4Conf.HOSTNAME);
-            if (hostname.trim().isEmpty())
-                hostname = InetAddress.getLocalHost().getCanonicalHostName();
-        } catch (UnknownHostException e) {
-            throw new IllegalStateException("Unable to get local hostname.", e);
-        }
-    }
+    private final String hostname;
 
     public DefaultMessageIdGenerator(String hostname) {
         this.hostname = hostname;
     }
 
-    @Override
-    public String generate(TransmissionRequest transmissionRequest) {
-        return String.format("<%s.%s.%s.Oxalis@%s>", System.currentTimeMillis(),
-                atomicLong.incrementAndGet(), transmissionRequest.hashCode(), hostname);
+    @Inject
+    public DefaultMessageIdGenerator(Settings<As4Conf> settings) {
+        this.hostname = getHostname(settings);
+    }
+
+    private String getHostname(Settings<As4Conf> settings) {
+        String name = settings.getString(As4Conf.HOSTNAME).trim();
+        return name.isEmpty() ? getLocalHostName() : name;
+    }
+
+    @SneakyThrows(UnknownHostException.class)
+    private String getLocalHostName() {
+        return InetAddress.getLocalHost().getCanonicalHostName();
     }
 
     @Override
-    public String generate(InboundMetadata inboundMetadata) {
-        return String.format("<%s.%s.%s.Oxalis@%s>", System.currentTimeMillis(),
-                atomicLong.incrementAndGet(), inboundMetadata.hashCode(), hostname);
+    public String generate() {
+        return String.format("%s@%s", UUID.randomUUID().toString(), hostname);
     }
 }

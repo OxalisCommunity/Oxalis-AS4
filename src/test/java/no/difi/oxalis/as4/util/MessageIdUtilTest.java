@@ -25,33 +25,19 @@ package no.difi.oxalis.as4.util;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-/**
- * @author erlend
- */
 public class MessageIdUtilTest {
 
     @Test
     public void testVerify() {
-        Assert.assertTrue(MessageIdUtil.verify("<1060501332.515.1528302064500@de77cf5d0088>"));
-        Assert.assertTrue(MessageIdUtil.verify("<OpenPEPPOL-06062018160101+0300-0447@APP_1000000200_APP_2000000300>"));
-        Assert.assertTrue(MessageIdUtil.verify("<a397-ca2a711dff5b@seller.eu>"));
-        Assert.assertTrue(MessageIdUtil.verify("<8196c8e2-820f-4aec-a1ca-288a4d1d4020@seller.eu>"));
+        Assert.assertTrue(MessageIdUtil.verify("1060501332.515.1528302064500@de77cf5d0088"));
+        Assert.assertTrue(MessageIdUtil.verify("OpenPEPPOL-06062018160101+0300-0447@APP_1000000200_APP_2000000300"));
+        Assert.assertTrue(MessageIdUtil.verify("a397-ca2a711dff5b@seller.eu"));
+        Assert.assertTrue(MessageIdUtil.verify("8196c8e2-820f-4aec-a1ca-288a4d1d4020@seller.eu"));
 
-        Assert.assertFalse(MessageIdUtil.verify("<1060501332..515.1528302064500@de77cf5d0088>"));
-        Assert.assertFalse(MessageIdUtil.verify(" <1060501332.515.1528302064500@de77cf5d0088>"));
-        Assert.assertFalse(MessageIdUtil.verify("<1060501332.515.1528302064500@de77cf5d0088"));
-        Assert.assertFalse(MessageIdUtil.verify("<1060501332.515.1528302064500_de77cf5d0088>"));
+        Assert.assertFalse(MessageIdUtil.verify("1060501332..515.1528302064500@de77cf5d0088"));
+        Assert.assertFalse(MessageIdUtil.verify(" 1060501332.515.1528302064500@de77cf5d0088"));
+        Assert.assertFalse(MessageIdUtil.verify("1060501332.515.1528302064500_de77cf5d0088"));
 
-        Assert.assertTrue(MessageIdUtil.verify("<Aa1!#$%&'*+-/=?^_`{|}~.Aa1!#$%&'*+-/=?^_`{|}~@Aa1!#$%&'*+-/=?^_`{|}~.Aa1!#$%&'*+-/=?^_`{|}~>"));
-    }
-
-    @Test
-    public void testWrap() {
-        Assert.assertEquals(MessageIdUtil.wrap("1060501332.515.1528302064500_de77cf5d0088"), "<1060501332.515.1528302064500_de77cf5d0088>");
-    }
-
-    @Test
-    public void testUnwrap() {
-        Assert.assertEquals(MessageIdUtil.unwrap("<1060501332.515.1528302064500_de77cf5d0088>"), "1060501332.515.1528302064500_de77cf5d0088");
+        Assert.assertTrue(MessageIdUtil.verify("Aa1!#$%&'*+-/=?^_`{|}~.Aa1!#$%&'*+-/=?^_`{|}~@Aa1!#$%&'*+-/=?^_`{|}~.Aa1!#$%&'*+-/=?^_`{|}~"));
     }
 }

@@ -23,7 +23,6 @@
 package no.difi.oxalis.as4.util;
 
 import lombok.experimental.UtilityClass;
-import org.springframework.util.Assert;
 
 import java.util.regex.Pattern;
 
@@ -33,19 +32,9 @@ public class MessageIdUtil {
     private static final String ATEXT = "[A-Za-z0-9!#\\$%&'\\*\\+\\-/=\\?\\^_`\\{}\\|~]+";
 
     private static final Pattern PATTERN =
-            Pattern.compile("^<" + ATEXT + "(\\." + ATEXT + ")*@" + ATEXT + "(\\." + ATEXT + ")*>$");
+            Pattern.compile("^" + ATEXT + "(\\." + ATEXT + ")*@" + ATEXT + "(\\." + ATEXT + ")*$");
 
     public static boolean verify(String identifier) {
         return PATTERN.matcher(identifier).matches();
-    }
-
-    public static String wrap(String in) {
-        return String.format("<%s>", in);
-    }
-
-    public static String unwrap(String in) {
-        Assert.isTrue(in.charAt(0) == '<', "First character is expected to be <");
-        Assert.isTrue(in.charAt(in.length() - 1) == '>', "Last character is expected to be >");
-        return in.substring(1, in.length() - 1);
     }
 }

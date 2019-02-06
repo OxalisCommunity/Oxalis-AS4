@@ -85,7 +85,7 @@ public class As4InboundHandler {
         UserMessage userMessage = SOAPHeaderParser.getUserMessage(header);
         String messageId = userMessage.getMessageInfo().getMessageId();
 
-        if (!MessageIdUtil.verify(MessageIdUtil.wrap(messageId)))
+        if (!MessageIdUtil.verify(messageId))
             throw new OxalisAs4Exception(
                     "Invalid Message-ID '" + messageId + "' in inbound message.");
 
@@ -109,7 +109,7 @@ public class As4InboundHandler {
         // Get reference list
         List<ReferenceType> referenceList = SOAPHeaderParser.getReferenceListFromSignedInfo(header);
 
-        SOAPMessage response = createSOAPResponse(ti, sbdh, ts, senderCertificate, messageId, referenceList);
+        SOAPMessage response = createSOAPResponse(ts, messageId, referenceList);
 
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         try {
@@ -156,10 +156,7 @@ public class As4InboundHandler {
         }
     }
 
-    private SOAPMessage createSOAPResponse(TransmissionIdentifier ti,
-                                           Header header,
-                                           Timestamp ts,
-                                           X509Certificate senderCertificate,
+    private SOAPMessage createSOAPResponse(Timestamp ts,
                                            String refToMessageId,
                                            List<ReferenceType> referenceList) throws OxalisAs4Exception {
         SignalMessage signalMessage;
@@ -190,8 +187,7 @@ public class As4InboundHandler {
         }
 
         // Generate Message-Id
-        String messageId = messageIdGenerator.generate(new As4InboundMetadata(ti, header, ts,
-                null, null, senderCertificate, null));
+        String messageId = messageIdGenerator.generate();
 
         if (!MessageIdUtil.verify(messageId))
             throw new OxalisAs4Exception(
@@ -199,7 +195,7 @@ public class As4InboundHandler {
 
         MessageInfo messageInfo = MessageInfo.builder()
                 .withTimestamp(xmlGc)
-                .withMessageId(MessageIdUtil.unwrap(messageId))
+                .withMessageId(messageId)
                 .withRefToMessageId(refToMessageId)
                 .build();
 
