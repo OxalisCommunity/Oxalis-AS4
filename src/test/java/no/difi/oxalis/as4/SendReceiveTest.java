@@ -12,6 +12,9 @@ import no.difi.oxalis.api.outbound.TransmissionRequest;
 import no.difi.oxalis.api.outbound.TransmissionResponse;
 import no.difi.oxalis.api.persist.PayloadPersister;
 import no.difi.oxalis.api.persist.ReceiptPersister;
+import no.difi.oxalis.as4.api.MessageIdGenerator;
+import no.difi.oxalis.as4.common.As4CommonModule;
+import no.difi.oxalis.as4.common.DefaultMessageIdGenerator;
 import no.difi.oxalis.as4.inbound.As4InboundModule;
 import no.difi.oxalis.as4.outbound.As4OutboundModule;
 import no.difi.oxalis.commons.guice.GuiceModuleLoader;
@@ -63,6 +66,7 @@ public class SendReceiveTest extends AbstractJettyServerTest {
                     protected void configure() {
                         bind(ReceiptPersister.class).toInstance((m, p) -> {});
                         bind(PayloadPersister.class).toInstance(memoryPersister);
+                        bind(MessageIdGenerator.class).toInstance(new DefaultMessageIdGenerator("test.com"));
                     }
                 })
         );
