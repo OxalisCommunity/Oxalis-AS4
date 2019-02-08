@@ -14,7 +14,6 @@ import org.apache.cxf.jaxws.EndpointImpl;
 import org.apache.cxf.transport.servlet.CXFNonSpringServlet;
 import org.apache.cxf.ws.security.SecurityConstants;
 import org.apache.wss4j.common.ConfigurationConstants;
-import org.apache.wss4j.common.crypto.Crypto;
 import org.apache.wss4j.common.crypto.Merlin;
 import org.apache.wss4j.dom.handler.WSHandlerConstants;
 import org.apache.wss4j.policy.SPConstants;
@@ -57,48 +56,41 @@ public class As4Servlet extends CXFNonSpringServlet {
     @Inject
     private CertificateValidator certificateValidator;
 
-    public static Merlin encryptCrypto = new Merlin();
+    private static final Merlin encryptCrypto = new Merlin();
 
     @Override
     protected void loadBus(ServletConfig servletConfig) {
         super.loadBus(servletConfig);
 
-        EndpointImpl endpointImpl = (EndpointImpl) Endpoint.publish("/", provider);
-
         encryptCrypto.setCryptoProvider(BouncyCastleProvider.PROVIDER_NAME);
         encryptCrypto.setKeyStore(keyStore);
         encryptCrypto.setTrustStore(getTrustStore());
 
-        SoapInterceptor wsInInterceptor = createWsInInterceptor(encryptCrypto);
-        SoapInterceptor wsOutInterceptor = createWsOutInterceptor(encryptCrypto);
-
-        endpointImpl.getInInterceptors().add(wsInInterceptor);
-        endpointImpl.getOutInterceptors().add(wsOutInterceptor);
-
+        EndpointImpl endpointImpl = (EndpointImpl) Endpoint.publish("/", provider);
+        endpointImpl.getInInterceptors().add(createWsInInterceptor());
+        endpointImpl.getOutInterceptors().add(createWsOutInterceptor());
     }
 
-    private KeyStore getTrustStore(){
+    private KeyStore getTrustStore() {
         try {
-            KeyStore trust_store;
-            trust_store = KeyStore.getInstance("jks");
+            KeyStore trustStore;
+            trustStore = KeyStore.getInstance("jks");
             Path path = trustStoreSettings.getPath(TrustStore.PATH, confFolder);
             try (InputStream is = Files.newInputStream(path)) {
-                trust_store.load(is, trustStoreSettings.getString(TrustStore.PASSWORD).toCharArray());
+                trustStore.load(is, trustStoreSettings.getString(TrustStore.PASSWORD).toCharArray());
             }
-            return trust_store;
+            return trustStore;
         } catch (Exception e) {
             throw new RuntimeException("Unable to load TrustStore!");
         }
     }
-    
-    private SoapInterceptor createWsInInterceptor(Crypto crypto){
+
+    private SoapInterceptor createWsInInterceptor() {
         String alias = settings.getString(KeyStoreConf.KEY_ALIAS);
-        String password = settings.getString(KeyStoreConf.KEY_PASSWORD);
-        PasswordCallbackHandler cb = new PasswordCallbackHandler(password);
 
         Map<String, Object> inProps = Maps.newHashMap();
         inProps.put(WSHandlerConstants.ACTION, WSHandlerConstants.ENCRYPT + " " + WSHandlerConstants.SIGNATURE);
-        inProps.put(WSHandlerConstants.PW_CALLBACK_REF, cb);
+        inProps.put(WSHandlerConstants.PW_CALLBACK_REF, getPasswordCallbackHandler());
         inProps.put(WSHandlerConstants.ENCRYPTION_PARTS, "{}cid:Attachments");
         inProps.put(WSHandlerConstants.SIGNATURE_PARTS, "{}{}Body; {}{http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/} Messaging; {}cid:Attachments;");
         inProps.put(WSHandlerConstants.SIG_KEY_ID, "DirectReference");
@@ -106,19 +98,21 @@ public class As4Servlet extends CXFNonSpringServlet {
         inProps.put(WSHandlerConstants.USE_REQ_SIG_CERT, "true");
         inProps.put(SecurityConstants.SIGNATURE_TOKEN_VALIDATOR, new CertificateValidatorSignatureTrustValidator(certificateValidator));
 
-
         return new OxalisAS4WsInInterceptor(inProps, encryptCrypto, alias);
     }
 
-    private SoapInterceptor createWsOutInterceptor(Crypto crypto){
+    private PasswordCallbackHandler getPasswordCallbackHandler() {
+        String password = settings.getString(KeyStoreConf.KEY_PASSWORD);
+        return new PasswordCallbackHandler(password);
+    }
+
+    private SoapInterceptor createWsOutInterceptor() {
 
         String alias = settings.getString(KeyStoreConf.KEY_ALIAS);
-        String password = settings.getString(KeyStoreConf.KEY_PASSWORD);
-        PasswordCallbackHandler cb = new PasswordCallbackHandler(password);
 
         Map<String, Object> outProps = Maps.newHashMap();
         outProps.put(WSHandlerConstants.ACTION, WSHandlerConstants.SIGNATURE);
-        outProps.put(WSHandlerConstants.PW_CALLBACK_REF, cb);
+        outProps.put(WSHandlerConstants.PW_CALLBACK_REF, getPasswordCallbackHandler());
         outProps.put(WSHandlerConstants.SIGNATURE_PARTS, "{}{}Body; {}{http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/} Messaging;{}cid:Attachments;");
         outProps.put(WSHandlerConstants.SIG_KEY_ID, "SKIKeyIdentifier");
         outProps.put(WSHandlerConstants.USE_SINGLE_CERTIFICATE, "true");
@@ -126,12 +120,12 @@ public class As4Servlet extends CXFNonSpringServlet {
         outProps.put(ConfigurationConstants.USER, alias);
         outProps.put(WSHandlerConstants.SIG_ALGO, Constants.RSA_SHA256);
         outProps.put(WSHandlerConstants.SIG_DIGEST_ALGO, SPConstants.SHA256);
-        outProps.put(SecurityConstants.ENCRYPT_CRYPTO, crypto);
+        outProps.put(SecurityConstants.ENCRYPT_CRYPTO, encryptCrypto);
         outProps.put(ConfigurationConstants.SIG_PROP_REF_ID, SecurityConstants.ENCRYPT_CRYPTO);
-        outProps.put(WSHandlerConstants.ENABLE_SIGNATURE_CONFIRMATION, "false" );
+        outProps.put(WSHandlerConstants.ENABLE_SIGNATURE_CONFIRMATION, "false");
         outProps.put(SecurityConstants.SIGNATURE_TOKEN_VALIDATOR, new CertificateValidatorSignatureTrustValidator(certificateValidator));
 
-        return new OxalisAs4WsOutInterceptor(outProps, crypto, alias);
+        return new OxalisAs4WsOutInterceptor(outProps, encryptCrypto, alias);
     }
 
     private MimeHeaders getHeaders(HttpServletRequest httpServletRequest) {

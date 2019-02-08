@@ -39,17 +39,16 @@ public class OxalisAS4WsInInterceptor extends WSS4JInInterceptor {
         super.handleMessage(msg);
 
         SOAPMessage soapMessage = msg.getContent(SOAPMessage.class);
-        if (soapMessage != null) {
-            if (soapMessage.countAttachments() > 0) {
-                Iterator<AttachmentPart> it = CastUtils.cast(soapMessage.getAttachments());
-                while (it.hasNext()) {
-                    AttachmentPart part = it.next();
-                    Optional<Attachment> first = msg.getAttachments().stream()
-                            .filter(a -> a.getId().equals(part.getContentId().replaceAll("<|>", "")))
-                            .findFirst();
-                    first.ifPresent(a -> part.setDataHandler(a.getDataHandler()));
-                    first.orElseThrow(() -> new RuntimeException("Unable to find attachment")); // Todo: must send fault message
-                }
+        if (soapMessage != null && soapMessage.countAttachments() > 0) {
+            Iterator<AttachmentPart> it = CastUtils.cast(soapMessage.getAttachments());
+            while (it.hasNext()) {
+                AttachmentPart part = it.next();
+                Attachment first = msg.getAttachments().stream()
+                        .filter(a -> a.getId().equals(part.getContentId().replaceAll("<|>", "")))
+                        .findFirst()
+                        .orElseThrow(() -> new RuntimeException("Unable to find attachment")); // Todo: must send fault message
+
+                part.setDataHandler(first.getDataHandler());
             }
         }
     }

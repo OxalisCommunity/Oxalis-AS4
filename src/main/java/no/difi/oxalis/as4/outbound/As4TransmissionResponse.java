@@ -29,12 +29,14 @@ public class As4TransmissionResponse implements TransmissionResponse {
         this.digest = digest;
         this.receipt = Receipt.of("message/disposition-notification", nativeEvidenceBytes);
         this.timestamp = date;
+        this.receipts = getReceipts(timestamp);
+    }
 
-        List<Receipt> receipts = new ArrayList<>();
-        receipts.add(receipt);
-        if (timestamp.getReceipt().isPresent())
-            receipts.add(timestamp.getReceipt().get());
-        this.receipts = Collections.unmodifiableList(receipts);
+    private List<Receipt> getReceipts(Timestamp timestamp) {
+        List<Receipt> out = new ArrayList<>();
+        out.add(receipt);
+        timestamp.getReceipt().ifPresent(out::add);
+        return Collections.unmodifiableList(out);
     }
 
     @Override

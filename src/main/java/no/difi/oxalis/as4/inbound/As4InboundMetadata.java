@@ -15,24 +15,17 @@ import java.util.List;
 public class As4InboundMetadata implements InboundMetadata {
 
     private final TransmissionIdentifier transmissionIdentifier;
-
     private final Header header;
-
     private final Date timestamp;
-
     private final TransportProfile transportProfile;
-
     private final Digest digest;
-
     private final Receipt primaryReceipt;
-
     private final List<Receipt> receipts;
-
     private final X509Certificate certificate;
 
-    public As4InboundMetadata(TransmissionIdentifier transmissionIdentifier, Header header, Timestamp timestamp,
-                              TransportProfile transportProfile, Digest digest, X509Certificate certificate,
-                              byte[] primaryReceipt) {
+    As4InboundMetadata(TransmissionIdentifier transmissionIdentifier, Header header, Timestamp timestamp,
+                       TransportProfile transportProfile, Digest digest, X509Certificate certificate,
+                       byte[] primaryReceipt) {
         this.transmissionIdentifier = transmissionIdentifier;
         this.header = header;
         this.timestamp = timestamp.getDate();
@@ -40,12 +33,14 @@ public class As4InboundMetadata implements InboundMetadata {
         this.digest = digest;
         this.certificate = certificate;
         this.primaryReceipt = Receipt.of("message/disposition-notification", primaryReceipt);
+        this.receipts = getReceipts(this.primaryReceipt, timestamp);
+    }
 
-        List<Receipt> receipts = new ArrayList<>();
-        receipts.add(this.primaryReceipt);
-        if (timestamp.getReceipt().isPresent())
-            receipts.add(timestamp.getReceipt().get());
-        this.receipts = Collections.unmodifiableList(receipts);
+    private List<Receipt> getReceipts(Receipt primaryReceipt, Timestamp timestamp) {
+        List<Receipt> receiptList = new ArrayList<>();
+        receiptList.add(primaryReceipt);
+        timestamp.getReceipt().ifPresent(receiptList::add);
+        return Collections.unmodifiableList(receiptList);
     }
 
     @Override

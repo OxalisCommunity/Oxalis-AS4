@@ -46,7 +46,6 @@ public class SendReceiveTest extends AbstractJettyServerTest {
 
     private byte[] testPayload;
 
-
     public SendReceiveTest() throws Exception {
         InputStream is = getClass().getResourceAsStream("/as2-peppol-bis-invoice-sbdh.xml");
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();

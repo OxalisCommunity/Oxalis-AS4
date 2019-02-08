@@ -17,22 +17,22 @@ public class InputStreamDataSource implements DataSource {
     }
 
     @Override
-    public InputStream getInputStream () throws IOException {
+    public InputStream getInputStream() throws IOException {
         return inputStream;
     }
 
     @Override
-    public OutputStream getOutputStream () {
+    public OutputStream getOutputStream() {
         throw new UnsupportedOperationException("Read-only");
     }
 
     @Override
-    public String getContentType () {
+    public String getContentType() {
         return contentType;
     }
 
     @Override
-    public String getName () {
+    public String getName() {
         throw new UnsupportedOperationException("DataSource name not available");
     }
 }
