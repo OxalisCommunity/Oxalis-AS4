@@ -58,6 +58,6 @@ public class As4ResponseProviderTest {
     }
 
     private String removeTimeZoneFromDate(String in) {
-        return in.replaceAll("\\+\\d{2}:\\d{2}", "");
+        return in.replaceAll("(?:Z|\\+\\d{2}:\\d{2})</Timestamp>", "</Timestamp>");
     }
 }
