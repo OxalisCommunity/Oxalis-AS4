@@ -49,11 +49,15 @@ public class As4ResponseProviderTest {
         result.writeTo(out);
         String message = out.toString(StandardCharsets.UTF_8.name());
 
-        assertThat(removeNamespaces(message)).isEqualTo("<Envelope><Header><Messaging><SignalMessage><MessageInfo><Timestamp>2019-02-07T12:36:24.123+01:00</Timestamp><MessageId>A296c8e2-820f-4aec-a1ca-288a4d1d4020@buyer.eu</MessageId><RefToMessageId>8196c8e2-820f-4aec-a1ca-288a4d1d4020@seller.eu</RefToMessageId></MessageInfo><Receipt><NonRepudiationInformation><MessagePartNRInformation><Reference URI=\"#_840b593a-a40f-40d8-a8fd-89591478e5df\"/></MessagePartNRInformation></NonRepudiationInformation></Receipt></SignalMessage></Messaging></Header><Body/></Envelope>");
+        assertThat(removeTimeZoneFromDate(removeNamespaces(message))).isEqualTo("<Envelope><Header><Messaging><SignalMessage><MessageInfo><Timestamp>2019-02-07T12:36:24.123</Timestamp><MessageId>A296c8e2-820f-4aec-a1ca-288a4d1d4020@buyer.eu</MessageId><RefToMessageId>8196c8e2-820f-4aec-a1ca-288a4d1d4020@seller.eu</RefToMessageId></MessageInfo><Receipt><NonRepudiationInformation><MessagePartNRInformation><Reference URI=\"#_840b593a-a40f-40d8-a8fd-89591478e5df\"/></MessagePartNRInformation></NonRepudiationInformation></Receipt></SignalMessage></Messaging></Header><Body/></Envelope>");
     }
 
     private String removeNamespaces(String in) {
         return in.replaceAll("(</?)\\w+:", "$1")
                 .replaceAll(" \\w+:\\w+=\"[^\"]+\"", "");
+    }
+
+    private String removeTimeZoneFromDate(String in) {
+        return in.replaceAll("\\+\\d{2}:\\d{2}", "");
     }
 }
