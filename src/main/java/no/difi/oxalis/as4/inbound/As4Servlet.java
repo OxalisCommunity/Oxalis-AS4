@@ -35,7 +35,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.soap.MimeHeaders;
-import javax.xml.ws.Endpoint;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -44,10 +43,10 @@ import java.security.KeyStore;
 import java.util.Enumeration;
 import java.util.Map;
 import java.util.StringTokenizer;
+import java.util.function.Supplier;
 
 @Singleton
 public class As4Servlet extends CXFNonSpringServlet {
-
 
 
     @Inject
@@ -64,26 +63,18 @@ public class As4Servlet extends CXFNonSpringServlet {
     private Path confFolder;
 
     @Inject
-    private As4Provider provider;
-
-    @Inject
     private CertificateValidator certificateValidator;
 
     @Inject
-    private AbstractEndpointSelectionInterceptor endpointSelector;
+    private As4EndpointsPuslisher endpointsPuslisher;
 
     public static Merlin encryptCrypto = new Merlin();
-
-
-
 
     @Override
     protected void loadBus(ServletConfig servletConfig) {
         super.loadBus(servletConfig);
 
-        EndpointImpl endpointImpl = (EndpointImpl) Endpoint.publish("/", provider);
-
-        addMultipleEndpointsSupport(endpointImpl);
+        EndpointImpl endpointImpl = endpointsPuslisher.publish(getBus());
 
         encryptCrypto.setCryptoProvider(BouncyCastleProvider.PROVIDER_NAME);
         encryptCrypto.setKeyStore(keyStore);
@@ -96,36 +87,7 @@ public class As4Servlet extends CXFNonSpringServlet {
         endpointImpl.getOutInterceptors().add(wsOutInterceptor);
     }
 
-    private void addMultipleEndpointsSupport(EndpointImpl endpoint){
-
-        endpoint.getServer().getEndpoint().put("allow-multiplex-endpoint", Boolean.TRUE);
-        endpoint.getServer().getEndpoint()
-                .put(As4EndpointSelector.ENDPOINT_NAME, As4EndpointSelector.OXALIS_AS4_ENDPOINT_NAME);
-
-
-        MultipleEndpointObserver newMO = new MultipleEndpointObserver(getBus()) {
-            @Override
-            protected Message createMessage(Message message) {
-                return new SoapMessage(message);
-            }
-        };
-
-        newMO.getBindingInterceptors().add(new AttachmentInInterceptor());
-        newMO.getBindingInterceptors().add(new StaxInInterceptor());
-
-        newMO.getBindingInterceptors().add(new ReadHeadersInterceptor(getBus(), (SoapVersion)null));
-        newMO.getBindingInterceptors().add(new StartBodyInterceptor());
-        newMO.getBindingInterceptors().add(new CheckFaultInterceptor());
-
-        // Add in a default selection interceptor
-        newMO.getRoutingInterceptors().add(endpointSelector);
-
-        newMO.getEndpoints().add(endpoint.getServer().getEndpoint());
-
-        endpoint.getServer().getDestination().setMessageObserver(newMO);
-    }
-
-    private KeyStore getTrustStore(){
+    private KeyStore getTrustStore() {
         try {
             KeyStore trust_store;
             trust_store = KeyStore.getInstance("jks");
@@ -139,7 +101,7 @@ public class As4Servlet extends CXFNonSpringServlet {
         }
     }
 
-    private SoapInterceptor createWsInInterceptor(Crypto crypto){
+    private SoapInterceptor createWsInInterceptor(Crypto crypto) {
         String alias = settings.getString(KeyStoreConf.KEY_ALIAS);
         String password = settings.getString(KeyStoreConf.KEY_PASSWORD);
         PasswordCallbackHandler cb = new PasswordCallbackHandler(password);
@@ -158,7 +120,7 @@ public class As4Servlet extends CXFNonSpringServlet {
         return new OxalisAS4WsInInterceptor(inProps, encryptCrypto, alias);
     }
 
-    private SoapInterceptor createWsOutInterceptor(Crypto crypto){
+    private SoapInterceptor createWsOutInterceptor(Crypto crypto) {
 
         String alias = settings.getString(KeyStoreConf.KEY_ALIAS);
         String password = settings.getString(KeyStoreConf.KEY_PASSWORD);
@@ -176,7 +138,7 @@ public class As4Servlet extends CXFNonSpringServlet {
         outProps.put(WSHandlerConstants.SIG_DIGEST_ALGO, SPConstants.SHA256);
         outProps.put(SecurityConstants.ENCRYPT_CRYPTO, crypto);
         outProps.put(ConfigurationConstants.SIG_PROP_REF_ID, SecurityConstants.ENCRYPT_CRYPTO);
-        outProps.put(WSHandlerConstants.ENABLE_SIGNATURE_CONFIRMATION, "false" );
+        outProps.put(WSHandlerConstants.ENABLE_SIGNATURE_CONFIRMATION, "false");
         outProps.put(SecurityConstants.SIGNATURE_TOKEN_VALIDATOR, new CertificateValidatorSignatureTrustValidator(certificateValidator));
 
         return new OxalisAs4WsOutInterceptor(outProps, crypto, alias);
