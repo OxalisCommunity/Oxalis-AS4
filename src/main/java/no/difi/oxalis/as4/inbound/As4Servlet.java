@@ -9,10 +9,20 @@ import no.difi.oxalis.as4.config.TrustStore;
 import no.difi.oxalis.as4.util.Constants;
 import no.difi.oxalis.commons.security.KeyStoreConf;
 import no.difi.vefa.peppol.security.api.CertificateValidator;
+import org.apache.cxf.binding.soap.SoapMessage;
+import org.apache.cxf.binding.soap.SoapVersion;
+import org.apache.cxf.binding.soap.interceptor.CheckFaultInterceptor;
+import org.apache.cxf.binding.soap.interceptor.ReadHeadersInterceptor;
 import org.apache.cxf.binding.soap.interceptor.SoapInterceptor;
+import org.apache.cxf.binding.soap.interceptor.StartBodyInterceptor;
+import org.apache.cxf.interceptor.AttachmentInInterceptor;
+import org.apache.cxf.interceptor.StaxInInterceptor;
 import org.apache.cxf.jaxws.EndpointImpl;
+import org.apache.cxf.message.Message;
+import org.apache.cxf.transport.MultipleEndpointObserver;
 import org.apache.cxf.transport.servlet.CXFNonSpringServlet;
 import org.apache.cxf.ws.security.SecurityConstants;
+import org.apache.cxf.wsdl.interceptors.AbstractEndpointSelectionInterceptor;
 import org.apache.wss4j.common.ConfigurationConstants;
 import org.apache.wss4j.common.crypto.Crypto;
 import org.apache.wss4j.common.crypto.Merlin;
@@ -38,6 +48,8 @@ import java.util.StringTokenizer;
 @Singleton
 public class As4Servlet extends CXFNonSpringServlet {
 
+
+
     @Inject
     private KeyStore keyStore;
 
@@ -57,13 +69,21 @@ public class As4Servlet extends CXFNonSpringServlet {
     @Inject
     private CertificateValidator certificateValidator;
 
+    @Inject
+    private AbstractEndpointSelectionInterceptor endpointSelector;
+
     public static Merlin encryptCrypto = new Merlin();
+
+
+
 
     @Override
     protected void loadBus(ServletConfig servletConfig) {
         super.loadBus(servletConfig);
 
         EndpointImpl endpointImpl = (EndpointImpl) Endpoint.publish("/", provider);
+
+        addMultipleEndpointsSupport(endpointImpl);
 
         encryptCrypto.setCryptoProvider(BouncyCastleProvider.PROVIDER_NAME);
         encryptCrypto.setKeyStore(keyStore);
@@ -74,7 +94,35 @@ public class As4Servlet extends CXFNonSpringServlet {
 
         endpointImpl.getInInterceptors().add(wsInInterceptor);
         endpointImpl.getOutInterceptors().add(wsOutInterceptor);
+    }
 
+    private void addMultipleEndpointsSupport(EndpointImpl endpoint){
+
+        endpoint.getServer().getEndpoint().put("allow-multiplex-endpoint", Boolean.TRUE);
+        endpoint.getServer().getEndpoint()
+                .put(As4EndpointSelector.ENDPOINT_NAME, As4EndpointSelector.OXALIS_AS4_ENDPOINT_NAME);
+
+
+        MultipleEndpointObserver newMO = new MultipleEndpointObserver(getBus()) {
+            @Override
+            protected Message createMessage(Message message) {
+                return new SoapMessage(message);
+            }
+        };
+
+        newMO.getBindingInterceptors().add(new AttachmentInInterceptor());
+        newMO.getBindingInterceptors().add(new StaxInInterceptor());
+
+        newMO.getBindingInterceptors().add(new ReadHeadersInterceptor(getBus(), (SoapVersion)null));
+        newMO.getBindingInterceptors().add(new StartBodyInterceptor());
+        newMO.getBindingInterceptors().add(new CheckFaultInterceptor());
+
+        // Add in a default selection interceptor
+        newMO.getRoutingInterceptors().add(endpointSelector);
+
+        newMO.getEndpoints().add(endpoint.getServer().getEndpoint());
+
+        endpoint.getServer().getDestination().setMessageObserver(newMO);
     }
 
     private KeyStore getTrustStore(){
@@ -90,7 +138,7 @@ public class As4Servlet extends CXFNonSpringServlet {
             throw new RuntimeException("Unable to load TrustStore!");
         }
     }
-    
+
     private SoapInterceptor createWsInInterceptor(Crypto crypto){
         String alias = settings.getString(KeyStoreConf.KEY_ALIAS);
         String password = settings.getString(KeyStoreConf.KEY_PASSWORD);
