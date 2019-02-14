@@ -3,6 +3,8 @@ package no.difi.oxalis.as4.inbound;
 import com.google.common.io.ByteStreams;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import no.difi.oxalis.api.header.HeaderParser;
+import no.difi.oxalis.api.lang.OxalisContentException;
 import no.difi.oxalis.api.lang.TimestampException;
 import no.difi.oxalis.api.lang.VerifierException;
 import no.difi.oxalis.api.model.Direction;
@@ -23,8 +25,6 @@ import no.difi.vefa.peppol.common.code.DigestMethod;
 import no.difi.vefa.peppol.common.model.Digest;
 import no.difi.vefa.peppol.common.model.Header;
 import no.difi.vefa.peppol.common.model.TransportProfile;
-import no.difi.vefa.peppol.sbdh.SbdReader;
-import no.difi.vefa.peppol.sbdh.lang.SbdhException;
 import org.apache.cxf.helpers.CastUtils;
 import org.apache.cxf.helpers.XPathUtils;
 import org.oasis_open.docs.ebxml_bp.ebbp_signals_2.MessagePartNRInformation;
@@ -58,13 +58,15 @@ public class As4InboundHandler {
     private final PersisterHandler persisterHandler;
     private final TimestampProvider timestampProvider;
     private final MessageIdGenerator messageIdGenerator;
+    private final HeaderParser headerParser;
 
     @Inject
-    public As4InboundHandler(TransmissionVerifier transmissionVerifier, PersisterHandler persisterHandler, TimestampProvider timestampProvider, MessageIdGenerator messageIdGenerator) {
+    public As4InboundHandler(TransmissionVerifier transmissionVerifier, PersisterHandler persisterHandler, TimestampProvider timestampProvider, MessageIdGenerator messageIdGenerator, HeaderParser headerParser) {
         this.transmissionVerifier = transmissionVerifier;
         this.persisterHandler = persisterHandler;
         this.timestampProvider = timestampProvider;
         this.messageIdGenerator = messageIdGenerator;
+        this.headerParser = headerParser;
     }
 
     public SOAPMessage handle(SOAPMessage request) throws OxalisAs4Exception {
@@ -269,10 +271,10 @@ public class As4InboundHandler {
     private Header getSbdh(InputStream is) throws OxalisAs4Exception {
         Header sbdh;
 
-        try (SbdReader sbdReader = SbdReader.newInstance(is)) {
-            sbdh = sbdReader.getHeader();
-        } catch (SbdhException | IOException e) {
-            throw new OxalisAs4Exception("Could not extract SBDH from payload");
+        try {
+            sbdh = headerParser.parse(is);
+        } catch (OxalisContentException e) {
+            throw new OxalisAs4Exception("Could not extract SBDH from payload", e);
         }
 
         return sbdh;
