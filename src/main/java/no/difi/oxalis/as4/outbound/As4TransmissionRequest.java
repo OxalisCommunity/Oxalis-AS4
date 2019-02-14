@@ -11,4 +11,6 @@ public interface As4TransmissionRequest extends TransmissionRequest {
     String getConversationId();
 
     Map<String, String> getMessageProperties();
+
+    String getPayloadHref();
 }

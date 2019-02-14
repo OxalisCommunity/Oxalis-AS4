@@ -124,7 +124,8 @@ public class As4InboundHandler {
                 attachmentDigest,
                 senderCertificate,
                 bos.toByteArray(),
-                getMessagePropertiesMap(userMessage.getMessageProperties()));
+                getMessagePropertiesMap(userMessage.getMessageProperties()),
+                refId);
 
         try {
             persisterHandler.persist(as4InboundMetadata, payloadPath);

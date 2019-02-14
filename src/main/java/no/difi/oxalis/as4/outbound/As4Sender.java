@@ -54,7 +54,7 @@ public class As4Sender implements WebServiceMessageCallback {
         InputStream compressedAttachment = compressionUtil.getCompressedStream(request.getPayload());
 
         // Must be octet-stream for encrypted attachments
-        message.addAttachment(newId(), () -> compressedAttachment, MediaType.APPLICATION_OCTET_STREAM_VALUE);
+        message.addAttachment(getPayloadHref(), () -> compressedAttachment, MediaType.APPLICATION_OCTET_STREAM_VALUE);
         addEbmsHeader(message);
     }
 
@@ -211,6 +211,17 @@ public class As4Sender implements WebServiceMessageCallback {
         }
 
         return conversationId != null ? conversationId : newId();
+    }
+
+    private String getPayloadHref() {
+        String payloadHref = null;
+
+        if (request instanceof As4TransmissionRequest) {
+            As4TransmissionRequest as4TransmissionRequest = (As4TransmissionRequest) request;
+            payloadHref = as4TransmissionRequest.getPayloadHref();
+        }
+
+        return payloadHref != null ? payloadHref : newId();
     }
 
     private String newId() {
