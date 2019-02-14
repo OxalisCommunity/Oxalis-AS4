@@ -162,15 +162,6 @@ public class As4Sender implements WebServiceMessageCallback {
         return cib.build();
     }
 
-    private String getConversationId() {
-        if (request instanceof As4TransmissionRequest) {
-            As4TransmissionRequest as4TransmissionRequest = (As4TransmissionRequest) request;
-            return as4TransmissionRequest.getConversationId();
-        }
-
-        return newId();
-    }
-
     private MessageInfo createMessageInfo() {
         GregorianCalendar gcal = GregorianCalendar.from(LocalDateTime.now().atZone(ZoneId.systemDefault()));
         XMLGregorianCalendar xmlDate;
@@ -181,9 +172,31 @@ public class As4Sender implements WebServiceMessageCallback {
         }
 
         return MessageInfo.builder()
-                .withMessageId(newId())
+                .withMessageId(getMessageId())
                 .withTimestamp(xmlDate)
                 .build();
+    }
+
+    private String getMessageId() {
+        String messageId = null;
+
+        if (request instanceof As4TransmissionRequest) {
+            As4TransmissionRequest as4TransmissionRequest = (As4TransmissionRequest) request;
+            messageId = as4TransmissionRequest.getMessageId();
+        }
+
+        return messageId != null ? messageId : newId();
+    }
+
+    private String getConversationId() {
+        String conversationId = null;
+
+        if (request instanceof As4TransmissionRequest) {
+            As4TransmissionRequest as4TransmissionRequest = (As4TransmissionRequest) request;
+            conversationId = as4TransmissionRequest.getConversationId();
+        }
+
+        return conversationId != null ? conversationId : newId();
     }
 
     private String newId() {

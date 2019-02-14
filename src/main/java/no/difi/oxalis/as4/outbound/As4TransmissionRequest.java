@@ -4,5 +4,7 @@ import no.difi.oxalis.api.outbound.TransmissionRequest;
 
 public interface As4TransmissionRequest extends TransmissionRequest {
 
+    String getMessageId();
+
     String getConversationId();
 }
