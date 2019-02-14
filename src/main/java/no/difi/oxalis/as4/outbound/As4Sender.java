@@ -28,9 +28,8 @@ import java.io.InputStream;
 import java.security.cert.X509Certificate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.GregorianCalendar;
-import java.util.Iterator;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static no.difi.oxalis.as4.util.Constants.*;
 
@@ -106,16 +105,31 @@ public class As4Sender implements WebServiceMessageCallback {
     }
 
     private MessageProperties createMessageProperties() {
+        Map<String, String> properties = new HashMap<>();
+
+        if (request instanceof As4TransmissionRequest) {
+            As4TransmissionRequest as4TransmissionRequest = (As4TransmissionRequest) request;
+            if (as4TransmissionRequest.getMessageProperties() != null) {
+                properties.putAll(as4TransmissionRequest.getMessageProperties());
+            }
+        }
+
+        if (!properties.containsKey("originalSender")) {
+            properties.put("originalSender", request.getHeader().getSender().getIdentifier());
+        }
+
+        if (!properties.containsKey("finalRecipient")) {
+            properties.put("finalRecipient", request.getHeader().getReceiver().getIdentifier());
+        }
+
         return MessageProperties.builder()
-                .withProperty(
-                        Property.builder()
-                                .withName("originalSender")
-                                .withValue(request.getHeader().getSender().getIdentifier())
-                                .build(),
-                        Property.builder()
-                                .withName("finalRecipient")
-                                .withValue(request.getHeader().getReceiver().getIdentifier())
+                .withProperty(properties.entrySet().stream()
+                        .map(p -> Property.builder()
+                                .withName(p.getKey())
+                                .withValue(p.getValue())
                                 .build())
+                        .collect(Collectors.toList())
+                )
                 .build();
     }
 

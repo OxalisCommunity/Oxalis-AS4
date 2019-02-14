@@ -29,10 +29,7 @@ import org.apache.cxf.helpers.CastUtils;
 import org.apache.cxf.helpers.XPathUtils;
 import org.oasis_open.docs.ebxml_bp.ebbp_signals_2.MessagePartNRInformation;
 import org.oasis_open.docs.ebxml_bp.ebbp_signals_2.NonRepudiationInformation;
-import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.MessageInfo;
-import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.Receipt;
-import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.SignalMessage;
-import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.UserMessage;
+import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.*;
 import org.w3.xmldsig.ReferenceType;
 
 import javax.xml.bind.JAXBElement;
@@ -126,8 +123,8 @@ public class As4InboundHandler {
                 TransportProfile.AS4,
                 attachmentDigest,
                 senderCertificate,
-                bos.toByteArray()
-        );
+                bos.toByteArray(),
+                getMessagePropertiesMap(userMessage.getMessageProperties()));
 
         try {
             persisterHandler.persist(as4InboundMetadata, payloadPath);
@@ -136,6 +133,11 @@ public class As4InboundHandler {
         }
 
         return response;
+    }
+
+    private Map<String, String> getMessagePropertiesMap(MessageProperties messageProperties) {
+        return messageProperties.getProperty().stream()
+                .collect(Collectors.toMap(Property::getName, Property::getValue));
     }
 
     private X509Certificate extractSenderCertificate(SOAPHeader header) throws OxalisAs4Exception {

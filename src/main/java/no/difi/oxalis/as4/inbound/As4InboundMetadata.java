@@ -7,10 +7,7 @@ import no.difi.oxalis.api.timestamp.Timestamp;
 import no.difi.vefa.peppol.common.model.*;
 
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 public class As4InboundMetadata implements InboundMetadata {
 
@@ -32,9 +29,11 @@ public class As4InboundMetadata implements InboundMetadata {
 
     private final X509Certificate certificate;
 
+    private final Map<String, String> messageProperties;
+
     public As4InboundMetadata(TransmissionIdentifier transmissionIdentifier, String conversationId, Header header, Timestamp timestamp,
                               TransportProfile transportProfile, Digest digest, X509Certificate certificate,
-                              byte[] primaryReceipt) {
+                              byte[] primaryReceipt, Map<String, String> messageProperties) {
         this.transmissionIdentifier = transmissionIdentifier;
         this.conversationId = conversationId;
         this.header = header;
@@ -49,6 +48,7 @@ public class As4InboundMetadata implements InboundMetadata {
         if (timestamp.getReceipt().isPresent())
             receipts.add(timestamp.getReceipt().get());
         this.receipts = Collections.unmodifiableList(receipts);
+        this.messageProperties = Collections.unmodifiableMap(messageProperties);
     }
 
     @Override
@@ -103,5 +103,9 @@ public class As4InboundMetadata implements InboundMetadata {
     @Override
     public Tag getTag() {
         return Tag.NONE;
+    }
+
+    public Map<String, String> getMessageProperties() {
+        return messageProperties;
     }
 }
