@@ -55,7 +55,7 @@ public class As4Sender implements WebServiceMessageCallback {
         InputStream compressedAttachment = compressionUtil.getCompressedStream(request.getPayload());
 
         // Must be octet-stream for encrypted attachments
-        message.addAttachment(getConversationId(), () -> compressedAttachment, MediaType.APPLICATION_OCTET_STREAM_VALUE);
+        message.addAttachment(newId(), () -> compressedAttachment, MediaType.APPLICATION_OCTET_STREAM_VALUE);
         addEbmsHeader(message);
     }
 
