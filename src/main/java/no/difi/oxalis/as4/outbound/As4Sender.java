@@ -55,7 +55,7 @@ public class As4Sender implements WebServiceMessageCallback {
         InputStream compressedAttachment = compressionUtil.getCompressedStream(request.getPayload());
 
         // Must be octet-stream for encrypted attachments
-        message.addAttachment(newId(), () -> compressedAttachment, MediaType.APPLICATION_OCTET_STREAM_VALUE);
+        message.addAttachment(getConversationId(), () -> compressedAttachment, MediaType.APPLICATION_OCTET_STREAM_VALUE);
         addEbmsHeader(message);
     }
 
@@ -144,7 +144,7 @@ public class As4Sender implements WebServiceMessageCallback {
 
     private CollaborationInfo createCollaborationInfo() {
         CollaborationInfo.Builder cib = CollaborationInfo.builder()
-                .withConversationId(newId())
+                .withConversationId(getConversationId())
                 .withAction(request.getHeader().getDocumentType().toString())
                 .withService(Service.builder()
                         .withType(SERVICE_TYPE)
@@ -160,6 +160,15 @@ public class As4Sender implements WebServiceMessageCallback {
         }
 
         return cib.build();
+    }
+
+    private String getConversationId() {
+        if (request instanceof As4TransmissionRequest) {
+            As4TransmissionRequest as4TransmissionRequest = (As4TransmissionRequest) request;
+            return as4TransmissionRequest.getConversationId();
+        }
+
+        return newId();
     }
 
     private MessageInfo createMessageInfo() {

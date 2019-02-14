@@ -16,6 +16,8 @@ public class As4InboundMetadata implements InboundMetadata {
 
     private final TransmissionIdentifier transmissionIdentifier;
 
+    private final String conversationId;
+
     private final Header header;
 
     private final Date timestamp;
@@ -30,10 +32,11 @@ public class As4InboundMetadata implements InboundMetadata {
 
     private final X509Certificate certificate;
 
-    public As4InboundMetadata(TransmissionIdentifier transmissionIdentifier, Header header, Timestamp timestamp,
+    public As4InboundMetadata(TransmissionIdentifier transmissionIdentifier, String conversationId, Header header, Timestamp timestamp,
                               TransportProfile transportProfile, Digest digest, X509Certificate certificate,
                               byte[] primaryReceipt) {
         this.transmissionIdentifier = transmissionIdentifier;
+        this.conversationId = conversationId;
         this.header = header;
         this.timestamp = timestamp.getDate();
         this.transportProfile = transportProfile;
@@ -56,6 +59,10 @@ public class As4InboundMetadata implements InboundMetadata {
     @Override
     public TransmissionIdentifier getTransmissionIdentifier() {
         return transmissionIdentifier;
+    }
+
+    public String getConversationId() {
+        return conversationId;
     }
 
     @Override

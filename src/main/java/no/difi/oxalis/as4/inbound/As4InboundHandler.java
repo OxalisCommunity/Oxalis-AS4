@@ -120,6 +120,7 @@ public class As4InboundHandler {
 
         As4InboundMetadata as4InboundMetadata = new As4InboundMetadata(
                 ti,
+                userMessage.getCollaborationInfo().getConversationId(),
                 sbdh,
                 ts,
                 TransportProfile.AS4,
