@@ -6,11 +6,19 @@ import java.util.Map;
 
 public interface As4TransmissionRequest extends TransmissionRequest {
 
-    String getMessageId();
+    default String getMessageId() {
+        return null;
+    }
 
-    String getConversationId();
+    default String getConversationId() {
+        return null;
+    }
 
-    Map<String, String> getMessageProperties();
+    default Map<String, String> getMessageProperties() {
+        return null;
+    }
 
-    String getPayloadHref();
+    default String getPayloadHref() {
+        return null;
+    }
 }
