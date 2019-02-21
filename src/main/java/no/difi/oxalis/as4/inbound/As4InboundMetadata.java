@@ -29,13 +29,12 @@ public class As4InboundMetadata implements InboundMetadata {
 
     private final X509Certificate certificate;
 
-    private final Map<String, String> messageProperties;
+    private final As4EnvelopeHeader as4EnvelopeHeader;
 
-    private final String payloadHref;
 
     public As4InboundMetadata(TransmissionIdentifier transmissionIdentifier, String conversationId, Header header, Timestamp timestamp,
                               TransportProfile transportProfile, Digest digest, X509Certificate certificate,
-                              byte[] primaryReceipt, Map<String, String> messageProperties, String payloadHref) {
+                              byte[] primaryReceipt, As4EnvelopeHeader as4EnvelopeHeader) {
         this.transmissionIdentifier = transmissionIdentifier;
         this.conversationId = conversationId;
         this.header = header;
@@ -44,14 +43,14 @@ public class As4InboundMetadata implements InboundMetadata {
         this.digest = digest;
         this.certificate = certificate;
         this.primaryReceipt = Receipt.of("message/disposition-notification", primaryReceipt);
-        this.messageProperties = Collections.unmodifiableMap(messageProperties);
-        this.payloadHref = payloadHref;
 
         List<Receipt> receipts = new ArrayList<>();
         receipts.add(this.primaryReceipt);
         if (timestamp.getReceipt().isPresent())
             receipts.add(timestamp.getReceipt().get());
         this.receipts = Collections.unmodifiableList(receipts);
+
+        this.as4EnvelopeHeader = as4EnvelopeHeader;
     }
 
     @Override
@@ -108,11 +107,7 @@ public class As4InboundMetadata implements InboundMetadata {
         return Tag.NONE;
     }
 
-    public Map<String, String> getMessageProperties() {
-        return messageProperties;
-    }
-
-    public String getPayloadHref() {
-        return payloadHref;
+    public As4EnvelopeHeader getAs4EnvelopeHeader() {
+        return as4EnvelopeHeader;
     }
 }

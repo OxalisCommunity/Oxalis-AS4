@@ -7,6 +7,7 @@ import org.apache.cxf.binding.soap.SoapVersion;
 import org.apache.cxf.binding.soap.interceptor.CheckFaultInterceptor;
 import org.apache.cxf.binding.soap.interceptor.ReadHeadersInterceptor;
 import org.apache.cxf.binding.soap.interceptor.StartBodyInterceptor;
+import org.apache.cxf.ext.logging.LoggingFeature;
 import org.apache.cxf.interceptor.AttachmentInInterceptor;
 import org.apache.cxf.interceptor.StaxInInterceptor;
 import org.apache.cxf.jaxws.EndpointImpl;
@@ -26,7 +27,7 @@ public class As4EndpointsPuslisherImpl implements As4EndpointsPuslisher {
 
     @Override
     public EndpointImpl publish(Bus bus) {
-        EndpointImpl endpoint = (EndpointImpl) Endpoint.publish("/", as4Provider);
+        EndpointImpl endpoint = (EndpointImpl) Endpoint.publish("/", as4Provider, new LoggingFeature());
 
         endpoint.getServer().getEndpoint().put("allow-multiplex-endpoint", Boolean.TRUE);
         endpoint.getServer().getEndpoint()
