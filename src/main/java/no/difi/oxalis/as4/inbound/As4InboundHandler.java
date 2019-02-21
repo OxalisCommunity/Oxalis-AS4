@@ -164,7 +164,7 @@ public class As4InboundHandler {
         }
 
         // <ContentId, <HeaderName, MimeHeader>>
-        Map<String, Map<String, MimeHeader>> partInfoHeaders = userMessage.getPayloadInfo().getPartInfo().stream().collect(
+        Map<String, Map<String, MimeHeader>> partInfoHeadersMap = userMessage.getPayloadInfo().getPartInfo().stream().collect(
                 Collectors.toMap(
                         partInfo -> AttachmentUtil.cleanContentId(partInfo.getHref()),
                         partInfo -> partInfo.getPartProperties().getProperty().stream().collect(
@@ -175,7 +175,7 @@ public class As4InboundHandler {
                 )
         );
 
-        log.info("partInfoHeaders: {}", partInfoHeaders);
+        log.info("partInfoHeadersMap: {}", partInfoHeadersMap);
 
         LinkedHashMap<InputStream, As4PayloadHeader> payloads = new LinkedHashMap<>();
 
@@ -194,7 +194,9 @@ public class As4InboundHandler {
                 log.info("MimeHeaders: {}", mimeHeaders);
 
 
-                if( isAttachmentCoompressed(partInfoHeaders.get(contentId), mimeHeaders) ){
+                Map<String, MimeHeader> partInfoHeaders = partInfoHeadersMap.get(contentId);
+
+                if( isAttachmentCoompressed(partInfoHeaders, mimeHeaders) ){
                     log.info("Decompressing payload: {}", contentId);
                     is = new GZIPInputStream(is);
                 }
@@ -219,7 +221,7 @@ public class As4InboundHandler {
 //               sbdh = parseAttachmentHeader(pis)
 
                 // Get an "unexpected eof in prolog"
-                As4PayloadHeader header = new As4PayloadHeader(sbdh, mimeHeaders.values(), contentId);
+                As4PayloadHeader header = new As4PayloadHeader(sbdh, partInfoHeaders.values(), contentId);
 
 //                bis.reset();
 //                payloads.put(bis, header);
