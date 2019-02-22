@@ -8,6 +8,7 @@ import no.difi.oxalis.api.timestamp.TimestampProvider;
 import no.difi.oxalis.as4.api.MessageIdGenerator;
 import no.difi.oxalis.as4.util.CompressionUtil;
 import no.difi.oxalis.as4.util.Marshalling;
+import no.difi.oxalis.commons.http.HttpConf;
 import no.difi.oxalis.commons.security.KeyStoreConf;
 import org.apache.wss4j.common.WSS4JConstants;
 import org.apache.wss4j.common.crypto.Merlin;
@@ -38,6 +39,7 @@ public class As4MessageSender {
     private final TimestampProvider timestampProvider;
     private final CompressionUtil compressionUtil;
     private final MessageIdGenerator messageIdGenerator;
+    private final Settings<HttpConf> httpConfSettings;
 
     @Inject
     public As4MessageSender(X509Certificate certificate,
@@ -45,13 +47,15 @@ public class As4MessageSender {
                             Settings<KeyStoreConf> settings,
                             TimestampProvider timestampProvider,
                             CompressionUtil compressionUtil,
-                            MessageIdGenerator messageIdGenerator) {
+                            MessageIdGenerator messageIdGenerator,
+                            Settings<HttpConf> httpConfSettings) {
         this.certificate = certificate;
         this.keyStore = keyStore;
         this.settings = settings;
         this.timestampProvider = timestampProvider;
         this.compressionUtil = compressionUtil;
         this.messageIdGenerator = messageIdGenerator;
+        this.httpConfSettings = httpConfSettings;
     }
 
     public TransmissionResponse send(TransmissionRequest request) {
@@ -141,6 +145,9 @@ public class As4MessageSender {
     }
 
     private HttpComponentsMessageSender createMessageSender() {
-        return new HttpComponentsMessageSender();
+        HttpComponentsMessageSender sender = new HttpComponentsMessageSender();
+        sender.setReadTimeout(httpConfSettings.getInt(HttpConf.TIMEOUT_READ));
+        sender.setConnectionTimeout(httpConfSettings.getInt(HttpConf.TIMEOUT_CONNECT));
+        return sender;
     }
 }
