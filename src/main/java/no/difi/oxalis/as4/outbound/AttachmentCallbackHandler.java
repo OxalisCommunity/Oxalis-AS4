@@ -1,8 +1,6 @@
 package no.difi.oxalis.as4.outbound;
 
 import no.difi.oxalis.as4.util.InputStreamDataSource;
-import no.difi.oxalis.as4.util.MessageIdUtil;
-import org.apache.cxf.attachment.AttachmentUtil;
 import org.apache.wss4j.common.ext.AttachmentRequestCallback;
 import org.apache.wss4j.common.ext.AttachmentResultCallback;
 import org.springframework.ws.soap.SoapMessage;
@@ -33,7 +31,7 @@ public class AttachmentCallbackHandler implements CallbackHandler {
     }
 
     @Override
-    public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
+    public void handle (Callback[] callbacks) throws IOException, UnsupportedCallbackException {
         for (Callback callback : callbacks) {
             if (callback instanceof AttachmentRequestCallback) {
                 AttachmentRequestCallback attachmentRequestCallback = (AttachmentRequestCallback) callback;
@@ -55,8 +53,7 @@ public class AttachmentCallbackHandler implements CallbackHandler {
                                                 .getSourceStream(),
                                         attachmentResultCallback.getAttachment()
                                                 .getMimeType())));
-                String attachmentId = attachmentResultCallback.getAttachmentId();
-                attachmentPart.setContentId(MessageIdUtil.wrap(attachmentId));
+                attachmentPart.setContentId(attachmentResultCallback.getAttachmentId());
 
                 Map<String, String> headers = attachmentResultCallback.getAttachment()
                         .getHeaders();
@@ -74,9 +71,9 @@ public class AttachmentCallbackHandler implements CallbackHandler {
     }
 
     @SuppressWarnings("unchecked")
-    private void loadAttachments(List<org.apache.wss4j.common.ext.Attachment> attachmentList,
-                                 String attachmentId,
-                                 boolean removeAttachments)
+    private void loadAttachments (List<org.apache.wss4j.common.ext.Attachment> attachmentList,
+            String attachmentId,
+            boolean removeAttachments)
             throws IOException {
 
         Iterator<AttachmentPart> iterator = soapMessage.getSaajMessage().getAttachments();
@@ -87,7 +84,7 @@ public class AttachmentCallbackHandler implements CallbackHandler {
             }
             org.apache.wss4j.common.ext.Attachment att = new org.apache.wss4j.common.ext.Attachment();
             att.setMimeType(attachmentPart.getContentType());
-            att.setId(AttachmentUtil.cleanContentId(attachmentPart.getContentId()));
+            att.setId(attachmentPart.getContentId());
             try {
                 att.setSourceStream(attachmentPart.getDataHandler()
                         .getInputStream());

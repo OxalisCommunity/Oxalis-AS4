@@ -185,7 +185,7 @@ public class As4InboundHandler {
 
                 AttachmentPart attachmentPart = attachments.next();
                 InputStream is  = attachmentPart.getDataHandler().getInputStream();
-                String contentId = AttachmentUtil.cleanContentId(attachmentPart.getContentId());
+                String contentId = attachmentPart.getContentId();
 
                 Map<String, MimeHeader> mimeHeaders = new HashMap<>();
                 Iterator<MimeHeader> mimeHeaderIterator = attachmentPart.getAllMimeHeaders();

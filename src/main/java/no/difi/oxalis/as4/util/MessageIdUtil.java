@@ -37,16 +37,4 @@ public class MessageIdUtil {
     public static boolean verify(String identifier) {
         return PATTERN.matcher(identifier).matches();
     }
-
-    public static String wrap(String cid) {
-        if (cid == null) {
-            return null;
-        }
-
-        if (cid.startsWith("<") && cid.endsWith(">")) {
-            return cid;
-        }
-
-        return String.format("<%s>", cid);
-    }
 }
