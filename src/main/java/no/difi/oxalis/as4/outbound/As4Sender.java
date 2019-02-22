@@ -6,7 +6,9 @@ import no.difi.oxalis.as4.api.MessageIdGenerator;
 import no.difi.oxalis.as4.util.CompressionUtil;
 import no.difi.oxalis.as4.util.Constants;
 import no.difi.oxalis.as4.util.Marshalling;
+import no.difi.oxalis.as4.util.MessageIdUtil;
 import no.difi.oxalis.commons.security.CertificateUtils;
+import org.apache.cxf.attachment.AttachmentUtil;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.*;
 import org.springframework.http.MediaType;
 import org.springframework.oxm.jaxb.Jaxb2Marshaller;
@@ -54,7 +56,7 @@ public class As4Sender implements WebServiceMessageCallback {
         InputStream compressedAttachment = compressionUtil.getCompressedStream(request.getPayload());
 
         // Must be octet-stream for encrypted attachments
-        message.addAttachment(getPayloadHref(), () -> compressedAttachment, MediaType.APPLICATION_OCTET_STREAM_VALUE);
+        message.addAttachment(MessageIdUtil.wrap(getPayloadHref()), () -> compressedAttachment, MediaType.APPLICATION_OCTET_STREAM_VALUE);
         addEbmsHeader(message);
     }
 
@@ -82,7 +84,7 @@ public class As4Sender implements WebServiceMessageCallback {
         ArrayList<PartInfo> partInfos = Lists.newArrayList();
         while (attachments.hasNext()) {
             Attachment a = attachments.next();
-            String cid = "cid:" + a.getContentId();
+            String cid = "cid:" + AttachmentUtil.cleanContentId(a.getContentId());
             Property compressionType = Property.builder()
                     .withName("CompressionType")
                     .withValue("application/gzip")
