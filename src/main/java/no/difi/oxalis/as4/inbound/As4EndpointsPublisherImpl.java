@@ -17,7 +17,7 @@ import org.apache.cxf.wsdl.interceptors.AbstractEndpointSelectionInterceptor;
 
 import javax.xml.ws.Endpoint;
 
-public class As4EndpointsPuslisherImpl implements As4EndpointsPuslisher {
+public class As4EndpointsPublisherImpl implements As4EndpointsPublisher {
 
     @Inject
     private As4Provider as4Provider;

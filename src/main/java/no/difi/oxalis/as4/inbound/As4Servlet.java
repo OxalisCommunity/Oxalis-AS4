@@ -9,20 +9,10 @@ import no.difi.oxalis.as4.config.TrustStore;
 import no.difi.oxalis.as4.util.Constants;
 import no.difi.oxalis.commons.security.KeyStoreConf;
 import no.difi.vefa.peppol.security.api.CertificateValidator;
-import org.apache.cxf.binding.soap.SoapMessage;
-import org.apache.cxf.binding.soap.SoapVersion;
-import org.apache.cxf.binding.soap.interceptor.CheckFaultInterceptor;
-import org.apache.cxf.binding.soap.interceptor.ReadHeadersInterceptor;
 import org.apache.cxf.binding.soap.interceptor.SoapInterceptor;
-import org.apache.cxf.binding.soap.interceptor.StartBodyInterceptor;
-import org.apache.cxf.interceptor.AttachmentInInterceptor;
-import org.apache.cxf.interceptor.StaxInInterceptor;
 import org.apache.cxf.jaxws.EndpointImpl;
-import org.apache.cxf.message.Message;
-import org.apache.cxf.transport.MultipleEndpointObserver;
 import org.apache.cxf.transport.servlet.CXFNonSpringServlet;
 import org.apache.cxf.ws.security.SecurityConstants;
-import org.apache.cxf.wsdl.interceptors.AbstractEndpointSelectionInterceptor;
 import org.apache.wss4j.common.ConfigurationConstants;
 import org.apache.wss4j.common.crypto.Crypto;
 import org.apache.wss4j.common.crypto.Merlin;
@@ -43,7 +33,6 @@ import java.security.KeyStore;
 import java.util.Enumeration;
 import java.util.Map;
 import java.util.StringTokenizer;
-import java.util.function.Supplier;
 
 @Singleton
 public class As4Servlet extends CXFNonSpringServlet {
@@ -66,7 +55,7 @@ public class As4Servlet extends CXFNonSpringServlet {
     private CertificateValidator certificateValidator;
 
     @Inject
-    private As4EndpointsPuslisher endpointsPuslisher;
+    private As4EndpointsPublisher endpointsPuslisher;
 
     public static Merlin encryptCrypto = new Merlin();
 

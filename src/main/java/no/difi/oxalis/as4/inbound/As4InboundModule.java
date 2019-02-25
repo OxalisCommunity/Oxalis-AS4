@@ -20,7 +20,7 @@ public class As4InboundModule extends ServletModule {
                 .asEagerSingleton();
 
         bind(As4Provider.class);
-        bind(As4EndpointsPuslisher.class).to(As4EndpointsPuslisherImpl.class);
+        bind(As4EndpointsPublisher.class).to(As4EndpointsPublisherImpl.class);
         bind(As4InboundHandler.class);
         SettingsBuilder.with(binder(), TrustStore.class);
 
