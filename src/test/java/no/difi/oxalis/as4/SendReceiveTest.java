@@ -13,7 +13,6 @@ import no.difi.oxalis.api.outbound.TransmissionResponse;
 import no.difi.oxalis.api.persist.PayloadPersister;
 import no.difi.oxalis.api.persist.ReceiptPersister;
 import no.difi.oxalis.as4.api.MessageIdGenerator;
-import no.difi.oxalis.as4.common.As4CommonModule;
 import no.difi.oxalis.as4.common.DefaultMessageIdGenerator;
 import no.difi.oxalis.as4.inbound.As4InboundModule;
 import no.difi.oxalis.as4.outbound.As4OutboundModule;
@@ -25,6 +24,7 @@ import org.apache.cxf.BusFactory;
 import org.apache.cxf.ext.logging.LoggingInInterceptor;
 import org.apache.cxf.ext.logging.LoggingOutInterceptor;
 import org.testng.Assert;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
@@ -44,7 +44,8 @@ public class SendReceiveTest extends AbstractJettyServerTest {
 
     private MemoryPersister memoryPersister = new MemoryPersister();
 
-    private byte[] testPayload;
+    private byte[] firstPayload;
+    private byte[] secondPayload;
 
 
     public SendReceiveTest() throws Exception {
@@ -53,7 +54,16 @@ public class SendReceiveTest extends AbstractJettyServerTest {
 
         IOUtils.copy(is, buffer);
 
-        this.testPayload = buffer.toByteArray();
+        this.firstPayload = buffer.toByteArray();
+
+
+
+        is = getClass().getResourceAsStream("/simple-sbd.xml");
+        buffer = new ByteArrayOutputStream();
+
+        IOUtils.copy(is, buffer);
+
+        this.secondPayload = buffer.toByteArray();
     }
 
     @Override
@@ -72,6 +82,12 @@ public class SendReceiveTest extends AbstractJettyServerTest {
         );
     }
 
+    @BeforeClass
+    public void addLoggingInterceptors(){
+        BusFactory.getDefaultBus().getOutInterceptors().add(new LoggingOutInterceptor());
+        BusFactory.getDefaultBus().getInInterceptors().add(new LoggingInInterceptor());
+    }
+
     @BeforeTest
     public void reset() {
         memoryPersister.reset();
@@ -79,12 +95,10 @@ public class SendReceiveTest extends AbstractJettyServerTest {
 
     @Test
     public void full() throws Exception {
-        BusFactory.getDefaultBus().getOutInterceptors().add(new LoggingOutInterceptor());
-        BusFactory.getDefaultBus().getInInterceptors().add(new LoggingInInterceptor());
 
         MessageSender messageSender = injector.getInstance(Key.get(MessageSender.class, Names.named("oxalis-as4")));
 
-        TransmissionResponse response = messageSender.send(new TransmissionRequest() {
+        TransmissionResponse firstResponse = messageSender.send(new TransmissionRequest() {
             @Override
             public Endpoint getEndpoint() {
                 return Endpoint.of(TransportProfile.AS4, URI.create("http://localhost:8080/as4"),
@@ -102,22 +116,60 @@ public class SendReceiveTest extends AbstractJettyServerTest {
 
             @Override
             public InputStream getPayload() {
-                return new ByteArrayInputStream(testPayload);
+                return new ByteArrayInputStream(firstPayload);
             }
         });
 
-        Assert.assertNotNull(response);
-        Assert.assertEquals(TransportProfile.AS4, response.getProtocol());
+        Assert.assertNotNull(firstResponse);
+        Assert.assertEquals(TransportProfile.AS4, firstResponse.getProtocol());
 
-        Assert.assertEquals(1, memoryPersister.getPersistedData().size());
-        Map<MemoryPersister.Types, Object> persistedData = memoryPersister.getPersistedData().
-                get(response.getTransmissionIdentifier().getIdentifier());
-        Assert.assertNotNull(persistedData);
+        Assert.assertEquals(memoryPersister.getPersistedData().size(), 1);
+        Map<MemoryPersister.Types, Object> dataFromFirstTransmission = memoryPersister.getPersistedData().
+                get(firstResponse.getTransmissionIdentifier().getIdentifier());
+        Assert.assertNotNull(dataFromFirstTransmission);
 
-        Assert.assertEquals(response.getTransmissionIdentifier(), persistedData.get(MemoryPersister.Types.ID));
-        Assert.assertNotNull(persistedData.get(MemoryPersister.Types.HEADER));
-        Assert.assertEquals(testPayload, persistedData.get(MemoryPersister.Types.PAYLOAD));
+        Assert.assertEquals(firstResponse.getTransmissionIdentifier(), dataFromFirstTransmission.get(MemoryPersister.Types.ID));
+        Assert.assertNotNull(dataFromFirstTransmission.get(MemoryPersister.Types.HEADER));
+        Assert.assertEquals(firstPayload, (byte[]) dataFromFirstTransmission.get(MemoryPersister.Types.PAYLOAD));
+
+        // Perform a second transmission
+        TransmissionResponse secondResponse = messageSender.send(new TransmissionRequest() {
+            @Override
+            public Endpoint getEndpoint() {
+                return Endpoint.of(TransportProfile.AS4, URI.create("http://localhost:8080/as4"),
+                        injector.getInstance(X509Certificate.class));
+            }
+
+            @Override
+            public Header getHeader() {
+                return Header.newInstance()
+                        .sender(ParticipantIdentifier.of("9908:991825827"))
+                        .receiver(ParticipantIdentifier.of("9908:991825827"))
+                        .documentType(DocumentTypeIdentifier.of("urn:oasis:names:specification:ubl:schema:xsd:Invoice-2::Invoice##urn:www.cenbii.eu:transaction:biicoretrdm010:ver1.0:#urn:test.com:bis:something_else:ver1.0::2.0"))
+                        .process(ProcessIdentifier.of("urn:www.cenbii.eu:profile:something_else:ver1.0"));
+            }
+
+            @Override
+            public InputStream getPayload() {
+                return new ByteArrayInputStream(secondPayload);
+            }
+        });
+
+        Assert.assertNotNull(secondResponse);
+        Assert.assertEquals(TransportProfile.AS4, secondResponse.getProtocol());
+
+        Assert.assertNotEquals(secondResponse.getTransmissionIdentifier(), firstResponse.getTransmissionIdentifier());
+
+        Assert.assertEquals(memoryPersister.getPersistedData().size(), 2);
+        Map<MemoryPersister.Types, Object> dataFromSecondTransmission = memoryPersister.getPersistedData().
+                get(secondResponse.getTransmissionIdentifier().getIdentifier());
+        Assert.assertNotNull(dataFromSecondTransmission);
+
+        Assert.assertEquals(secondResponse.getTransmissionIdentifier(), dataFromSecondTransmission.get(MemoryPersister.Types.ID));
+        Assert.assertNotNull(dataFromSecondTransmission.get(MemoryPersister.Types.HEADER));
+        Assert.assertEquals(secondPayload, (byte[]) dataFromSecondTransmission.get(MemoryPersister.Types.PAYLOAD));
     }
+
 
     static class MemoryPersister implements PayloadPersister {
         enum Types{
