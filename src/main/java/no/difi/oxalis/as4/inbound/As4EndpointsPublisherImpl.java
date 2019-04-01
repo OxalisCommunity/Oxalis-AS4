@@ -11,11 +11,15 @@ import org.apache.cxf.ext.logging.LoggingFeature;
 import org.apache.cxf.interceptor.AttachmentInInterceptor;
 import org.apache.cxf.interceptor.StaxInInterceptor;
 import org.apache.cxf.jaxws.EndpointImpl;
+import org.apache.cxf.jaxws.handler.soap.SOAPHandlerFaultInInterceptor;
 import org.apache.cxf.message.Message;
 import org.apache.cxf.transport.MultipleEndpointObserver;
 import org.apache.cxf.wsdl.interceptors.AbstractEndpointSelectionInterceptor;
 
 import javax.xml.ws.Endpoint;
+import javax.xml.ws.handler.Handler;
+import java.util.ArrayList;
+import java.util.List;
 
 public class As4EndpointsPublisherImpl implements As4EndpointsPublisher {
 
@@ -25,6 +29,12 @@ public class As4EndpointsPublisherImpl implements As4EndpointsPublisher {
     @Inject
     private AbstractEndpointSelectionInterceptor endpointSelector;
 
+    @Inject
+    private As4FaultInHandler as4FaultInHandler;
+
+    @Inject
+    private As4Interceptor oxalisAs4Interceptor;
+
     @Override
     public EndpointImpl publish(Bus bus) {
         EndpointImpl endpoint = (EndpointImpl) Endpoint.publish("/", as4Provider, new LoggingFeature());
@@ -32,6 +42,13 @@ public class As4EndpointsPublisherImpl implements As4EndpointsPublisher {
         endpoint.getServer().getEndpoint().put("allow-multiplex-endpoint", Boolean.TRUE);
         endpoint.getServer().getEndpoint()
                 .put(As4EndpointSelector.ENDPOINT_NAME, As4EndpointSelector.OXALIS_AS4_ENDPOINT_NAME);
+
+        List<Handler> chain = new ArrayList<>();
+        chain.add(as4FaultInHandler);
+        endpoint.getBinding().setHandlerChain(chain);
+
+
+        endpoint.getInInterceptors().add(oxalisAs4Interceptor);
 
         MultipleEndpointObserver newMO = new MultipleEndpointObserver(bus) {
             @Override
@@ -42,10 +59,13 @@ public class As4EndpointsPublisherImpl implements As4EndpointsPublisher {
 
         newMO.getBindingInterceptors().add(new AttachmentInInterceptor());
         newMO.getBindingInterceptors().add(new StaxInInterceptor());
+        newMO.getBindingInterceptors().add(new SOAPHandlerFaultInInterceptor(endpoint.getBinding()));
+
 
         newMO.getBindingInterceptors().add(new ReadHeadersInterceptor(bus, (SoapVersion) null));
         newMO.getBindingInterceptors().add(new StartBodyInterceptor());
         newMO.getBindingInterceptors().add(new CheckFaultInterceptor());
+
 
         // Add in a default selection interceptor
         newMO.getRoutingInterceptors().add(endpointSelector);

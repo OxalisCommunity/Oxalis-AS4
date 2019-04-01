@@ -4,6 +4,7 @@ import no.difi.oxalis.api.model.TransmissionIdentifier;
 import no.difi.oxalis.api.outbound.TransmissionRequest;
 import no.difi.oxalis.api.outbound.TransmissionResponse;
 import no.difi.oxalis.api.timestamp.Timestamp;
+import no.difi.oxalis.as4.lang.OxalisAs4TransmissionException;
 import no.difi.vefa.peppol.common.model.*;
 
 import java.util.ArrayList;
@@ -20,6 +21,7 @@ public class As4TransmissionResponse implements TransmissionResponse {
     private final Receipt receipt;
     private final List<Receipt> receipts;
     private final Date timestamp;
+    private final OxalisAs4TransmissionException transmissionException;
 
     public As4TransmissionResponse(TransmissionIdentifier transmissionIdentifier,
                                    TransmissionRequest transmissionRequest, Digest digest,
@@ -29,12 +31,22 @@ public class As4TransmissionResponse implements TransmissionResponse {
         this.digest = digest;
         this.receipt = Receipt.of("message/disposition-notification", nativeEvidenceBytes);
         this.timestamp = date;
+        transmissionException = null;
 
         List<Receipt> receipts = new ArrayList<>();
         receipts.add(receipt);
         if (timestamp.getReceipt().isPresent())
             receipts.add(timestamp.getReceipt().get());
         this.receipts = Collections.unmodifiableList(receipts);
+    }
+    public As4TransmissionResponse(OxalisAs4TransmissionException transmissionException, TransmissionIdentifier transmissionIdentifier){
+        this.transmissionRequest = null;
+        this.transmissionIdentifier = transmissionIdentifier;
+        this.transmissionException = transmissionException;
+        this.digest = null;
+        this.receipt = null;
+        this.receipts = null;
+        this.timestamp = null;
     }
 
     @Override
@@ -74,5 +86,9 @@ public class As4TransmissionResponse implements TransmissionResponse {
     @Override
     public Date getTimestamp() {
         return timestamp;
+    }
+
+    public OxalisAs4TransmissionException getTransmissionException() {
+        return transmissionException;
     }
 }

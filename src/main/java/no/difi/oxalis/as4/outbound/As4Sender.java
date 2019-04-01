@@ -168,6 +168,15 @@ public class As4Sender implements WebServiceMessageCallback {
                         .build()
                 );
 
+        if (request instanceof As4TransmissionRequest && ((As4TransmissionRequest)request).isPing()) {
+            cib = cib.withAction(TEST_ACTION)
+                    .withService(Service.builder()
+                            .withValue(TEST_SERVICE)
+                            .build());
+        }
+
+
+
         if (AGREEMENT_REF != null) {
             cib = cib.withAgreementRef(AgreementRef.builder()
                     .withValue(AGREEMENT_REF)
@@ -187,10 +196,18 @@ public class As4Sender implements WebServiceMessageCallback {
             throw new RuntimeException("Error getting xml date", e);
         }
 
-        return MessageInfo.builder()
+        MessageInfo.Builder builder = MessageInfo.builder()
                 .withMessageId(getMessageId())
-                .withTimestamp(xmlDate)
-                .build();
+                .withTimestamp(xmlDate);
+
+        if( request instanceof As4TransmissionRequest ){
+            As4TransmissionRequest as4TransmissionRequest = (As4TransmissionRequest) request;
+            if( as4TransmissionRequest.getRefToMessageId() != null ){
+                builder.withRefToMessageId( as4TransmissionRequest.getRefToMessageId() );
+            }
+        }
+
+        return builder.build();
     }
 
     private String getMessageId() {

@@ -1,5 +1,6 @@
 package no.difi.oxalis.as4.inbound;
 
+import no.difi.oxalis.as4.lang.OxalisAs4Exception;
 import no.difi.oxalis.as4.util.Constants;
 import org.apache.cxf.binding.soap.SoapMessage;
 import org.apache.cxf.helpers.CastUtils;
@@ -38,6 +39,7 @@ public class OxalisAS4WsInInterceptor extends WSS4JInInterceptor {
 
         super.handleMessage(msg);
 
+
         SOAPMessage soapMessage = msg.getContent(SOAPMessage.class);
         if (soapMessage != null) {
             if (soapMessage.countAttachments() > 0) {
@@ -48,7 +50,7 @@ public class OxalisAS4WsInInterceptor extends WSS4JInInterceptor {
                             .filter(a -> a.getId().equals(part.getContentId().replaceAll("<|>", "")))
                             .findFirst();
                     first.ifPresent(a -> part.setDataHandler(a.getDataHandler()));
-                    first.orElseThrow(() -> new RuntimeException("Unable to find attachment")); // Todo: must send fault message
+                    first.orElseThrow(() -> new Fault(new OxalisAs4Exception("Unable to find attachment")));
                 }
             }
         }

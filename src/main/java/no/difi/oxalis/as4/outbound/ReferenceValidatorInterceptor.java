@@ -24,7 +24,7 @@ public class ReferenceValidatorInterceptor implements ClientInterceptor {
             List<ReferenceType> refs = SOAPHeaderParser.getReferenceListFromSignedInfo(request.getSaajMessage().getSOAPHeader());
             as4context.addReference(refs);
         } catch (OxalisAs4Exception | SOAPException e) {
-            throw new RuntimeException("Could not get references from soap header", e);
+//            throw new RuntimeException("Could not get references from soap header", e);
         }
 
         return true;
@@ -38,7 +38,7 @@ public class ReferenceValidatorInterceptor implements ClientInterceptor {
             List<ReferenceType> refs = SOAPHeaderParser.getReferenceListFromNonRepudiationInformation(response.getSaajMessage().getSOAPHeader());
             validateReferences(as4context.getReferences(), refs);
         } catch (OxalisAs4Exception | SOAPException e) {
-            throw new RuntimeException("Could not get references from soap header", e);
+//            throw new RuntimeException("Could not get references from soap header", e);
         }
         return true;
     }

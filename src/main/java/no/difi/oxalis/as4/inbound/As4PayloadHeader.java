@@ -1,7 +1,6 @@
 package no.difi.oxalis.as4.inbound;
 
 import lombok.Getter;
-import lombok.Setter;
 import lombok.ToString;
 import no.difi.vefa.peppol.common.model.*;
 
@@ -9,7 +8,6 @@ import javax.xml.soap.MimeHeader;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 
 @Getter
 @ToString
@@ -19,10 +17,20 @@ public class As4PayloadHeader extends Header{
     private final Collection<MimeHeader> mimeHeaders;
     private final String cid;
 
+    private final String conversationId;
+
     public As4PayloadHeader(Header header, Collection<MimeHeader> mimeHeaders, String cid) {
        this.header = header;
        this.mimeHeaders = mimeHeaders;
        this.cid = cid;
+       this.conversationId = null;
+    }
+
+    public As4PayloadHeader(Header header, Collection<MimeHeader> mimeHeaders, String cid, String conversationId) {
+        this.header = header;
+        this.mimeHeaders = mimeHeaders;
+        this.cid = cid;
+        this.conversationId = conversationId;
     }
 
 

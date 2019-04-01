@@ -21,8 +21,8 @@ import no.difi.oxalis.test.jetty.AbstractJettyServerTest;
 import no.difi.vefa.peppol.common.model.*;
 import org.apache.commons.io.IOUtils;
 import org.apache.cxf.BusFactory;
-import org.apache.cxf.ext.logging.LoggingInInterceptor;
-import org.apache.cxf.ext.logging.LoggingOutInterceptor;
+import org.apache.cxf.ext.logging.LoggingFeature;
+import org.apache.cxf.feature.Feature;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeTest;
@@ -35,10 +35,7 @@ import java.io.InputStream;
 import java.net.URI;
 import java.nio.file.Path;
 import java.security.cert.X509Certificate;
-import java.util.Collections;
-import java.util.EnumMap;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 public class SendReceiveTest extends AbstractJettyServerTest {
 
@@ -84,8 +81,9 @@ public class SendReceiveTest extends AbstractJettyServerTest {
 
     @BeforeClass
     public void addLoggingInterceptors(){
-        BusFactory.getDefaultBus().getOutInterceptors().add(new LoggingOutInterceptor());
-        BusFactory.getDefaultBus().getInInterceptors().add(new LoggingInInterceptor());
+        Collection<Feature> features = BusFactory.getDefaultBus().getFeatures();
+        features.add(new LoggingFeature());
+        BusFactory.getDefaultBus().setFeatures(features);
     }
 
     @BeforeTest

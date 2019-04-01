@@ -28,6 +28,8 @@ import com.google.inject.Singleton;
 import no.difi.oxalis.api.settings.Settings;
 import no.difi.oxalis.as4.api.MessageIdGenerator;
 import no.difi.oxalis.as4.config.As4Conf;
+import no.difi.oxalis.as4.inbound.As4Interceptor;
+import no.difi.oxalis.as4.util.As4MessageFactory;
 import no.difi.oxalis.commons.guice.ImplLoader;
 import no.difi.oxalis.commons.guice.OxalisModule;
 
@@ -36,6 +38,9 @@ public class As4CommonModule extends OxalisModule {
     @Override
     protected void configure() {
         bindTyped(MessageIdGenerator.class, DefaultMessageIdGenerator.class);
+        bind(As4MessageFactory.class);
+//        bind(As4FaultInHandler.class);
+        bind(As4Interceptor.class);
 
         bindSettings(As4Conf.class);
     }

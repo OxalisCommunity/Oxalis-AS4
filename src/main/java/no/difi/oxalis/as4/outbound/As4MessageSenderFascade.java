@@ -16,6 +16,7 @@ public class As4MessageSenderFascade implements MessageSender {
         this.messageSenderProvider = messageSenderProvider;
     }
 
+
     @Override
     public TransmissionResponse send(TransmissionRequest transmissionRequest) throws OxalisTransmissionException {
         return messageSenderProvider.get().send(transmissionRequest);

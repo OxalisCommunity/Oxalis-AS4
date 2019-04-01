@@ -14,41 +14,29 @@ import no.difi.oxalis.api.persist.PersisterHandler;
 import no.difi.oxalis.api.timestamp.Timestamp;
 import no.difi.oxalis.api.timestamp.TimestampProvider;
 import no.difi.oxalis.api.transmission.TransmissionVerifier;
-import no.difi.oxalis.as4.api.MessageIdGenerator;
 import no.difi.oxalis.as4.lang.OxalisAs4Exception;
-import no.difi.oxalis.as4.util.Constants;
-import no.difi.oxalis.as4.util.Marshalling;
-import no.difi.oxalis.as4.util.MessageIdUtil;
-import no.difi.oxalis.as4.util.SOAPHeaderParser;
+import no.difi.oxalis.as4.util.*;
 import no.difi.oxalis.commons.header.SbdhHeaderParser;
 import no.difi.oxalis.commons.io.PeekingInputStream;
 import no.difi.oxalis.commons.io.UnclosableInputStream;
 import no.difi.vefa.peppol.common.code.DigestMethod;
 import no.difi.vefa.peppol.common.model.Digest;
 import no.difi.vefa.peppol.common.model.Header;
+import no.difi.vefa.peppol.common.model.ParticipantIdentifier;
 import no.difi.vefa.peppol.common.model.TransportProfile;
 import no.difi.vefa.peppol.sbdh.SbdReader;
 import no.difi.vefa.peppol.sbdh.lang.SbdhException;
-import org.apache.commons.io.IOUtils;
 import org.apache.cxf.attachment.AttachmentUtil;
 import org.apache.cxf.helpers.CastUtils;
 import org.apache.cxf.helpers.XPathUtils;
-import org.oasis_open.docs.ebxml_bp.ebbp_signals_2.MessagePartNRInformation;
-import org.oasis_open.docs.ebxml_bp.ebbp_signals_2.NonRepudiationInformation;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.*;
 import org.w3.xmldsig.ReferenceType;
 
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-import javax.xml.datatype.DatatypeConfigurationException;
-import javax.xml.datatype.DatatypeFactory;
-import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.soap.*;
-import javax.xml.stream.XMLInputFactory;
-import javax.xml.stream.XMLStreamReader;
-import java.io.*;
-import java.nio.charset.Charset;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
@@ -56,93 +44,170 @@ import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
+import java.util.zip.ZipException;
 
 @Slf4j
 @Singleton
 public class As4InboundHandler {
 
+    private static final String REQUIRED_PAYLOAD_HREF_PREFIX = "cid:";
+
     private final TransmissionVerifier transmissionVerifier;
     private final PersisterHandler persisterHandler;
     private final TimestampProvider timestampProvider;
-    private final MessageIdGenerator messageIdGenerator;
     private final HeaderParser headerParser;
+    private final As4MessageFactory as4MessageFactory;
 
     @Inject
-    public As4InboundHandler(TransmissionVerifier transmissionVerifier, PersisterHandler persisterHandler, TimestampProvider timestampProvider, MessageIdGenerator messageIdGenerator, HeaderParser headerParser) {
+    public As4InboundHandler(TransmissionVerifier transmissionVerifier, PersisterHandler persisterHandler, TimestampProvider timestampProvider, HeaderParser headerParser, As4MessageFactory as4MessageFactory) {
         this.transmissionVerifier = transmissionVerifier;
         this.persisterHandler = persisterHandler;
         this.timestampProvider = timestampProvider;
-        this.messageIdGenerator = messageIdGenerator;
         this.headerParser = headerParser;
+        this.as4MessageFactory = as4MessageFactory;
     }
+
 
     public SOAPMessage handle(SOAPMessage request) throws OxalisAs4Exception {
 
-        // Organize input data
         SOAPHeader soapHeader = getSoapHeader(request);
-        UserMessage userMessage = SOAPHeaderParser.getUserMessage(soapHeader);
-        As4EnvelopeHeader envelopeHeader = parseAs4EnvelopeHeader(userMessage);
-        TransmissionIdentifier ti = TransmissionIdentifier.of(envelopeHeader.getMessageId());
+        Timestamp timestamp = getTimestamp(soapHeader);
+        Iterator<AttachmentPart> attachments = CastUtils.cast(request.getAttachments());
 
-        validateMessageId(envelopeHeader.getMessageId());
+        // Organize input data
+        UserMessage userMessage = SOAPHeaderParser.getUserMessage(soapHeader);
+
+        As4EnvelopeHeader envelopeHeader = parseAs4EnvelopeHeader(userMessage);
+
+
+
+
+        TransmissionIdentifier messageId = TransmissionIdentifier.of(envelopeHeader.getMessageId());
+
+        validateMessageId(messageId.getIdentifier()); // Validate UserMessage
+        validatePayloads(userMessage.getPayloadInfo()); // Validate Payloads
+
+
+        List<ReferenceType> referenceList = SOAPHeaderParser.getReferenceListFromSignedInfo(soapHeader);
+        ProsessingContext prosessingContext = new ProsessingContext(timestamp, referenceList);
 
         // Prepare response
-        Timestamp ts = getTimestamp(soapHeader);
-        List<ReferenceType> referenceList = SOAPHeaderParser.getReferenceListFromSignedInfo(soapHeader);
-        SOAPMessage response = createSOAPResponse(ts, envelopeHeader.getMessageId(), referenceList);
+        SOAPMessage response = as4MessageFactory.createReceiptMessage(userMessage, prosessingContext);
 
-        // Take a copy of the response so that we can persist it as metadata/proof
-        byte[] copyOfResponse = copyResponse(response);
+        if( ! isPingMessage(Optional.of(userMessage)) ) {
 
+            // Inform Backend
 
-        // Handle payload
-        LinkedHashMap<InputStream, As4PayloadHeader> payloads = parseAttachments(request, userMessage);
-
-        List<Path> paths = new ArrayList<>();
-        for(Map.Entry<InputStream, As4PayloadHeader> paylaod : payloads.entrySet()){
-
-            validateAttachmentHeader(paylaod.getValue());
-
-            // Persist payload
-            paths.add(persistPayload(paylaod.getKey(), paylaod.getValue(), ti));
-        }
+            // Take a copy of the response so that we can persist it as metadata/proof
+            byte[] copyOfReceipt = copyReceipt(response);
 
 
-        // Persist Metadata
-        As4PayloadHeader firstHeader = payloads.entrySet().iterator().next().getValue();
-        String firstAttachmentId = envelopeHeader.getPayloadCIDs().get(0);
-        Digest firstAttachmentDigest = Digest.of(DigestMethod.SHA256, SOAPHeaderParser.getAttachmentDigest(firstAttachmentId, soapHeader));
-        X509Certificate senderCertificate = extractSenderCertificate(soapHeader);
+            // Handle payload
+            LinkedHashMap<InputStream, As4PayloadHeader> payloads = parseAttachments(attachments, userMessage);
 
-        As4InboundMetadata as4InboundMetadata = new As4InboundMetadata(
-                ti,
-                userMessage.getCollaborationInfo().getConversationId(),
-                firstHeader,
-                ts,
-                TransportProfile.AS4,
-                firstAttachmentDigest,
-                senderCertificate,
-                copyOfResponse,
-                envelopeHeader);
+            List<Path> paths = new ArrayList<>();
+            for (Map.Entry<InputStream, As4PayloadHeader> paylaod : payloads.entrySet()) {
 
-        try {
-            persisterHandler.persist(as4InboundMetadata, paths.get(0));
-        } catch (IOException e) {
-            throw new OxalisAs4Exception("Error persisting AS4 metadata", e);
+                validateAttachmentHeader(paylaod.getValue());
+
+                // Persist payload
+                paths.add(persistPayload(paylaod.getKey(), paylaod.getValue(), messageId));
+            }
+
+
+            // Persist Metadata
+            As4PayloadHeader firstHeader = payloads.entrySet().iterator().next().getValue();
+            String firstAttachmentId = envelopeHeader.getPayloadCIDs().get(0);
+            Digest firstAttachmentDigest = Digest.of(DigestMethod.SHA256, SOAPHeaderParser.getAttachmentDigest(firstAttachmentId, soapHeader));
+            X509Certificate senderCertificate = extractSenderCertificate(soapHeader);
+
+            As4InboundMetadata as4InboundMetadata = new As4InboundMetadata(
+                    messageId,
+                    userMessage.getCollaborationInfo().getConversationId(),
+                    firstHeader,
+                    timestamp,
+                    TransportProfile.AS4,
+                    firstAttachmentDigest,
+                    senderCertificate,
+                    copyOfReceipt,
+                    envelopeHeader);
+
+            try {
+                persisterHandler.persist(as4InboundMetadata, paths.get(0));
+            } catch (IOException e) {
+                throw new OxalisAs4Exception("Error persisting AS4 metadata", e, AS4ErrorCode.EBMS_0202);
+            }
         }
 
         // Send response
         return response;
     }
 
-    public byte[] copyResponse(SOAPMessage response) throws OxalisAs4Exception{
+    private boolean isPingMessage(Optional<UserMessage> userMessage) {
+        return userMessage
+                .map(UserMessage::getCollaborationInfo)
+                .filter(collaborationInfo ->
+                                Constants.TEST_SERVICE.equals( collaborationInfo.getService() ) &&
+                                Constants.TEST_ACTION.equals( collaborationInfo.getAction() )
+                ).isPresent();
+    }
+
+    public static void validatePayloads(PayloadInfo payloadInfo) throws OxalisAs4Exception{
+        List<String> externalPayloads = payloadInfo.getPartInfo().stream()
+                .map( PartInfo::getHref )
+                .filter( href -> !href.startsWith(REQUIRED_PAYLOAD_HREF_PREFIX) )
+                .collect( Collectors.toList() );
+
+        if(!externalPayloads.isEmpty()){
+            String errorMessage = "Invalid PayloadInfo. Href(s) detected with \"external\" source: " + externalPayloads;
+            log.debug(errorMessage);
+
+            throw new OxalisAs4Exception(
+                    errorMessage,
+                    AS4ErrorCode.EBMS_0009
+            );
+        }
+
+        List<String> payloadsMissingMimeTypeHeader = payloadInfo.getPartInfo().stream()
+                .filter(As4InboundHandler::partInfoMissingMimeTypeHeader)
+                .map(PartInfo::getHref)
+                .collect(Collectors.toList());
+
+        if(!payloadsMissingMimeTypeHeader.isEmpty()){
+            String errorMessage = "Invalid PayloadInfo. Part(s) detected without \"MimeType\" header: " + payloadsMissingMimeTypeHeader;
+            log.debug(errorMessage);
+
+            throw new OxalisAs4Exception(
+                    errorMessage,
+                    AS4ErrorCode.EBMS_0009
+            );
+        }
+
+    }
+
+
+    public static boolean partInfoMissingMimeTypeHeader(PartInfo partInfo){
+
+        Optional<List<Property>> properties = Optional.ofNullable(partInfo)
+                .map(PartInfo::getPartProperties)
+                .map(PartProperties::getProperty);
+
+        return properties.isPresent() ? !partInfo
+                .getPartProperties().getProperty().stream()
+                .filter( property -> "MimeType".equals(property.getName()) )
+                .findFirst()
+                .isPresent() : true;
+    }
+
+
+    public byte[] copyReceipt(SOAPMessage response) throws OxalisAs4Exception{
 
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
         try {
             response.writeTo(bos);
         } catch (SOAPException | IOException e) {
-            throw new OxalisAs4Exception("Could not write SOAP response", e);
+            throw new OxalisAs4Exception("Could not write SOAP response", e, AS4ErrorCode.EBMS_0202);
         }
 
         return bos.toByteArray();
@@ -150,32 +215,34 @@ public class As4InboundHandler {
 
     public void validateMessageId(String messageId) throws OxalisAs4Exception{
 
-        if (!MessageIdUtil.verify(messageId))
+        if (!MessageIdUtil.verify(messageId)) {
             throw new OxalisAs4Exception(
-                    "Invalid Message-ID '" + messageId + "' in inbound message.");
+                    "Invalid Message-ID '" + messageId + "' in inbound message.",
+                    AS4ErrorCode.EBMS_0009
+            );
+        }
+
     }
 
-    private LinkedHashMap<InputStream, As4PayloadHeader> parseAttachments(SOAPMessage request, UserMessage userMessage) throws  OxalisAs4Exception{
-
-        Iterator<AttachmentPart> attachments = CastUtils.cast(request.getAttachments());
+    private LinkedHashMap<InputStream, As4PayloadHeader> parseAttachments(Iterator<AttachmentPart> attachments, UserMessage userMessage) throws  OxalisAs4Exception{
 
         if ( !attachments.hasNext() ) {
             throw new OxalisAs4Exception("No attachment(s) present");
         }
 
         // <ContentId, <HeaderName, MimeHeader>>
-        Map<String, Map<String, MimeHeader>> partInfoHeadersMap = userMessage.getPayloadInfo().getPartInfo().stream().collect(
-                Collectors.toMap(
-                        partInfo -> AttachmentUtil.cleanContentId(partInfo.getHref()),
+        Map<String, Map<String, MimeHeader>> partInfoHeadersMap = userMessage.getPayloadInfo().getPartInfo().stream()
+                .collect(
+                    Collectors.toMap(
+                        partInfo -> AttachmentUtil.cleanContentId( partInfo.getHref() ),
                         partInfo -> partInfo.getPartProperties().getProperty().stream().collect(
-                                Collectors.toMap(
-                                        Property::getName,
-                                        property -> new MimeHeader(property.getName(), property.getValue()))
+                            Collectors.toMap(
+                                Property::getName,
+                                property -> new MimeHeader( property.getName(), property.getValue() )
+                            )
                         )
-                )
-        );
-
-        log.info("partInfoHeadersMap: {}", partInfoHeadersMap);
+                    )
+                );
 
         LinkedHashMap<InputStream, As4PayloadHeader> payloads = new LinkedHashMap<>();
 
@@ -191,50 +258,77 @@ public class As4InboundHandler {
                 Iterator<MimeHeader> mimeHeaderIterator = attachmentPart.getAllMimeHeaders();
                 mimeHeaderIterator.forEachRemaining(m -> mimeHeaders.put(m.getName(), m));
 
-                log.info("MimeHeaders: {}", mimeHeaders);
-
 
                 Map<String, MimeHeader> partInfoHeaders = partInfoHeadersMap.get(contentId);
 
+
                 if( isAttachmentCoompressed(partInfoHeaders, mimeHeaders) ){
-                    log.info("Decompressing payload: {}", contentId);
-                    is = new GZIPInputStream(is);
+                    try {
+                        is = new GZIPInputStream(is);
+                    }catch (IOException e){
+                        throw new OxalisAs4Exception(
+                                "Unable to initiate decompression of payload with Content-ID: " + contentId,
+                                e,
+                                AS4ErrorCode.EBMS_0303,
+                                AS4ErrorCode.Severity.FAILURE
+                        );
+                    }
                 }
 
 
-                PeekingInputStream pis = new PeekingInputStream(is);
-
-//                BufferedInputStream bis = new BufferedInputStream(is);
-//                bis.mark(5_000_000);
 
                 Header sbdh;
                 if(headerParser instanceof SbdhHeaderParser) {
-                    try (SbdReader sbdReader = SbdReader.newInstance(pis)) {
-                        sbdh = sbdReader.getHeader();
-                    } catch (SbdhException | IOException e) {
+
+                    try {
+                        PeekingInputStream pis = new PeekingInputStream(is);
+
+                        try (SbdReader sbdReader = SbdReader.newInstance(pis)) {
+
+                            sbdh = sbdReader.getHeader();
+                            is = pis.newInputStream();
+
+                        }
+                    }catch (SbdhException | IOException e){
+
+                        launderZipException(contentId, e);
                         throw new OxalisAs4Exception("Could not extract SBDH from payload");
+
                     }
                 }else{
                     sbdh = new Header();
+                    //TODO: populate based on userMessage
+                    sbdh = sbdh.sender(ParticipantIdentifier.of(userMessage.getPartyInfo().getFrom().getPartyId().get(0).getValue()));
                 }
 
-//               sbdh = parseAttachmentHeader(pis)
-
                 // Get an "unexpected eof in prolog"
-                As4PayloadHeader header = new As4PayloadHeader(sbdh, partInfoHeaders.values(), contentId);
+                As4PayloadHeader header = new As4PayloadHeader(sbdh, partInfoHeaders.values(), contentId, userMessage.getMessageInfo().getMessageId());
 
-//                bis.reset();
-//                payloads.put(bis, header);
-
-                payloads.put(pis.newInputStream(), header);
+                // Extract "fresh" InputStream
+                payloads.put(is, header);
 
             } catch ( IOException | SOAPException e ) {
-
                 throw new OxalisAs4Exception("Could not get attachment input stream", e);
             }
         }
 
         return payloads;
+    }
+
+    private void launderZipException(String contentId, Exception e) throws OxalisAs4Exception {
+        Throwable cause = e;
+        for(int i = 0; i < 10 && cause != null; i++){
+            if(cause instanceof ZipException){
+                throw new OxalisAs4Exception(
+                        "Unable to decompress of payload with Content-ID: " + contentId,
+                        cause,
+                        AS4ErrorCode.EBMS_0303,
+                        AS4ErrorCode.Severity.FAILURE
+                );
+            }
+
+            cause = e.getCause();
+        }
     }
 
     private boolean isAttachmentCoompressed(Map<String, MimeHeader> partInfoHeaders, Map<String, MimeHeader> mimeHeaders) {
@@ -303,73 +397,6 @@ public class As4InboundHandler {
         }
     }
 
-    private SOAPMessage createSOAPResponse(Timestamp ts,
-                                           String refToMessageId,
-                                           List<ReferenceType> referenceList) throws OxalisAs4Exception {
-        SignalMessage signalMessage;
-        SOAPHeaderElement messagingHeader;
-        SOAPMessage message;
-        try {
-
-            MessageFactory messageFactory = MessageFactory.newInstance(SOAPConstants.SOAP_1_2_PROTOCOL);
-            message = messageFactory.createMessage();
-
-            SOAPHeader soapHeader = message.getSOAPHeader();
-
-            messagingHeader = soapHeader.addHeaderElement(Constants.MESSAGING_QNAME);
-            messagingHeader.setMustUnderstand(true);
-
-        } catch (SOAPException e) {
-            throw new OxalisAs4Exception("Could not create SOAP message", e);
-        }
-
-        GregorianCalendar gc = new GregorianCalendar();
-        gc.setTime(ts.getDate());
-
-        XMLGregorianCalendar xmlGc;
-        try {
-            xmlGc = DatatypeFactory.newInstance().newXMLGregorianCalendar(gc);
-        } catch (DatatypeConfigurationException e) {
-            throw new OxalisAs4Exception("Could not parse timestamp", e);
-        }
-
-        // Generate Message-Id
-        String messageId = messageIdGenerator.generate();
-
-        if (!MessageIdUtil.verify(messageId))
-            throw new OxalisAs4Exception(
-                    "Invalid Message-ID '" + messageId + "' generated.");
-
-        MessageInfo messageInfo = MessageInfo.builder()
-                .withTimestamp(xmlGc)
-                .withMessageId(messageId)
-                .withRefToMessageId(refToMessageId)
-                .build();
-
-        List<MessagePartNRInformation> mpList = referenceList.stream()
-                .map(r -> MessagePartNRInformation.builder().withReference(r).build())
-                .collect(Collectors.toList());
-
-        NonRepudiationInformation nri = NonRepudiationInformation.builder()
-                .addMessagePartNRInformation(mpList)
-                .build();
-
-        signalMessage = SignalMessage.builder()
-                .withMessageInfo(messageInfo)
-                .withReceipt(Receipt.builder().withAny(nri).build())
-                .build();
-
-        JAXBElement<SignalMessage> userMessageJAXBElement = new JAXBElement<>(Constants.SIGNAL_MESSAGE_QNAME,
-                (Class<SignalMessage>) signalMessage.getClass(), signalMessage);
-        try {
-            Marshaller marshaller = Marshalling.getInstance().getJaxbContext().createMarshaller();
-            marshaller.marshal(userMessageJAXBElement, messagingHeader);
-        } catch (JAXBException e) {
-            throw new OxalisAs4Exception("Could not marshal signal message to header", e);
-        }
-
-        return message;
-    }
 
     private Timestamp getTimestamp(SOAPHeader header) throws OxalisAs4Exception {
         Timestamp ts;
@@ -385,18 +412,19 @@ public class As4InboundHandler {
         return ts;
     }
 
-    private Path persistPayload(InputStream inputStream, Header sbdh, TransmissionIdentifier ti) throws OxalisAs4Exception {
-        // Extract "fresh" InputStream
+    private Path persistPayload(InputStream inputStream, As4PayloadHeader as4PayloadHeader, TransmissionIdentifier ti) throws OxalisAs4Exception {
+
         Path payloadPath;
         try {
 
             // Persist content
-            payloadPath = persisterHandler.persist(ti, sbdh,
+            payloadPath = persisterHandler.persist(ti, as4PayloadHeader,
                     new UnclosableInputStream(inputStream));
 
             // Exhaust InputStream
             ByteStreams.exhaust(inputStream);
         } catch (IOException e) {
+            launderZipException(as4PayloadHeader.getCid(), e);
             throw new OxalisAs4Exception("Error processing payload input stream", e);
         }
         return payloadPath;

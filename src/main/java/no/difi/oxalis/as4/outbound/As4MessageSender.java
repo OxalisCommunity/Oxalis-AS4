@@ -6,12 +6,14 @@ import no.difi.oxalis.api.outbound.TransmissionResponse;
 import no.difi.oxalis.api.settings.Settings;
 import no.difi.oxalis.api.timestamp.TimestampProvider;
 import no.difi.oxalis.as4.api.MessageIdGenerator;
+import no.difi.oxalis.as4.lang.OxalisAs4TransmissionException;
 import no.difi.oxalis.as4.util.CompressionUtil;
 import no.difi.oxalis.as4.util.Marshalling;
 import no.difi.oxalis.commons.http.HttpConf;
 import no.difi.oxalis.commons.security.KeyStoreConf;
 import org.apache.wss4j.common.WSS4JConstants;
 import org.apache.wss4j.common.crypto.Merlin;
+import org.apache.wss4j.dom.handler.WSHandlerConstants;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.springframework.ws.client.core.WebServiceTemplate;
 import org.springframework.ws.client.support.interceptor.ClientInterceptor;
@@ -58,11 +60,18 @@ public class As4MessageSender {
         this.httpConfSettings = httpConfSettings;
     }
 
-    public TransmissionResponse send(TransmissionRequest request) {
+    public TransmissionResponse send(TransmissionRequest request) throws OxalisAs4TransmissionException {
         WebServiceTemplate template = createTemplate(request);
         As4Sender sender = new As4Sender(request, certificate, compressionUtil, messageIdGenerator);
         TransmissionResponseExtractor responseExtractor = new TransmissionResponseExtractor(request, timestampProvider);
-        return template.sendAndReceive(request.getEndpoint().getAddress().toString(), sender, responseExtractor);
+        As4TransmissionResponse as4TransmissionResponse = template.sendAndReceive(request.getEndpoint().getAddress().toString(), sender, responseExtractor);
+
+        if(as4TransmissionResponse.getTransmissionException() != null){
+            throw as4TransmissionResponse.getTransmissionException();
+        }
+
+        return as4TransmissionResponse;
+
     }
 
     private SaajSoapMessageFactory createSoapMessageFactory() {
@@ -86,7 +95,6 @@ public class As4MessageSender {
     }
 
     private ClientInterceptor createWsSecurityInterceptor(X509Certificate certificate) {
-        WsSecurityInterceptor interceptor = new WsSecurityInterceptor();
 
         Merlin crypto = new Merlin();
         crypto.setCryptoProvider(BouncyCastleProvider.PROVIDER_NAME);
@@ -112,8 +120,11 @@ public class As4MessageSender {
 
         String alias = settings.getString(KeyStoreConf.KEY_ALIAS);
         String password = settings.getString(KeyStoreConf.PASSWORD);
+
+        WsSecurityInterceptor interceptor = new WsSecurityInterceptor();
+
         interceptor.setSecurementPassword(password);
-        interceptor.setSecurementActions("Signature Encrypt");
+        interceptor.setSecurementActions(WSHandlerConstants.SIGNATURE + " " + WSHandlerConstants.ENCRYPT); //TODO: Temporary changed to just signature
 
         interceptor.setSecurementSignatureUser(alias);
         interceptor.setSecurementSignatureCrypto(crypto);
