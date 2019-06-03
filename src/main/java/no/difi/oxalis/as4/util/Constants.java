@@ -11,8 +11,8 @@ public interface Constants {
 
     // PEPPOL
     String PARTY_ID_TYPE = "urn:fdc:peppol.eu:2017:identifiers:ap";
-    String SERVICE_TYPE = "urn:fdc:peppol.eu:2017:identifiers:proc-id";
     String AGREEMENT_REF = "urn:fdc:peppol.eu:2017:agreements:tia:ap_provider";
+    String SERVICE_TYPE = "cenbii-procid-ubl";
 
     // Common
     String FROM_ROLE = "http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/initiator";
