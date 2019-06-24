@@ -14,6 +14,7 @@ import org.apache.cxf.headers.Header;
 import org.apache.cxf.interceptor.Fault;
 import org.apache.cxf.message.Message;
 import org.apache.cxf.phase.Phase;
+import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.CollaborationInfo;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.MessageInfo;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.Messaging;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.UserMessage;
@@ -56,16 +57,32 @@ public class As4Interceptor extends AbstractSoapInterceptor {
             Unmarshaller unmarshaller = Marshalling.getInstance().getJaxbContext().createUnmarshaller();
             Messaging messaging =  unmarshaller.unmarshal((Node) header.getObject(), Messaging.class).getValue();
 
-            String messageId = Optional.ofNullable( messaging )
+
+
+            Optional<String> messageId = Optional.ofNullable( messaging )
                     .map( Messaging::getUserMessage )
                     .map( Collection::stream ).orElseGet( Stream::empty )
                     .map( UserMessage::getMessageInfo )
                     .map( MessageInfo::getMessageId )
-                    .findFirst( ).orElseThrow(
-                            () -> new Fault( new OxalisAs4Exception("MessageID is missing from UserMessage") )
-                    );
+                    .findFirst( );
 
-            message.put( MessageId.MESSAGE_ID, new MessageId(messageId) );
+            messageId.ifPresent(id -> message.put( MessageId.MESSAGE_ID, new MessageId(id) ));
+            messageId.orElseThrow(
+                    () -> new Fault( new OxalisAs4Exception("MessageID is missing from UserMessage") )
+            );
+
+
+            Optional.ofNullable( messaging )
+                    .map( Messaging::getUserMessage )
+                    .map( Collection::stream ).orElseGet( Stream::empty )
+                    .map( UserMessage::getCollaborationInfo )
+                    .map(CollaborationInfo::getConversationId)
+                    .findFirst()
+                    .map(conversationId -> message.put("oxalis.as4.conversationId", conversationId));
+
+
+
+
 
         } catch (JAXBException e) {
             throw new Fault(e);

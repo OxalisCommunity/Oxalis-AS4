@@ -4,16 +4,17 @@ import com.google.inject.Inject;
 import no.difi.oxalis.api.outbound.TransmissionRequest;
 import no.difi.oxalis.api.outbound.TransmissionResponse;
 import no.difi.oxalis.api.settings.Settings;
+import no.difi.oxalis.api.tag.Tag;
 import no.difi.oxalis.api.timestamp.TimestampProvider;
 import no.difi.oxalis.as4.api.MessageIdGenerator;
 import no.difi.oxalis.as4.lang.OxalisAs4TransmissionException;
 import no.difi.oxalis.as4.util.CompressionUtil;
 import no.difi.oxalis.as4.util.Marshalling;
+import no.difi.oxalis.as4.util.PeppolConfiguration;
 import no.difi.oxalis.commons.http.HttpConf;
 import no.difi.oxalis.commons.security.KeyStoreConf;
 import org.apache.wss4j.common.WSS4JConstants;
 import org.apache.wss4j.common.crypto.Merlin;
-import org.apache.wss4j.dom.handler.WSHandlerConstants;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.springframework.ws.client.core.WebServiceTemplate;
 import org.springframework.ws.client.support.interceptor.ClientInterceptor;
@@ -30,6 +31,7 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.StringJoiner;
 
 import static no.difi.oxalis.as4.util.Constants.RSA_SHA256;
 
@@ -42,6 +44,7 @@ public class As4MessageSender {
     private final CompressionUtil compressionUtil;
     private final MessageIdGenerator messageIdGenerator;
     private final Settings<HttpConf> httpConfSettings;
+    private final PeppolConfiguration peppolConfiguration;
 
     @Inject
     public As4MessageSender(X509Certificate certificate,
@@ -50,7 +53,8 @@ public class As4MessageSender {
                             TimestampProvider timestampProvider,
                             CompressionUtil compressionUtil,
                             MessageIdGenerator messageIdGenerator,
-                            Settings<HttpConf> httpConfSettings) {
+                            Settings<HttpConf> httpConfSettings,
+                            PeppolConfiguration peppolConfiguration) {
         this.certificate = certificate;
         this.keyStore = keyStore;
         this.settings = settings;
@@ -58,11 +62,12 @@ public class As4MessageSender {
         this.compressionUtil = compressionUtil;
         this.messageIdGenerator = messageIdGenerator;
         this.httpConfSettings = httpConfSettings;
+        this.peppolConfiguration = peppolConfiguration;
     }
 
     public TransmissionResponse send(TransmissionRequest request) throws OxalisAs4TransmissionException {
         WebServiceTemplate template = createTemplate(request);
-        As4Sender sender = new As4Sender(request, certificate, compressionUtil, messageIdGenerator);
+        As4Sender sender = new As4Sender(request, certificate, compressionUtil, messageIdGenerator, peppolConfiguration);
         TransmissionResponseExtractor responseExtractor = new TransmissionResponseExtractor(request, timestampProvider);
         As4TransmissionResponse as4TransmissionResponse = template.sendAndReceive(request.getEndpoint().getAddress().toString(), sender, responseExtractor);
 
@@ -88,13 +93,13 @@ public class As4MessageSender {
         template.setUnmarshaller(Marshalling.getInstance());
         template.setMessageSender(createMessageSender());
         template.setInterceptors(new ClientInterceptor[]{
-                createWsSecurityInterceptor(request.getEndpoint().getCertificate()),
+                createWsSecurityInterceptor(request.getEndpoint().getCertificate(), request.getTag()),
                 new ReferenceValidatorInterceptor()
         });
         return template;
     }
 
-    private ClientInterceptor createWsSecurityInterceptor(X509Certificate certificate) {
+    private ClientInterceptor createWsSecurityInterceptor(X509Certificate certificate, Tag tag) {
 
         Merlin crypto = new Merlin();
         crypto.setCryptoProvider(BouncyCastleProvider.PROVIDER_NAME);
@@ -124,7 +129,18 @@ public class As4MessageSender {
         WsSecurityInterceptor interceptor = new WsSecurityInterceptor();
 
         interceptor.setSecurementPassword(password);
-        interceptor.setSecurementActions(WSHandlerConstants.SIGNATURE + " " + WSHandlerConstants.ENCRYPT); //TODO: Temporary changed to just signature
+
+
+        PeppolConfiguration peppolConfiguration = tag instanceof PeppolConfiguration ? (PeppolConfiguration) tag : new PeppolConfiguration();
+
+        StringJoiner actions = new StringJoiner(" ");
+        for(String action : peppolConfiguration.getActions()){
+            actions.add(action);
+        }
+
+        interceptor.setSecurementActions(actions.toString());
+
+
 
         interceptor.setSecurementSignatureUser(alias);
         interceptor.setSecurementSignatureCrypto(crypto);

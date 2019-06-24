@@ -35,5 +35,9 @@ public enum As4Conf {
 
     @Path("oxalis.as4.msgidgen")
     @DefaultValue("default")
-    MSGID_GENERATOR
+    MSGID_GENERATOR,
+
+    @Path("oxalis.as4.type")
+    @DefaultValue("prppol")
+    TYPE
 }

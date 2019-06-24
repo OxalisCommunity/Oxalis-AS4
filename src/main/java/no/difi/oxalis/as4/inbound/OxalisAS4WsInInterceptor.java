@@ -9,14 +9,12 @@ import org.apache.cxf.message.Attachment;
 import org.apache.cxf.ws.security.SecurityConstants;
 import org.apache.cxf.ws.security.wss4j.WSS4JInInterceptor;
 import org.apache.wss4j.common.crypto.Crypto;
+import org.apache.wss4j.dom.handler.WSHandlerConstants;
 
 import javax.xml.namespace.QName;
 import javax.xml.soap.AttachmentPart;
 import javax.xml.soap.SOAPMessage;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 public class OxalisAS4WsInInterceptor extends WSS4JInInterceptor {
 
@@ -36,8 +34,27 @@ public class OxalisAS4WsInInterceptor extends WSS4JInInterceptor {
         msg.put(SecurityConstants.ENCRYPT_USERNAME, alias);
         msg.put(SecurityConstants.SIGNATURE_USERNAME, alias);
         msg.put(SecurityConstants.USERNAME, alias);
+        msg.put(SecurityConstants.RETURN_SECURITY_ERROR, Boolean.TRUE);
 
-        super.handleMessage(msg);
+        if(null == msg.get(WSHandlerConstants.ACTION) ){
+            msg.put(WSHandlerConstants.ACTION, WSHandlerConstants.SIGNATURE + " " + WSHandlerConstants.ENCRYPT);
+        }
+
+        Collection<Attachment> attachments = new ArrayList<>();
+        if(msg.getAttachments() != null){
+            attachments.addAll(msg.getAttachments());
+        }
+
+
+        try {
+            super.handleMessage(msg);
+        } catch (Throwable t){
+
+            if (As4FaultInHandler.attachmentsIsCompressed(attachments)){
+                msg.put("oxalis.as4.compressionErrorDetected", true);
+            }
+            throw t;
+        }
 
 
         SOAPMessage soapMessage = msg.getContent(SOAPMessage.class);

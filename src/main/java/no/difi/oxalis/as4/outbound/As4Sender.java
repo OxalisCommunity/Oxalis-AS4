@@ -3,12 +3,10 @@ package no.difi.oxalis.as4.outbound;
 import com.google.common.collect.Lists;
 import no.difi.oxalis.api.outbound.TransmissionRequest;
 import no.difi.oxalis.as4.api.MessageIdGenerator;
-import no.difi.oxalis.as4.util.CompressionUtil;
-import no.difi.oxalis.as4.util.Constants;
-import no.difi.oxalis.as4.util.Marshalling;
-import no.difi.oxalis.as4.util.MessageIdUtil;
+import no.difi.oxalis.as4.util.*;
 import no.difi.oxalis.commons.security.CertificateUtils;
 import org.apache.cxf.attachment.AttachmentUtil;
+import org.apache.cxf.ws.security.SecurityConstants;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.*;
 import org.springframework.http.MediaType;
 import org.springframework.oxm.jaxb.Jaxb2Marshaller;
@@ -24,6 +22,7 @@ import javax.xml.bind.JAXBElement;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
+import javax.xml.soap.SOAPException;
 import javax.xml.transform.TransformerException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -41,17 +40,32 @@ public class As4Sender implements WebServiceMessageCallback {
     private final X509Certificate certificate;
     private final CompressionUtil compressionUtil;
     private final MessageIdGenerator messageIdGenerator;
+    private final PeppolConfiguration defaultOutboundConfiguration;
 
-    As4Sender(TransmissionRequest request, X509Certificate certificate, CompressionUtil compressionUtil, MessageIdGenerator messageIdGenerator) {
+    As4Sender(TransmissionRequest request, X509Certificate certificate, CompressionUtil compressionUtil, MessageIdGenerator messageIdGenerator, PeppolConfiguration peppolConfiguration) {
         this.request = request;
         this.certificate = certificate;
         this.compressionUtil = compressionUtil;
         this.messageIdGenerator = messageIdGenerator;
+        this.defaultOutboundConfiguration = peppolConfiguration;
     }
 
     @Override
     public void doWithMessage(WebServiceMessage webServiceMessage) throws IOException, TransformerException {
         SaajSoapMessage message = (SaajSoapMessage) webServiceMessage;
+
+        try {
+            if(request.getTag() instanceof PeppolConfiguration){
+                message.getSaajMessage().setProperty("oxalis.tag", request.getTag());
+            }else{
+                message.getSaajMessage().setProperty("oxalis.tag", defaultOutboundConfiguration);
+            }
+            message.getSaajMessage().setProperty(SecurityConstants.ENCRYPT_CERT, request.getEndpoint().getCertificate());
+
+        }catch (SOAPException e){
+
+        }
+
 
         InputStream compressedAttachment = compressionUtil.getCompressedStream(request.getPayload());
 
@@ -93,10 +107,23 @@ public class As4Sender implements WebServiceMessageCallback {
                     .withName("MimeType")
                     .withValue("application/xml")
                     .build();
-            PartProperties partProperties = PartProperties.builder().withProperty(compressionType, mimeType).build();
+
+            PartProperties.Builder partProperties = PartProperties.builder().withProperty(compressionType, mimeType);
+            if (request instanceof As4TransmissionRequest) {
+                As4TransmissionRequest as4TransmissionRequest = (As4TransmissionRequest) request;
+                if(null != as4TransmissionRequest.getPayloadCharset()){
+                    partProperties.addProperty(
+                            Property.builder()
+                                    .withName("CharacterSet")
+                                    .withValue( as4TransmissionRequest.getPayloadCharset().name().toLowerCase() )
+                                    .build()
+                    );
+                }
+            }
+
             PartInfo partInfo = PartInfo.builder()
                     .withHref(cid)
-                    .withPartProperties(partProperties)
+                    .withPartProperties(partProperties.build())
                     .build();
             partInfos.add(partInfo);
         }
@@ -140,30 +167,37 @@ public class As4Sender implements WebServiceMessageCallback {
         String fromName = CertificateUtils.extractCommonName(certificate);
         String toName = CertificateUtils.extractCommonName(request.getEndpoint().getCertificate());
 
+        PeppolConfiguration outboundConfiguration = request.getTag() instanceof PeppolConfiguration ?
+                (PeppolConfiguration) request.getTag() : defaultOutboundConfiguration;
+
         return PartyInfo.builder()
                 .withFrom(From.builder()
                         .withPartyId(PartyId.builder()
-                                .withType(PARTY_ID_TYPE)
+                                .withType(outboundConfiguration.getPartyIDType())
                                 .withValue(fromName)
                                 .build())
-                        .withRole(FROM_ROLE)
+                        .withRole(outboundConfiguration.getFromRole())
                         .build())
                 .withTo(To.builder()
                         .withPartyId(PartyId.builder()
-                                .withType(PARTY_ID_TYPE)
+                                .withType(outboundConfiguration.getPartyIDType())
                                 .withValue(toName)
                                 .build())
-                        .withRole(TO_ROLE)
+                        .withRole(outboundConfiguration.getToRole())
                         .build()
                 ).build();
     }
 
     private CollaborationInfo createCollaborationInfo() {
+
+        PeppolConfiguration outboundConfiguration = request.getTag() instanceof PeppolConfiguration ?
+                (PeppolConfiguration) request.getTag() : defaultOutboundConfiguration;
+
         CollaborationInfo.Builder cib = CollaborationInfo.builder()
                 .withConversationId(getConversationId())
                 .withAction(request.getHeader().getDocumentType().toString())
                 .withService(Service.builder()
-                        .withType(SERVICE_TYPE)
+                        .withType(outboundConfiguration.getServiceType())
                         .withValue(request.getHeader().getProcess().getIdentifier())
                         .build()
                 );
@@ -177,9 +211,9 @@ public class As4Sender implements WebServiceMessageCallback {
 
 
 
-        if (AGREEMENT_REF != null) {
+        if (defaultOutboundConfiguration.getAgreementRef() != null) {
             cib = cib.withAgreementRef(AgreementRef.builder()
-                    .withValue(AGREEMENT_REF)
+                    .withValue(defaultOutboundConfiguration.getAgreementRef())
                     .build()
             );
         }

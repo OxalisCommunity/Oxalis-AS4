@@ -96,7 +96,7 @@ public class As4Servlet extends CXFNonSpringServlet {
         PasswordCallbackHandler cb = new PasswordCallbackHandler(password);
 
         Map<String, Object> inProps = Maps.newHashMap();
-        inProps.put(WSHandlerConstants.ACTION, WSHandlerConstants.ENCRYPT + " " + WSHandlerConstants.SIGNATURE); //TODO: (WSHandlerConstants.ENCRYPT + " " + WSHandlerConstants.SIGNATURE)
+//        inProps.put(WSHandlerConstants.ACTION, WSHandlerConstants.ENCRYPT + " " + WSHandlerConstants.SIGNATURE); //TODO: (WSHandlerConstants.ENCRYPT + " " + WSHandlerConstants.SIGNATURE)
         inProps.put(WSHandlerConstants.PW_CALLBACK_REF, cb);
         inProps.put(WSHandlerConstants.ENCRYPTION_PARTS, "{}cid:Attachments");
         inProps.put(WSHandlerConstants.SIGNATURE_PARTS, "{}{}Body; {}{http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/} Messaging; {}cid:Attachments;");

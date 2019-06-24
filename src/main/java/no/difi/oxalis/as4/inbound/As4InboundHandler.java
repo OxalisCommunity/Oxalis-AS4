@@ -37,12 +37,14 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.ZipException;
 
@@ -144,12 +146,20 @@ public class As4InboundHandler {
     }
 
     private boolean isPingMessage(Optional<UserMessage> userMessage) {
+
         return userMessage
                 .map(UserMessage::getCollaborationInfo)
-                .filter(collaborationInfo ->
-                                Constants.TEST_SERVICE.equals( collaborationInfo.getService() ) &&
-                                Constants.TEST_ACTION.equals( collaborationInfo.getAction() )
-                ).isPresent();
+                .map(CollaborationInfo::getService)
+                .map(Service::getValue)
+                .map(
+                        service -> userMessage
+                                .map(UserMessage::getCollaborationInfo)
+                                .map(CollaborationInfo::getAction)
+                                .map(action ->
+                                        Constants.TEST_SERVICE.equals(service) && Constants.TEST_ACTION.equals(action)
+                                ).orElse(false)
+                ).orElse(false);
+
     }
 
     public static void validatePayloads(PayloadInfo payloadInfo) throws OxalisAs4Exception{
@@ -168,6 +178,24 @@ public class As4InboundHandler {
             );
         }
 
+
+        List<String> payloadsWithInvalidCharset = payloadInfo.getPartInfo().stream()
+                .filter(As4InboundHandler::partInfoHasInvalidCharset)
+                .map(PartInfo::getHref)
+                .collect(Collectors.toList());
+
+        if(!payloadsWithInvalidCharset.isEmpty()){
+            String errorMessage = "Invalid PayloadInfo. Part(s) detected invalid \"CharacterSet\" header: " + payloadsWithInvalidCharset;
+            log.debug(errorMessage);
+
+            throw new OxalisAs4Exception(
+                    errorMessage,
+                    AS4ErrorCode.EBMS_0009
+            );
+        }
+
+
+
         List<String> payloadsMissingMimeTypeHeader = payloadInfo.getPartInfo().stream()
                 .filter(As4InboundHandler::partInfoMissingMimeTypeHeader)
                 .map(PartInfo::getHref)
@@ -185,18 +213,47 @@ public class As4InboundHandler {
 
     }
 
+    private static boolean partInfoHasInvalidCharset(PartInfo partInfo) {
+
+         return Optional.ofNullable(partInfo)
+
+                .map(PartInfo::getPartProperties)
+                .map(PartProperties::getProperty)
+
+                .map(Collection::stream).orElse(Stream.empty())
+
+                 .anyMatch(property ->
+                         Optional.of(property)
+                                 .map(Property::getName)
+                                 .filter("CharacterSet"::equals)
+                                 .map(fieldName -> Optional.of(property)
+                                         .map(Property::getValue)
+                                         .map(charset -> {
+                                             try {
+                                                 return null == Charset.forName(property.getValue());
+                                             } catch (Exception e) {
+                                                 return true;
+                                             }
+                                         }).orElse(true)
+                                 ).orElse(false)
+
+                 );
+
+
+    }
+
 
     public static boolean partInfoMissingMimeTypeHeader(PartInfo partInfo){
 
-        Optional<List<Property>> properties = Optional.ofNullable(partInfo)
-                .map(PartInfo::getPartProperties)
-                .map(PartProperties::getProperty);
+        return ! Optional.ofNullable(partInfo)
 
-        return properties.isPresent() ? !partInfo
-                .getPartProperties().getProperty().stream()
-                .filter( property -> "MimeType".equals(property.getName()) )
-                .findFirst()
-                .isPresent() : true;
+                .map(PartInfo::getPartProperties)
+                .map(PartProperties::getProperty)
+
+                .map(Collection::stream).orElse(Stream.empty())
+
+                .map(Property::getName)
+                .anyMatch("MimeType"::equals);
     }
 
 
@@ -334,12 +391,6 @@ public class As4InboundHandler {
     private boolean isAttachmentCoompressed(Map<String, MimeHeader> partInfoHeaders, Map<String, MimeHeader> mimeHeaders) {
         if ( partInfoHeaders.containsKey("CompressionType") ){
             String value = partInfoHeaders.get("CompressionType").getValue();
-
-
-            log.info("header value: {}", value);
-            log.info("header byte: {}", Arrays.asList(value.getBytes()));
-            log.info("comparison value: {}", "application/gzip");
-            log.info("comparison byte: {}", Arrays.asList("application/gzip".getBytes()));
 
             // Somehow this fails
             if( "application/gzip".equals(value) ){

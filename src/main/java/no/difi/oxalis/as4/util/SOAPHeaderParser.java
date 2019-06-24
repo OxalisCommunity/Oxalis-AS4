@@ -18,6 +18,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.List;
 
 public class SOAPHeaderParser {
@@ -35,7 +36,7 @@ public class SOAPHeaderParser {
 
     public static byte[] getAttachmentDigest(String refId, SOAPHeader header) throws OxalisAs4Exception {
         NodeList sigInfoNode = header.getElementsByTagNameNS(NS_ALL, SIG_INFO);
-        if (sigInfoNode.getLength() != 1) {
+        if (sigInfoNode == null || sigInfoNode.getLength() != 1) {
             throw new OxalisAs4Exception("Zero or multiple Signature elements in header");
         }
         Element sigInfoElement = (Element) sigInfoNode.item(0);
@@ -54,31 +55,33 @@ public class SOAPHeaderParser {
 
     public static X509Certificate getSenderCertificate(SOAPHeader header) throws OxalisAs4Exception {
         NodeList sigNode = header.getElementsByTagNameNS(NS_ALL, SIG);
-        if (sigNode.getLength() != 1) {
+        if (sigNode == null || sigNode.getLength() != 1) {
             throw new OxalisAs4Exception("Zero or multiple Signature elements in header");
         }
         Element sigElement = (Element) sigNode.item(0);
         NodeList keyInfoNode = sigElement.getElementsByTagNameNS(NS_ALL, KEY_INFO);
-        if (keyInfoNode.getLength() != 1) {
+        if (keyInfoNode == null || keyInfoNode.getLength() != 1) {
             throw new OxalisAs4Exception("Zero or multiple KeyInfo children of Signature");
         }
         Element keyInfoElement = (Element) keyInfoNode.item(0);
         NodeList refNode = keyInfoElement.getElementsByTagNameNS(NS_ALL, REF);
-        if (refNode.getLength() != 1) {
+        if (refNode == null || refNode.getLength() != 1) {
             throw new OxalisAs4Exception(("Zero or multiple Reference nodes under Signature->KeyInfo"));
         }
         String refUri = ((Element) refNode.item(0)).getAttribute("URI").replace("#", "");
 
         NodeList bstNodes = header.getElementsByTagNameNS(NS_ALL, BST);
-        for (int i = 0; i < bstNodes.getLength(); i++) {
-            Element bstElem = (Element) bstNodes.item(i);
-            if (bstElem.getAttribute("wsu:Id").equals(refUri)) {
-                try {
-                    String pem = bstElem.getTextContent().replace("\r\n", "");
-                    byte[] buf = Base64.getDecoder().decode(pem);
-                    return (X509Certificate) CertificateFactory.getInstance("X.509").generateCertificate(new ByteArrayInputStream(buf));
-                } catch (CertificateException e) {
-                    throw new OxalisAs4Exception("Could not create certificate from BinarySecurityToken", e);
+        if (bstNodes != null){
+            for (int i = 0; i < bstNodes.getLength(); i++) {
+                Element bstElem = (Element) bstNodes.item(i);
+                if (bstElem.getAttribute("wsu:Id").equals(refUri)) {
+                    try {
+                        String pem = bstElem.getTextContent().replace("\r\n", "");
+                        byte[] buf = Base64.getDecoder().decode(pem);
+                        return (X509Certificate) CertificateFactory.getInstance("X.509").generateCertificate(new ByteArrayInputStream(buf));
+                    } catch (CertificateException e) {
+                        throw new OxalisAs4Exception("Could not create certificate from BinarySecurityToken", e);
+                    }
                 }
             }
         }
@@ -88,12 +91,12 @@ public class SOAPHeaderParser {
 
     public static byte[] getSignature(SOAPHeader header) throws OxalisAs4Exception {
         NodeList sigNode = header.getElementsByTagNameNS(NS_ALL, SIG);
-        if (sigNode.getLength() != 1) {
+        if (sigNode == null || sigNode.getLength() != 1) {
             throw new OxalisAs4Exception("Zero or multiple Signature elements in header");
         }
         Element sigElement = (Element) sigNode.item(0);
         NodeList sigValNode = sigElement.getElementsByTagNameNS(NS_ALL, SIG_VAL);
-        if (sigValNode.getLength() != 1) {
+        if (sigValNode == null || sigValNode.getLength() != 1) {
             throw new OxalisAs4Exception("Zero or multiple SignatureValue elements in header");
         }
         return sigValNode.item(0).getTextContent().replace("\r\n", "").getBytes(StandardCharsets.UTF_8);
@@ -101,7 +104,7 @@ public class SOAPHeaderParser {
 
     public static List<ReferenceType> getReferenceListFromSignedInfo(SOAPHeader header) throws OxalisAs4Exception {
         NodeList sigInfoNode = header.getElementsByTagNameNS(NS_ALL, SIG_INFO);
-        if (sigInfoNode.getLength() != 1) {
+        if (sigInfoNode == null || sigInfoNode.getLength() != 1) {
             throw new OxalisAs4Exception("Zero or multiple Signature elements in header");
         }
         Element sigInfoElement = (Element) sigInfoNode.item(0);
@@ -110,7 +113,7 @@ public class SOAPHeaderParser {
 
     public static List<ReferenceType> getReferenceListFromNonRepudiationInformation(SOAPHeader header) throws OxalisAs4Exception {
         NodeList nriNode = header.getElementsByTagNameNS(NS_ALL, NRI);
-        if (nriNode.getLength() != 1) {
+        if (nriNode == null || nriNode.getLength() != 1) {
             throw new OxalisAs4Exception("Zero or multiple Signature elements in header");
         }
         Element nriElement = (Element) nriNode.item(0);
@@ -120,6 +123,10 @@ public class SOAPHeaderParser {
     private static List<ReferenceType> refListFromElement(Element element) throws OxalisAs4Exception {
         NodeList refNodes = element.getElementsByTagNameNS(NS_ALL, REF);
         List<ReferenceType> referenceList = Lists.newArrayList();
+
+        if(refNodes == null){
+            return Collections.emptyList();
+        }
 
         try {
             Unmarshaller unmarshaller = Marshalling.getInstance().getJaxbContext().createUnmarshaller();

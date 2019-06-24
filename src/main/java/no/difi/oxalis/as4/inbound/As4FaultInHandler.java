@@ -3,6 +3,8 @@ package no.difi.oxalis.as4.inbound;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
+import no.difi.oxalis.api.model.TransmissionIdentifier;
+import no.difi.oxalis.api.persist.PersisterHandler;
 import no.difi.oxalis.as4.lang.OxalisAs4Exception;
 import no.difi.oxalis.as4.util.AS4ErrorCode;
 import no.difi.oxalis.as4.util.As4MessageFactory;
@@ -32,11 +34,13 @@ import java.util.zip.GZIPInputStream;
 public class As4FaultInHandler implements SOAPHandler<SOAPMessageContext> {
 
     private As4MessageFactory as4MessageFactory;
+    private PersisterHandler persisterHandler;
 
 
     @Inject
-    public As4FaultInHandler(As4MessageFactory as4MessageFactory) {
+    public As4FaultInHandler(As4MessageFactory as4MessageFactory, PersisterHandler persisterHandler) {
         this.as4MessageFactory = as4MessageFactory;
+        this.persisterHandler = persisterHandler;
     }
 
 
@@ -56,6 +60,9 @@ public class As4FaultInHandler implements SOAPHandler<SOAPMessageContext> {
     @Override
     public boolean handleFault(SOAPMessageContext context) {
 
+        String conversationId = (String) context.get("oxalis.as4.conversationId");
+        MessageId messageId = (MessageId) context.get( MessageId.MESSAGE_ID );
+
         Optional.ofNullable( context.get(Exception.class.getName()) )
 
                 .map( Exception.class::cast )
@@ -67,15 +74,26 @@ public class As4FaultInHandler implements SOAPHandler<SOAPMessageContext> {
                 .map( OxalisAs4Exception.class::cast )
 
                 .ifPresent(
-                        as4Exception -> Optional.ofNullable( context.get( MessageId.MESSAGE_ID ) )
+                        as4Exception -> Optional.ofNullable( messageId )
+                                .map( id -> {
+                            As4PayloadHeader header = new As4PayloadHeader(null, null, id.getValue(), conversationId);
 
-                        .map( MessageId.class::cast )
-                        .map( messageId -> as4MessageFactory.createErrorMessage( messageId, as4Exception ) )
+
+                            try {
+                                persisterHandler.persist(TransmissionIdentifier.of(id.getValue()), header, null, as4Exception);
+                            }catch (Exception e){
+                                log.error("Unable to persist exception", e);
+                            }
+
+                            return as4MessageFactory.createErrorMessage( id, as4Exception );
+
+                        } )
 
                         .ifPresent(errorMessage -> {
                             context.setMessage(errorMessage);
 
                             log.debug("Converted default Fault into EBMS error message");
+                            log.info("\n\n********************\nMessageId: " + messageId.getValue() + "\nConversationId: " + conversationId + "\n********************");
                         })
                 );
 
@@ -85,7 +103,7 @@ public class As4FaultInHandler implements SOAPHandler<SOAPMessageContext> {
 
     @Override
     public void close(MessageContext context) {
-        // Intentionally left empty
+        // Intentionally left emptyas
     }
 
 
@@ -99,13 +117,19 @@ public class As4FaultInHandler implements SOAPHandler<SOAPMessageContext> {
 
         if (t instanceof WSSecurityException){
 
-            if( attachmentsIsCompressed(inMessage) ){
+            boolean isCompressionError = (boolean) inMessage.get().getOrDefault("oxalis.as4.compressionErrorDetected", false);
+            if( isCompressionError){
 
                 return new OxalisAs4Exception(
                         "Content cannot be compressed after signature/encryption", AS4ErrorCode.EBMS_0303);
             }
 
         }
+
+        if(t.getCause() instanceof OxalisAs4Exception){
+            t = t.getCause();
+        }
+
         return t;
     }
 
@@ -113,6 +137,15 @@ public class As4FaultInHandler implements SOAPHandler<SOAPMessageContext> {
 
         return inMessage
                 .map( Message::getAttachments )
+                .map( Collection::stream ).orElseGet( Stream::empty )
+                .map( Attachment::getDataHandler )
+                .map( Optional::of )
+                .anyMatch( As4FaultInHandler::isInputStreamZipped );
+    }
+
+    public static boolean attachmentsIsCompressed(Collection<Attachment> attachments){
+
+        return Optional.of(attachments)
                 .map( Collection::stream ).orElseGet( Stream::empty )
                 .map( Attachment::getDataHandler )
                 .map( Optional::of )

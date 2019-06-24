@@ -12,10 +12,12 @@ import no.difi.oxalis.api.outbound.TransmissionRequest;
 import no.difi.oxalis.api.outbound.TransmissionResponse;
 import no.difi.oxalis.api.persist.PayloadPersister;
 import no.difi.oxalis.api.persist.ReceiptPersister;
+import no.difi.oxalis.api.tag.Tag;
 import no.difi.oxalis.as4.api.MessageIdGenerator;
 import no.difi.oxalis.as4.common.DefaultMessageIdGenerator;
 import no.difi.oxalis.as4.inbound.As4InboundModule;
 import no.difi.oxalis.as4.outbound.As4OutboundModule;
+import no.difi.oxalis.as4.util.PeppolConfiguration;
 import no.difi.oxalis.commons.guice.GuiceModuleLoader;
 import no.difi.oxalis.test.jetty.AbstractJettyServerTest;
 import no.difi.vefa.peppol.common.model.*;
@@ -116,6 +118,46 @@ public class SendReceiveTest extends AbstractJettyServerTest {
             public InputStream getPayload() {
                 return new ByteArrayInputStream(firstPayload);
             }
+
+            @Override
+            public Tag getTag() {
+                return new PeppolConfiguration(){
+                    @Override
+                    public List<String> getActions() {
+                        return super.getActions();
+                    }
+
+                    @Override
+                    public String getPartyIDType() {
+                        return "TestPartyIdType";
+                    }
+
+                    @Override
+                    public String getAgreementRef() {
+                        return "TestAgreementRef";
+                    }
+
+                    @Override
+                    public String getServiceType() {
+                        return "TestServiceType";
+                    }
+
+                    @Override
+                    public String getFromRole() {
+                        return "TestFromRole";
+                    }
+
+                    @Override
+                    public String getToRole() {
+                        return "TestToRole";
+                    }
+
+                    @Override
+                    public String getIdentifier() {
+                        return super.getIdentifier();
+                    }
+                };
+            }
         });
 
         Assert.assertNotNull(firstResponse);
@@ -151,6 +193,7 @@ public class SendReceiveTest extends AbstractJettyServerTest {
             public InputStream getPayload() {
                 return new ByteArrayInputStream(secondPayload);
             }
+
         });
 
         Assert.assertNotNull(secondResponse);
