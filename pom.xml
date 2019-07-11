@@ -27,7 +27,7 @@
     <parent>
         <groupId>no.difi.oxalis</groupId>
         <artifactId>oxalis</artifactId>
-        <version>4.0.3</version>
+        <version>4.0.4</version>
     </parent>
 
     <artifactId>oxalis-as4</artifactId>
@@ -55,6 +55,7 @@
         <maven.compiler.target>1.8</maven.compiler.target>
 
         <powermock.version>2.0.0</powermock.version>
+        <cxf.version>3.3.2</cxf.version>
     </properties>
 
     <dependencies>
@@ -84,7 +85,7 @@
         <dependency>
             <groupId>org.apache.cxf</groupId>
             <artifactId>cxf-rt-features-logging</artifactId>
-            <version>3.2.2</version>
+            <version>${cxf.version}</version>
             <!--<scope>test</scope>-->
         </dependency>
 
@@ -124,35 +125,24 @@
         <dependency>
             <groupId>org.apache.cxf</groupId>
             <artifactId>cxf-core</artifactId>
-            <version>3.2.2</version>
+            <version>${cxf.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.cxf</groupId>
             <artifactId>cxf-rt-frontend-jaxws</artifactId>
-            <version>3.2.2</version>
+            <version>${cxf.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.cxf</groupId>
             <artifactId>cxf-rt-transports-http</artifactId>
-            <version>3.2.2</version>
+            <version>${cxf.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.cxf</groupId>
             <artifactId>cxf-rt-ws-security</artifactId>
-            <version>3.2.2</version>
+            <version>${cxf.version}</version>
         </dependency>
 
-
-
-        <!-- <dependency>
-            <groupId>javax.mail</groupId>
-            <artifactId>mail</artifactId>
-            <scope>provided</scope>
-        </dependency> -->
-        <!-- <dependency>
-            <groupId>javax.mail</groupId>
-            <artifactId>javax.mail-api</artifactId>
-        </dependency> -->
 
         <!-- Guice -->
         <dependency>
@@ -188,7 +178,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.16.16</version>
+            <version>1.18.8</version>
             <scope>provided</scope>
         </dependency>
 

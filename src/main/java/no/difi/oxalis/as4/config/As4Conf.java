@@ -38,6 +38,6 @@ public enum As4Conf {
     MSGID_GENERATOR,
 
     @Path("oxalis.as4.type")
-    @DefaultValue("prppol")
+    @DefaultValue("peppol")
     TYPE
 }
