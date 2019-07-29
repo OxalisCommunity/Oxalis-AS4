@@ -144,11 +144,11 @@ public class As4Sender implements WebServiceMessageCallback {
         }
 
         if (!properties.containsKey("originalSender")) {
-            properties.put("originalSender", request.getHeader().getSender().getIdentifier());
+            properties.put("originalSender", request.getHeader().getSender().toString());
         }
 
         if (!properties.containsKey("finalRecipient")) {
-            properties.put("finalRecipient", request.getHeader().getReceiver().getIdentifier());
+            properties.put("finalRecipient", request.getHeader().getReceiver().toString());
         }
 
         return MessageProperties.builder()
