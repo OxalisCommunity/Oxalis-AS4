@@ -8,7 +8,7 @@ If you intend to use Oxalis sending messages outside PEPPOL you should implement
 The following Oxalis features needs to be changed to be able to exchange messages with the CEF connectivity test (RC-7 and onwards):
 * HeaderParser
   ```
-  oxalis.header.parser=noop
+  oxalis.header.parser=dummy
   ```
   See [Oxalis extention-points](https://github.com/difi/oxalis/blob/master/doc/extension-points.adoc)
   In its default setup Oxalis will extract the SBDH form the payload. Sins the CEF connectivity test does not send messages with a SBDH, this will fail.
