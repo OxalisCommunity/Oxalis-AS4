@@ -5,7 +5,7 @@ If you intend to use Oxalis sending messages outside PEPPOL you should implement
 
 ### CEF connectivity test
 
-The following Oxalis features needs to be changed to be able to exchange messages with the CEF connectivity test:
+The following Oxalis features needs to be changed to be able to exchange messages with the CEF connectivity test (RC-7 and onwards):
 * HeaderParser
   ```
   oxalis.header.parser=noop
