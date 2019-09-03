@@ -119,7 +119,7 @@ public class As4Servlet extends CXFNonSpringServlet {
         outProps.put(WSHandlerConstants.ACTION, WSHandlerConstants.SIGNATURE);
         outProps.put(WSHandlerConstants.PW_CALLBACK_REF, cb);
         outProps.put(WSHandlerConstants.SIGNATURE_PARTS, "{}{}Body; {}{http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/} Messaging;{}cid:Attachments;");
-        outProps.put(WSHandlerConstants.SIG_KEY_ID, "SKIKeyIdentifier");
+        outProps.put(WSHandlerConstants.SIG_KEY_ID, "DirectReference");
         outProps.put(WSHandlerConstants.USE_SINGLE_CERTIFICATE, "true");
         outProps.put(WSHandlerConstants.USE_REQ_SIG_CERT, "true");
         outProps.put(ConfigurationConstants.USER, alias);
