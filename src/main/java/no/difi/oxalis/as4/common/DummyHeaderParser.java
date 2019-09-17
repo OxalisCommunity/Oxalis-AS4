@@ -1,4 +1,4 @@
-package no.difi.oxalis.as4.util;
+package no.difi.oxalis.as4.common;
 
 import com.google.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
