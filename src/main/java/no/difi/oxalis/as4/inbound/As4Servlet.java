@@ -24,7 +24,6 @@ import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.xml.soap.MimeHeaders;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -32,11 +31,13 @@ import java.nio.file.Path;
 import java.security.KeyStore;
 import java.util.Enumeration;
 import java.util.Map;
-import java.util.StringTokenizer;
 
 @Singleton
 public class As4Servlet extends CXFNonSpringServlet {
 
+    @Inject
+    @Named("truststore-ap")
+    private KeyStore trustStore;
 
     @Inject
     private KeyStore keyStore;
@@ -55,19 +56,20 @@ public class As4Servlet extends CXFNonSpringServlet {
     private CertificateValidator certificateValidator;
 
     @Inject
-    private As4EndpointsPublisher endpointsPuslisher;
-
-    public static Merlin encryptCrypto = new Merlin();
+    private As4EndpointsPublisher endpointsPublisher;
 
     @Override
     protected void loadBus(ServletConfig servletConfig) {
         super.loadBus(servletConfig);
 
-        EndpointImpl endpointImpl = endpointsPuslisher.publish(getBus());
+        extendTrustStore();
 
+        EndpointImpl endpointImpl = endpointsPublisher.publish(getBus());
+
+        Merlin encryptCrypto = new Merlin();
         encryptCrypto.setCryptoProvider(BouncyCastleProvider.PROVIDER_NAME);
         encryptCrypto.setKeyStore(keyStore);
-        encryptCrypto.setTrustStore(getTrustStore());
+        encryptCrypto.setTrustStore(trustStore);
 
         SoapInterceptor wsInInterceptor = createWsInInterceptor(encryptCrypto);
         SoapInterceptor wsOutInterceptor = createWsOutInterceptor(encryptCrypto);
@@ -76,19 +78,34 @@ public class As4Servlet extends CXFNonSpringServlet {
         endpointImpl.getOutInterceptors().add(wsOutInterceptor);
     }
 
-    private KeyStore getTrustStore() {
+    public void extendTrustStore() {
+        Path trustStorePath = trustStoreSettings.getPath(TrustStore.PATH, confFolder);
+        if(trustStorePath.endsWith("None")){
+            return;
+        }
+
         try {
-            KeyStore trust_store;
-            trust_store = KeyStore.getInstance("jks");
-            Path path = trustStoreSettings.getPath(TrustStore.PATH, confFolder);
-            try (InputStream is = Files.newInputStream(path)) {
-                trust_store.load(is, trustStoreSettings.getString(TrustStore.PASSWORD).toCharArray());
+
+            KeyStore extraTrustStore;
+            extraTrustStore = KeyStore.getInstance("jks");
+            try (InputStream is = Files.newInputStream(trustStorePath)) {
+                extraTrustStore.load(is, trustStoreSettings.getString(TrustStore.PASSWORD).toCharArray());
             }
-            return trust_store;
+
+            Enumeration<String> aliases = extraTrustStore.aliases();
+            while(aliases.hasMoreElements()){
+                String alias = aliases.nextElement();
+                if(!this.trustStore.containsAlias(alias)){
+                    this.trustStore.setCertificateEntry(alias, extraTrustStore.getCertificate(alias));
+                }
+            }
+
         } catch (Exception e) {
             throw new RuntimeException("Unable to load TrustStore!");
         }
     }
+
+
 
     private SoapInterceptor createWsInInterceptor(Crypto crypto) {
         String alias = settings.getString(KeyStoreConf.KEY_ALIAS);
@@ -106,7 +123,7 @@ public class As4Servlet extends CXFNonSpringServlet {
         inProps.put(SecurityConstants.SIGNATURE_TOKEN_VALIDATOR, new CertificateValidatorSignatureTrustValidator(certificateValidator));
 
 
-        return new OxalisAS4WsInInterceptor(inProps, encryptCrypto, alias);
+        return new OxalisAS4WsInInterceptor(inProps, crypto, alias);
     }
 
     private SoapInterceptor createWsOutInterceptor(Crypto crypto) {
@@ -131,20 +148,6 @@ public class As4Servlet extends CXFNonSpringServlet {
         outProps.put(SecurityConstants.SIGNATURE_TOKEN_VALIDATOR, new CertificateValidatorSignatureTrustValidator(certificateValidator));
 
         return new OxalisAs4WsOutInterceptor(outProps, crypto, alias);
-    }
-
-    private MimeHeaders getHeaders(HttpServletRequest httpServletRequest) {
-        Enumeration<?> enumeration = httpServletRequest.getHeaderNames();
-        MimeHeaders headers = new MimeHeaders();
-        while (enumeration.hasMoreElements()) {
-            String headerName = (String) enumeration.nextElement();
-            String headerValue = httpServletRequest.getHeader(headerName);
-            StringTokenizer values = new StringTokenizer(headerValue, ",");
-            while (values.hasMoreTokens()) {
-                headers.addHeader(headerName, values.nextToken().trim());
-            }
-        }
-        return headers;
     }
 
     @Override

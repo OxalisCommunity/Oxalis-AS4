@@ -8,7 +8,7 @@ import no.difi.oxalis.api.settings.Title;
 @Title("Trust store")
 public enum TrustStore {
     @Path("oxalis.truststore.path")
-    @DefaultValue("oxalis-truststore.jks")
+    @DefaultValue("None")
     PATH,
     @Path("oxalis.truststore.password")
     @DefaultValue("changeit")
