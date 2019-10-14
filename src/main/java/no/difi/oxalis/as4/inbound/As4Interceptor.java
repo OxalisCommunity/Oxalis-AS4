@@ -8,12 +8,17 @@ import no.difi.oxalis.as4.util.As4MessageFactory;
 import no.difi.oxalis.as4.util.Constants;
 import no.difi.oxalis.as4.util.Marshalling;
 import no.difi.oxalis.as4.util.MessageId;
+import org.apache.cxf.BusFactory;
 import org.apache.cxf.binding.soap.SoapMessage;
 import org.apache.cxf.binding.soap.interceptor.AbstractSoapInterceptor;
 import org.apache.cxf.headers.Header;
 import org.apache.cxf.interceptor.Fault;
 import org.apache.cxf.message.Message;
 import org.apache.cxf.phase.Phase;
+import org.apache.cxf.ws.policy.AssertionInfoMap;
+import org.apache.cxf.ws.policy.PolicyBuilder;
+import org.apache.cxf.ws.security.wss4j.PolicyBasedWSS4JInInterceptor;
+import org.apache.neethi.Policy;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.CollaborationInfo;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.MessageInfo;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.Messaging;
@@ -22,6 +27,7 @@ import org.w3c.dom.Node;
 
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
+import java.io.InputStream;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -36,6 +42,7 @@ public class As4Interceptor extends AbstractSoapInterceptor {
     public As4Interceptor(As4MessageFactory as4MessageFactory) {
         super(Phase.PRE_PROTOCOL);
         addBefore(OxalisAS4WsInInterceptor.class.getName());
+        addBefore(PolicyBasedWSS4JInInterceptor.class.getName());
 
         this.as4MessageFactory = as4MessageFactory;
     }
@@ -44,6 +51,20 @@ public class As4Interceptor extends AbstractSoapInterceptor {
     public void handleMessage(SoapMessage message) throws Fault {
 
         storeMessageIdInContext(message);
+
+        try {
+
+            InputStream policyStream = getClass().getResourceAsStream("/policy.xml");
+
+            PolicyBuilder builder = BusFactory.getDefaultBus().getExtension(org.apache.cxf.ws.policy.PolicyBuilder.class);
+            Policy policy = builder.getPolicy(policyStream);
+
+            message.put(AssertionInfoMap.class.getName(), new AssertionInfoMap(policy));
+
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+
     }
 
 
@@ -54,7 +75,7 @@ public class As4Interceptor extends AbstractSoapInterceptor {
 
         try {
 
-            Unmarshaller unmarshaller = Marshalling.getInstance().getJaxbContext().createUnmarshaller();
+            Unmarshaller unmarshaller = Marshalling.getInstance().createUnmarshaller();
             Messaging messaging =  unmarshaller.unmarshal((Node) header.getObject(), Messaging.class).getValue();
 
 

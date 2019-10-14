@@ -1,180 +1,156 @@
 package no.difi.oxalis.as4.outbound;
 
 import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import no.difi.oxalis.api.outbound.TransmissionRequest;
 import no.difi.oxalis.api.outbound.TransmissionResponse;
 import no.difi.oxalis.api.settings.Settings;
-import no.difi.oxalis.api.tag.Tag;
 import no.difi.oxalis.api.timestamp.TimestampProvider;
 import no.difi.oxalis.as4.api.MessageIdGenerator;
 import no.difi.oxalis.as4.lang.OxalisAs4TransmissionException;
 import no.difi.oxalis.as4.util.CompressionUtil;
-import no.difi.oxalis.as4.util.Marshalling;
-import no.difi.oxalis.as4.util.PeppolConfiguration;
+import no.difi.oxalis.as4.util.OxalisAlgorithmSuiteLoader;
 import no.difi.oxalis.commons.http.HttpConf;
 import no.difi.oxalis.commons.security.KeyStoreConf;
-import org.apache.wss4j.common.WSS4JConstants;
+import org.apache.cxf.Bus;
+import org.apache.cxf.attachment.AttachmentUtil;
+import org.apache.cxf.binding.soap.SoapHeader;
+import org.apache.cxf.headers.Header;
+import org.apache.cxf.jaxws.DispatchImpl;
+import org.apache.cxf.message.Attachment;
+import org.apache.cxf.message.Message;
+import org.apache.cxf.transport.http.HTTPConduit;
+import org.apache.cxf.transports.http.configuration.HTTPClientPolicy;
+import org.apache.cxf.ws.policy.PolicyBuilder;
+import org.apache.cxf.ws.policy.PolicyConstants;
+import org.apache.cxf.ws.policy.WSPolicyFeature;
+import org.apache.cxf.ws.security.SecurityConstants;
+import org.apache.cxf.ws.security.policy.custom.AlgorithmSuiteLoader;
+import org.apache.neethi.Policy;
+import org.apache.wss4j.common.ConfigurationConstants;
 import org.apache.wss4j.common.crypto.Merlin;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.springframework.ws.client.core.WebServiceTemplate;
-import org.springframework.ws.client.support.interceptor.ClientInterceptor;
-import org.springframework.ws.soap.saaj.SaajSoapMessageFactory;
-import org.springframework.ws.transport.http.HttpComponentsMessageSender;
+import org.xml.sax.SAXException;
 
-import javax.xml.crypto.dsig.DigestMethod;
-import javax.xml.soap.MessageFactory;
-import javax.xml.soap.SOAPConstants;
-import javax.xml.soap.SOAPException;
+import javax.xml.namespace.QName;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.soap.SOAPMessage;
+import javax.xml.ws.BindingProvider;
+import javax.xml.ws.Dispatch;
+import javax.xml.ws.Service;
+import javax.xml.ws.soap.SOAPBinding;
 import java.io.IOException;
 import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-import java.util.StringJoiner;
-
-import static no.difi.oxalis.as4.util.Constants.RSA_SHA256;
+import java.util.*;
 
 public class As4MessageSender {
 
-    private final X509Certificate certificate;
-    private final KeyStore keyStore;
-    private final Settings<KeyStoreConf> settings;
-    private final TimestampProvider timestampProvider;
-    private final CompressionUtil compressionUtil;
-    private final MessageIdGenerator messageIdGenerator;
-    private final Settings<HttpConf> httpConfSettings;
-    private final PeppolConfiguration peppolConfiguration;
+    public static final QName SERVICE_NAME = new QName("oxalis.difi.no/", "outbound-service");
+    public static final QName PORT_NAME = new QName("oxalis.difi.no/", "port");
 
     @Inject
-    public As4MessageSender(X509Certificate certificate,
-                            KeyStore keyStore,
-                            Settings<KeyStoreConf> settings,
-                            TimestampProvider timestampProvider,
-                            CompressionUtil compressionUtil,
-                            MessageIdGenerator messageIdGenerator,
-                            Settings<HttpConf> httpConfSettings,
-                            PeppolConfiguration peppolConfiguration) {
-        this.certificate = certificate;
-        this.keyStore = keyStore;
-        this.settings = settings;
-        this.timestampProvider = timestampProvider;
-        this.compressionUtil = compressionUtil;
-        this.messageIdGenerator = messageIdGenerator;
-        this.httpConfSettings = httpConfSettings;
-        this.peppolConfiguration = peppolConfiguration;
-    }
+    private MessagingProvider messagingProvider;
+
+    @Inject
+    private MessageIdGenerator messageIdGenerator;
+
+    @Inject
+    @Named("truststore-ap")
+    private KeyStore trustStore;
+
+    @Inject
+    private KeyStore keyStore;
+
+    @Inject
+    private Settings<KeyStoreConf> settings;
+
+    @Inject
+    private CompressionUtil compressionUtil;
+
+    @Inject
+    private TimestampProvider timestampProvider;
+
+    @Inject
+    private Settings<HttpConf> httpConfSettings;
+
+
 
     public TransmissionResponse send(TransmissionRequest request) throws OxalisAs4TransmissionException {
-        WebServiceTemplate template = createTemplate(request);
-        As4Sender sender = new As4Sender(request, certificate, compressionUtil, messageIdGenerator, peppolConfiguration);
-        TransmissionResponseExtractor responseExtractor = new TransmissionResponseExtractor(request, timestampProvider);
-        As4TransmissionResponse as4TransmissionResponse = template.sendAndReceive(request.getEndpoint().getAddress().toString(), sender, responseExtractor);
 
-        if(as4TransmissionResponse.getTransmissionException() != null){
-            throw as4TransmissionResponse.getTransmissionException();
+        final String address = request.getEndpoint().getAddress().toString();
+
+        Service service = Service.create(SERVICE_NAME, new WSPolicyFeature());
+        service.addPort(PORT_NAME, SOAPBinding.SOAP12HTTP_BINDING, "BindingProvider.ENDPOINT_ADDRESS_PROPERTY placeholder");
+
+
+
+
+        Dispatch<SOAPMessage> dispatch = service.createDispatch(PORT_NAME, SOAPMessage.class, Service.Mode.MESSAGE);
+        dispatch.getRequestContext().put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, address);
+
+        HTTPClientPolicy httpClientPolicy = new HTTPClientPolicy();
+        httpClientPolicy.setConnectionTimeout(httpConfSettings.getInt(HttpConf.TIMEOUT_CONNECT));
+        httpClientPolicy.setReceiveTimeout(httpConfSettings.getInt(HttpConf.TIMEOUT_READ));
+        ((HTTPConduit)((DispatchImpl)dispatch).getClient().getConduit()).setClient(httpClientPolicy);
+
+
+
+        HashMap<String, List<String>> headers = new HashMap<>();
+        headers.put("Content-ID", Collections.singletonList(messageIdGenerator.generate()));
+        headers.put("CompressionType", Collections.singletonList("application/gzip"));
+        headers.put("MimeType", Collections.singletonList("application/xml"));
+
+        Attachment attachment = null;
+        try{
+            attachment = AttachmentUtil.createAttachment(compressionUtil.getCompressedStream(request.getPayload()), headers);
+
+        }catch (IOException e){
+            throw new OxalisAs4TransmissionException("Unable to compress payload", e);
         }
+        Collection<Attachment> attachments = new ArrayList<>(Arrays.asList(attachment));
 
-        return as4TransmissionResponse;
-
-    }
-
-    private SaajSoapMessageFactory createSoapMessageFactory() {
-        try {
-            return new SaajSoapMessageFactory(MessageFactory.newInstance(SOAPConstants.SOAP_1_2_PROTOCOL));
-        } catch (SOAPException e) {
-            throw new RuntimeException("Error creating SoapMessageFactory", e);
-        }
-    }
-
-    private WebServiceTemplate createTemplate(TransmissionRequest request) {
-        As4WebServiceTemplate template = new As4WebServiceTemplate(createSoapMessageFactory());
-        template.setMarshaller(Marshalling.getInstance());
-        template.setUnmarshaller(Marshalling.getInstance());
-        template.setMessageSender(createMessageSender());
-        template.setInterceptors(new ClientInterceptor[]{
-                createWsSecurityInterceptor(request.getEndpoint().getCertificate(), request.getTag()),
-                new ReferenceValidatorInterceptor()
-        });
-        return template;
-    }
-
-    private ClientInterceptor createWsSecurityInterceptor(X509Certificate certificate, Tag tag) {
-
-        Merlin crypto = new Merlin();
-        crypto.setCryptoProvider(BouncyCastleProvider.PROVIDER_NAME);
-        crypto.setKeyStore(keyStore);
-
-        KeyStore endpointKeystore;
-        try {
-            endpointKeystore = KeyStore.getInstance("JKS");
-            endpointKeystore.load(null, "endpoint".toCharArray());
-        } catch (KeyStoreException | CertificateException | NoSuchAlgorithmException | IOException e) {
-            throw new RuntimeException("Could not instantiate keystore for certificate from endpoint", e);
-        }
-
-        try {
-            endpointKeystore.setCertificateEntry("endpoint", certificate);
-        } catch (KeyStoreException e) {
-            throw new RuntimeException("Could not add certificate to endpoint keystore", e);
-        }
-
-        Merlin endpointCrypto = new Merlin();
-        endpointCrypto.setCryptoProvider(BouncyCastleProvider.PROVIDER_NAME);
-        endpointCrypto.setKeyStore(endpointKeystore);
-
-        String alias = settings.getString(KeyStoreConf.KEY_ALIAS);
-        String password = settings.getString(KeyStoreConf.PASSWORD);
-
-        WsSecurityInterceptor interceptor = new WsSecurityInterceptor();
-
-        interceptor.setSecurementPassword(password);
+        SoapHeader header = messagingProvider.createMessagingHeader(request, attachments);
 
 
-        PeppolConfiguration peppolConfiguration = tag instanceof PeppolConfiguration ? (PeppolConfiguration) tag : new PeppolConfiguration();
-
-        StringJoiner actions = new StringJoiner(" ");
-        for(String action : peppolConfiguration.getActions()){
-            actions.add(action);
-        }
-
-        interceptor.setSecurementActions(actions.toString());
+        dispatch.getRequestContext().put(Header.HEADER_LIST, new ArrayList(Arrays.asList(header)));
+        dispatch.getRequestContext().put(Message.ATTACHMENTS, attachments);
 
 
 
-        interceptor.setSecurementSignatureUser(alias);
-        interceptor.setSecurementSignatureCrypto(crypto);
-        interceptor.setValidationSignatureCrypto(crypto);
-        interceptor.setSecurementSignatureAlgorithm(RSA_SHA256);
-        interceptor.setSecurementSignatureDigestAlgorithm(DigestMethod.SHA256);
-        interceptor.setSecurementSignatureKeyIdentifier("DirectReference");
-        interceptor.setSecurementSignatureParts("{}{}Body; {}cid:Attachments; {}{http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/}Messaging");
 
-        interceptor.setSecurementEncryptionUser("endpoint");
-        interceptor.setSecurementEncryptionCrypto(endpointCrypto);
-        interceptor.setSecurementEncryptionSymAlgorithm(WSS4JConstants.AES_128_GCM);
-        interceptor.setSecurementEncryptionKeyIdentifier("SKIKeyIdentifier");
-        interceptor.setEnableSignatureConfirmation(true);
+        Merlin encryptCrypto = new Merlin();
+        encryptCrypto.setCryptoProvider(BouncyCastleProvider.PROVIDER_NAME);
+        encryptCrypto.setKeyStore(keyStore);
+        encryptCrypto.setTrustStore(trustStore);
 
-        interceptor.setSecurementEncryptionParts("{}cid:Attachments");
+        dispatch.getRequestContext().put(SecurityConstants.SIGNATURE_CRYPTO, encryptCrypto);
+        dispatch.getRequestContext().put(SecurityConstants.SIGNATURE_PASSWORD, settings.getString(KeyStoreConf.KEY_PASSWORD));
+        dispatch.getRequestContext().put(SecurityConstants.SIGNATURE_USERNAME, settings.getString(KeyStoreConf.KEY_ALIAS));
+        dispatch.getRequestContext().put(ConfigurationConstants.SIG_VER_PROP_REF_ID, "oxalisTrustStore");
 
-        interceptor.setSecurementEncryptionKeyTransportAlgorithm(WSS4JConstants.KEYTRANSPORT_RSAOAEP_XENC11);
+        dispatch.getRequestContext().put(SecurityConstants.ENCRYPT_CRYPTO, encryptCrypto);
+        dispatch.getRequestContext().put(SecurityConstants.ENCRYPT_USERNAME, settings.getString(KeyStoreConf.KEY_ALIAS));
+        dispatch.getRequestContext().put(ConfigurationConstants.DEC_PROP_REF_ID, "oxalisAPCrypto");
 
-        interceptor.setSecurementMustUnderstand(true);
+
 
         try {
-            interceptor.afterPropertiesSet();
-        } catch (Exception e) {
-            throw new RuntimeException("Could not set up security interceptor", e);
+            Bus bus = ((DispatchImpl) dispatch).getClient().getBus();
+            bus.setExtension(new OxalisAlgorithmSuiteLoader(bus), AlgorithmSuiteLoader.class);
+
+            PolicyBuilder builder = ((DispatchImpl) dispatch).getClient().getBus().getExtension(org.apache.cxf.ws.policy.PolicyBuilder.class);
+            Policy policy = builder.getPolicy(getClass().getResourceAsStream("/policy.xml"));
+            dispatch.getRequestContext().put(PolicyConstants.POLICY_OVERRIDE, policy);
+        }catch (IOException | ParserConfigurationException | SAXException e){
+            throw new OxalisAs4TransmissionException("Unable to parse WSPolicy \"/policy.xml\"", e);
         }
 
-        return interceptor;
+
+        SOAPMessage response = dispatch.invoke(null);
+
+        return new TransmissionResponseConverter(request, timestampProvider).convert(response);
+
     }
 
-    private HttpComponentsMessageSender createMessageSender() {
-        HttpComponentsMessageSender sender = new HttpComponentsMessageSender();
-        sender.setReadTimeout(httpConfSettings.getInt(HttpConf.TIMEOUT_READ));
-        sender.setConnectionTimeout(httpConfSettings.getInt(HttpConf.TIMEOUT_CONNECT));
-        return sender;
-    }
+
 }

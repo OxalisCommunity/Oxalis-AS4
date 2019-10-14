@@ -1,114 +1,95 @@
 package no.difi.oxalis.as4.outbound;
 
 import com.google.common.collect.Lists;
+import com.google.inject.Inject;
 import no.difi.oxalis.api.outbound.TransmissionRequest;
 import no.difi.oxalis.as4.api.MessageIdGenerator;
-import no.difi.oxalis.as4.util.*;
+import no.difi.oxalis.as4.lang.OxalisAs4TransmissionException;
+import no.difi.oxalis.as4.util.CompressionUtil;
+import no.difi.oxalis.as4.util.Constants;
+import no.difi.oxalis.as4.util.PeppolConfiguration;
 import no.difi.oxalis.commons.security.CertificateUtils;
 import org.apache.cxf.attachment.AttachmentUtil;
-import org.apache.cxf.ws.security.SecurityConstants;
+import org.apache.cxf.binding.soap.SoapHeader;
+import org.apache.cxf.jaxb.JAXBDataBinding;
+import org.apache.cxf.message.Attachment;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.*;
-import org.springframework.http.MediaType;
-import org.springframework.oxm.jaxb.Jaxb2Marshaller;
-import org.springframework.ws.WebServiceMessage;
-import org.springframework.ws.client.core.WebServiceMessageCallback;
-import org.springframework.ws.mime.Attachment;
-import org.springframework.ws.soap.SoapHeader;
-import org.springframework.ws.soap.SoapHeaderElement;
-import org.springframework.ws.soap.SoapMessage;
-import org.springframework.ws.soap.saaj.SaajSoapMessage;
 
-import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
-import javax.xml.soap.SOAPException;
-import javax.xml.transform.TransformerException;
-import java.io.IOException;
-import java.io.InputStream;
 import java.security.cert.X509Certificate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
-import static no.difi.oxalis.as4.util.Constants.*;
+import static no.difi.oxalis.as4.util.Constants.TEST_ACTION;
+import static no.difi.oxalis.as4.util.Constants.TEST_SERVICE;
 
-public class As4Sender implements WebServiceMessageCallback {
+public class MessagingProvider {
 
-    private final TransmissionRequest request;
     private final X509Certificate certificate;
     private final CompressionUtil compressionUtil;
     private final MessageIdGenerator messageIdGenerator;
     private final PeppolConfiguration defaultOutboundConfiguration;
 
-    As4Sender(TransmissionRequest request, X509Certificate certificate, CompressionUtil compressionUtil, MessageIdGenerator messageIdGenerator, PeppolConfiguration peppolConfiguration) {
-        this.request = request;
+
+    @Inject
+    public MessagingProvider(X509Certificate certificate, CompressionUtil compressionUtil, MessageIdGenerator messageIdGenerator, PeppolConfiguration defaultOutboundConfiguration) {
         this.certificate = certificate;
         this.compressionUtil = compressionUtil;
         this.messageIdGenerator = messageIdGenerator;
-        this.defaultOutboundConfiguration = peppolConfiguration;
+        this.defaultOutboundConfiguration = defaultOutboundConfiguration;
     }
 
-    @Override
-    public void doWithMessage(WebServiceMessage webServiceMessage) throws IOException, TransformerException {
-        SaajSoapMessage message = (SaajSoapMessage) webServiceMessage;
-
-        try {
-            if(request.getTag() instanceof PeppolConfiguration){
-                message.getSaajMessage().setProperty("oxalis.tag", request.getTag());
-            }else{
-                message.getSaajMessage().setProperty("oxalis.tag", defaultOutboundConfiguration);
-            }
-            message.getSaajMessage().setProperty(SecurityConstants.ENCRYPT_CERT, request.getEndpoint().getCertificate());
-
-        }catch (SOAPException e){
-
-        }
-
-
-        InputStream compressedAttachment = compressionUtil.getCompressedStream(request.getPayload());
-
-        // Must be octet-stream for encrypted attachments
-        message.addAttachment(MessageIdUtil.wrap(getPayloadHref()), () -> compressedAttachment, MediaType.APPLICATION_OCTET_STREAM_VALUE);
-        addEbmsHeader(message);
-    }
-
-    private void addEbmsHeader(SoapMessage message) {
-        SoapHeader header = message.getSoapHeader();
-        SoapHeaderElement messagingHeader = header.addHeaderElement(Constants.MESSAGING_QNAME);
-        messagingHeader.setMustUnderstand(true);
+    public SoapHeader createMessagingHeader(TransmissionRequest request, Collection<Attachment> attachments) throws OxalisAs4TransmissionException {
 
         UserMessage userMessage = UserMessage.builder()
-                .withMessageInfo(createMessageInfo())
-                .withPartyInfo(createPartyInfo())
-                .withCollaborationInfo(createCollaborationInfo())
-                .withMessageProperties(createMessageProperties())
-                .withPayloadInfo(createPayloadInfo(message))
+                .withMessageInfo(createMessageInfo(request))
+                .withPartyInfo(createPartyInfo(request))
+                .withCollaborationInfo(createCollaborationInfo(request))
+                .withMessageProperties(createMessageProperties(request))
+                .withPayloadInfo(createPayloadInfo(request, attachments))
                 .build();
 
-        JAXBElement<UserMessage> userMessageJAXBElement = new JAXBElement<>(Constants.USER_MESSAGE_QNAME,
-                (Class<UserMessage>) userMessage.getClass(), userMessage);
-        Jaxb2Marshaller marshaller = Marshalling.getInstance();
-        marshaller.marshal(userMessageJAXBElement, messagingHeader.getResult());
+
+        Messaging messaging = Messaging.builder()
+                .addUserMessage(userMessage)
+                .build();
+
+        try {
+            return new SoapHeader(
+                    Constants.MESSAGING_QNAME,
+                    messaging,
+                    new JAXBDataBinding(Messaging.class),
+                    true);
+        }catch (JAXBException e){
+            throw new OxalisAs4TransmissionException("Unable to marshal AS4 header", e);
+        }
     }
 
-    private PayloadInfo createPayloadInfo(SoapMessage message) {
-        Iterator<Attachment> attachments = message.getAttachments();
-        ArrayList<PartInfo> partInfos = Lists.newArrayList();
-        while (attachments.hasNext()) {
-            Attachment a = attachments.next();
-            String cid = "cid:" + AttachmentUtil.cleanContentId(a.getContentId());
-            Property compressionType = Property.builder()
-                    .withName("CompressionType")
-                    .withValue("application/gzip")
-                    .build();
-            Property mimeType = Property.builder()
-                    .withName("MimeType")
-                    .withValue("application/xml")
-                    .build();
 
-            PartProperties.Builder partProperties = PartProperties.builder().withProperty(compressionType, mimeType);
+
+
+
+    private PayloadInfo createPayloadInfo(TransmissionRequest request, Collection<Attachment> attachments) {
+
+        ArrayList<PartInfo> partInfos = Lists.newArrayList();
+        for(Attachment attachment : attachments){
+
+            PartProperties.Builder partProperties = PartProperties.builder();
+
+            String cid = "cid:" + AttachmentUtil.cleanContentId(attachment.getId());
+
+            iteratorToStream(attachment.getHeaderNames())
+                    .filter(header -> !"Content-ID".equals(header))
+                    .map(header -> Property.builder().withName(header).withValue(attachment.getHeader(header)).build())
+                    .forEach(partProperties::addProperty);
+
             if (request instanceof As4TransmissionRequest) {
                 As4TransmissionRequest as4TransmissionRequest = (As4TransmissionRequest) request;
                 if(null != as4TransmissionRequest.getPayloadCharset()){
@@ -133,7 +114,13 @@ public class As4Sender implements WebServiceMessageCallback {
                 .build();
     }
 
-    private MessageProperties createMessageProperties() {
+
+
+
+
+
+
+    private MessageProperties createMessageProperties(TransmissionRequest request) {
         Map<String, String> properties = new HashMap<>();
 
         if (request instanceof As4TransmissionRequest) {
@@ -162,7 +149,7 @@ public class As4Sender implements WebServiceMessageCallback {
                 .build();
     }
 
-    private PartyInfo createPartyInfo() {
+    private PartyInfo createPartyInfo(TransmissionRequest request) {
 
         String fromName = CertificateUtils.extractCommonName(certificate);
         String toName = CertificateUtils.extractCommonName(request.getEndpoint().getCertificate());
@@ -188,13 +175,13 @@ public class As4Sender implements WebServiceMessageCallback {
                 ).build();
     }
 
-    private CollaborationInfo createCollaborationInfo() {
+    private CollaborationInfo createCollaborationInfo(TransmissionRequest request) {
 
         PeppolConfiguration outboundConfiguration = request.getTag() instanceof PeppolConfiguration ?
                 (PeppolConfiguration) request.getTag() : defaultOutboundConfiguration;
 
         CollaborationInfo.Builder cib = CollaborationInfo.builder()
-                .withConversationId(getConversationId())
+                .withConversationId(getConversationId(request))
                 .withAction(request.getHeader().getDocumentType().toString())
                 .withService(Service.builder()
                         .withType(outboundConfiguration.getServiceType())
@@ -221,7 +208,7 @@ public class As4Sender implements WebServiceMessageCallback {
         return cib.build();
     }
 
-    private MessageInfo createMessageInfo() {
+    private MessageInfo createMessageInfo(TransmissionRequest request) {
         GregorianCalendar gcal = GregorianCalendar.from(LocalDateTime.now().atZone(ZoneId.systemDefault()));
         XMLGregorianCalendar xmlDate;
         try {
@@ -231,10 +218,10 @@ public class As4Sender implements WebServiceMessageCallback {
         }
 
         MessageInfo.Builder builder = MessageInfo.builder()
-                .withMessageId(getMessageId())
+                .withMessageId(getMessageId(request))
                 .withTimestamp(xmlDate);
 
-        if( request instanceof As4TransmissionRequest ){
+        if( request instanceof As4TransmissionRequest){
             As4TransmissionRequest as4TransmissionRequest = (As4TransmissionRequest) request;
             if( as4TransmissionRequest.getRefToMessageId() != null ){
                 builder.withRefToMessageId( as4TransmissionRequest.getRefToMessageId() );
@@ -244,7 +231,7 @@ public class As4Sender implements WebServiceMessageCallback {
         return builder.build();
     }
 
-    private String getMessageId() {
+    private String getMessageId(TransmissionRequest request) {
         String messageId = null;
 
         if (request instanceof As4TransmissionRequest) {
@@ -255,7 +242,7 @@ public class As4Sender implements WebServiceMessageCallback {
         return messageId != null ? messageId : newId();
     }
 
-    private String getConversationId() {
+    private String getConversationId(TransmissionRequest request) {
         String conversationId = null;
 
         if (request instanceof As4TransmissionRequest) {
@@ -266,18 +253,14 @@ public class As4Sender implements WebServiceMessageCallback {
         return conversationId != null ? conversationId : newId();
     }
 
-    private String getPayloadHref() {
-        String payloadHref = null;
-
-        if (request instanceof As4TransmissionRequest) {
-            As4TransmissionRequest as4TransmissionRequest = (As4TransmissionRequest) request;
-            payloadHref = as4TransmissionRequest.getPayloadHref();
-        }
-
-        return payloadHref != null ? payloadHref : newId();
-    }
-
     private String newId() {
         return messageIdGenerator.generate();
+    }
+
+
+    private <T> Stream<T> iteratorToStream(Iterator<T> iterator){
+        return StreamSupport.stream(
+                Spliterators.spliteratorUnknownSize(iterator, Spliterator.ORDERED),
+                false);
     }
 }

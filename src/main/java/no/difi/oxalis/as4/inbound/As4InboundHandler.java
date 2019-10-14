@@ -26,9 +26,15 @@ import no.difi.vefa.peppol.common.model.ParticipantIdentifier;
 import no.difi.vefa.peppol.common.model.TransportProfile;
 import no.difi.vefa.peppol.sbdh.SbdReader;
 import no.difi.vefa.peppol.sbdh.lang.SbdhException;
+import org.apache.cxf.BusFactory;
 import org.apache.cxf.attachment.AttachmentUtil;
 import org.apache.cxf.helpers.CastUtils;
 import org.apache.cxf.helpers.XPathUtils;
+import org.apache.cxf.message.Attachment;
+import org.apache.cxf.phase.PhaseInterceptorChain;
+import org.apache.cxf.ws.policy.AssertionInfoMap;
+import org.apache.cxf.ws.policy.PolicyBuilder;
+import org.apache.neethi.Policy;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.*;
 import org.w3.xmldsig.ReferenceType;
 
@@ -142,6 +148,25 @@ public class As4InboundHandler {
         }
 
         // Send response
+
+
+        try {
+
+
+
+            InputStream policyStream = getClass().getResourceAsStream("/policy.xml");
+
+            PolicyBuilder builder = BusFactory.getDefaultBus().getExtension(org.apache.cxf.ws.policy.PolicyBuilder.class);
+            Policy policy = builder.getPolicy(policyStream);
+
+            response.setProperty(AssertionInfoMap.class.getName(), new AssertionInfoMap(policy));
+            response.saveChanges();
+
+
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+
         return response;
     }
 
@@ -303,17 +328,20 @@ public class As4InboundHandler {
 
         LinkedHashMap<InputStream, As4PayloadHeader> payloads = new LinkedHashMap<>();
 
-        while( attachments.hasNext() ){
+        Collection<Attachment> s = PhaseInterceptorChain.getCurrentMessage().getAttachments();
 
+//        while( attachments.hasNext() ){
+        for(Attachment attachment : s){
             try {
 
-                AttachmentPart attachmentPart = attachments.next();
-                InputStream is  = attachmentPart.getDataHandler().getInputStream();
-                String contentId = AttachmentUtil.cleanContentId(attachmentPart.getContentId());
+//                AttachmentPart attachmentPart = attachments.next();
+                InputStream is  = attachment.getDataHandler().getInputStream();
+                String contentId = AttachmentUtil.cleanContentId(attachment.getId());
 
                 Map<String, MimeHeader> mimeHeaders = new HashMap<>();
-                Iterator<MimeHeader> mimeHeaderIterator = attachmentPart.getAllMimeHeaders();
-                mimeHeaderIterator.forEachRemaining(m -> mimeHeaders.put(m.getName(), m));
+//                Iterator<MimeHeader> mimeHeaderIterator = attachmentPart.getAllMimeHeaders();
+//                mimeHeaderIterator.forEachRemaining(m -> mimeHeaders.put(m.getName(), m));
+                attachment.getHeaderNames().forEachRemaining(h -> mimeHeaders.put(h, new MimeHeader(h, attachment.getHeader(h))));
 
 
                 Map<String, MimeHeader> partInfoHeaders = partInfoHeadersMap.get(contentId);
@@ -364,7 +392,7 @@ public class As4InboundHandler {
                 // Extract "fresh" InputStream
                 payloads.put(is, header);
 
-            } catch ( IOException | SOAPException e ) {
+            } catch ( IOException  e ) {
                 throw new OxalisAs4Exception("Could not get attachment input stream", e);
             }
         }
@@ -434,6 +462,7 @@ public class As4InboundHandler {
         ns.put("wsse", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd");
         XPathUtils xu = new XPathUtils(ns);
         String cert = xu.getValueString("//wsse:BinarySecurityToken[1]/text()", header);
+
 
         if (cert == null) {
             throw new OxalisAs4Exception("Unable to locate sender certificate");

@@ -35,7 +35,7 @@ public class As4MessageFactory {
         this(
                 messageIdGenerator,
                 MessageFactory.newInstance(SOAPConstants.SOAP_1_2_PROTOCOL),
-                Marshalling.getInstance().getJaxbContext().createMarshaller()
+                Marshalling.getInstance().createMarshaller()
         );
     }
 
