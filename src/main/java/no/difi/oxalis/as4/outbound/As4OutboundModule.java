@@ -22,12 +22,16 @@ public class As4OutboundModule extends AbstractModule {
         }
 
         bind(Key.get(MessageSender.class, Names.named("oxalis-as4")))
-                .to(As4MessageSenderFascade.class);
+                .to(As4MessageSenderFacade.class);
 
         bind(Key.get(ExecutorService.class, Names.named("compression-pool")))
                 .toProvider(() -> Executors.newFixedThreadPool(5)).in(Scopes.SINGLETON);
 
         bind(CompressionUtil.class);
+
+        bind(MessagingProvider.class);
+
+        bind(As4MessageSender.class);
 
     }
 

@@ -1,23 +1,18 @@
 package no.difi.oxalis.as4.inbound;
 
-import com.google.common.collect.Maps;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import no.difi.oxalis.api.settings.Settings;
 import no.difi.oxalis.as4.config.TrustStore;
-import no.difi.oxalis.as4.util.Constants;
 import no.difi.oxalis.commons.security.KeyStoreConf;
-import no.difi.vefa.peppol.security.api.CertificateValidator;
-import org.apache.cxf.binding.soap.interceptor.SoapInterceptor;
 import org.apache.cxf.jaxws.EndpointImpl;
 import org.apache.cxf.transport.servlet.CXFNonSpringServlet;
 import org.apache.cxf.ws.security.SecurityConstants;
+import org.apache.cxf.ws.security.wss4j.PolicyBasedWSS4JInInterceptor;
+import org.apache.cxf.ws.security.wss4j.PolicyBasedWSS4JOutInterceptor;
 import org.apache.wss4j.common.ConfigurationConstants;
-import org.apache.wss4j.common.crypto.Crypto;
 import org.apache.wss4j.common.crypto.Merlin;
-import org.apache.wss4j.dom.handler.WSHandlerConstants;
-import org.apache.wss4j.policy.SPConstants;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import javax.servlet.ServletConfig;
@@ -30,7 +25,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyStore;
 import java.util.Enumeration;
-import java.util.Map;
 
 @Singleton
 public class As4Servlet extends CXFNonSpringServlet {
@@ -53,9 +47,6 @@ public class As4Servlet extends CXFNonSpringServlet {
     private Path confFolder;
 
     @Inject
-    private CertificateValidator certificateValidator;
-
-    @Inject
     private As4EndpointsPublisher endpointsPublisher;
 
     @Override
@@ -71,11 +62,19 @@ public class As4Servlet extends CXFNonSpringServlet {
         encryptCrypto.setKeyStore(keyStore);
         encryptCrypto.setTrustStore(trustStore);
 
-        SoapInterceptor wsInInterceptor = createWsInInterceptor(encryptCrypto);
-        SoapInterceptor wsOutInterceptor = createWsOutInterceptor(encryptCrypto);
+        endpointImpl.getProperties().put(SecurityConstants.SIGNATURE_CRYPTO, encryptCrypto);
+        endpointImpl.getProperties().put(SecurityConstants.SIGNATURE_PASSWORD, settings.getString(KeyStoreConf.KEY_PASSWORD));
+        endpointImpl.getProperties().put(SecurityConstants.SIGNATURE_USERNAME, settings.getString(KeyStoreConf.KEY_ALIAS));
+        endpointImpl.getProperties().put(ConfigurationConstants.SIG_VER_PROP_REF_ID, "oxalisTrustStore");
 
-        endpointImpl.getInInterceptors().add(wsInInterceptor);
-        endpointImpl.getOutInterceptors().add(wsOutInterceptor);
+        endpointImpl.getProperties().put(SecurityConstants.ENCRYPT_CRYPTO, encryptCrypto);
+        endpointImpl.getProperties().put(SecurityConstants.ENCRYPT_USERNAME, settings.getString(KeyStoreConf.KEY_ALIAS));
+        endpointImpl.getProperties().put(ConfigurationConstants.DEC_PROP_REF_ID, "oxalisAPCrypto");
+
+        endpointImpl.getInInterceptors().add(new PolicyBasedWSS4JInInterceptor());
+        endpointImpl.getOutInterceptors().add(new PolicyBasedWSS4JOutInterceptor());
+
+
     }
 
     public void extendTrustStore() {
@@ -103,51 +102,6 @@ public class As4Servlet extends CXFNonSpringServlet {
         } catch (Exception e) {
             throw new RuntimeException("Unable to load TrustStore!");
         }
-    }
-
-
-
-    private SoapInterceptor createWsInInterceptor(Crypto crypto) {
-        String alias = settings.getString(KeyStoreConf.KEY_ALIAS);
-        String password = settings.getString(KeyStoreConf.KEY_PASSWORD);
-        PasswordCallbackHandler cb = new PasswordCallbackHandler(password);
-
-        Map<String, Object> inProps = Maps.newHashMap();
-//        inProps.put(WSHandlerConstants.ACTION, WSHandlerConstants.ENCRYPT + " " + WSHandlerConstants.SIGNATURE); //TODO: (WSHandlerConstants.ENCRYPT + " " + WSHandlerConstants.SIGNATURE)
-        inProps.put(WSHandlerConstants.PW_CALLBACK_REF, cb);
-        inProps.put(WSHandlerConstants.ENCRYPTION_PARTS, "{}cid:Attachments");
-        inProps.put(WSHandlerConstants.SIGNATURE_PARTS, "{}{}Body; {}{http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/} Messaging; {}cid:Attachments;");
-        inProps.put(WSHandlerConstants.SIG_KEY_ID, "DirectReference");
-        inProps.put(WSHandlerConstants.USE_SINGLE_CERTIFICATE, "true");
-        inProps.put(WSHandlerConstants.USE_REQ_SIG_CERT, "true");
-        inProps.put(SecurityConstants.SIGNATURE_TOKEN_VALIDATOR, new CertificateValidatorSignatureTrustValidator(certificateValidator));
-
-
-        return new OxalisAS4WsInInterceptor(inProps, crypto, alias);
-    }
-
-    private SoapInterceptor createWsOutInterceptor(Crypto crypto) {
-
-        String alias = settings.getString(KeyStoreConf.KEY_ALIAS);
-        String password = settings.getString(KeyStoreConf.KEY_PASSWORD);
-        PasswordCallbackHandler cb = new PasswordCallbackHandler(password);
-
-        Map<String, Object> outProps = Maps.newHashMap();
-        outProps.put(WSHandlerConstants.ACTION, WSHandlerConstants.SIGNATURE);
-        outProps.put(WSHandlerConstants.PW_CALLBACK_REF, cb);
-        outProps.put(WSHandlerConstants.SIGNATURE_PARTS, "{}{}Body; {}{http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/} Messaging;{}cid:Attachments;");
-        outProps.put(WSHandlerConstants.SIG_KEY_ID, "DirectReference");
-        outProps.put(WSHandlerConstants.USE_SINGLE_CERTIFICATE, "true");
-        outProps.put(WSHandlerConstants.USE_REQ_SIG_CERT, "true");
-        outProps.put(ConfigurationConstants.USER, alias);
-        outProps.put(WSHandlerConstants.SIG_ALGO, Constants.RSA_SHA256);
-        outProps.put(WSHandlerConstants.SIG_DIGEST_ALGO, SPConstants.SHA256);
-        outProps.put(SecurityConstants.ENCRYPT_CRYPTO, crypto);
-        outProps.put(ConfigurationConstants.SIG_PROP_REF_ID, SecurityConstants.ENCRYPT_CRYPTO);
-        outProps.put(WSHandlerConstants.ENABLE_SIGNATURE_CONFIRMATION, "false");
-        outProps.put(SecurityConstants.SIGNATURE_TOKEN_VALIDATOR, new CertificateValidatorSignatureTrustValidator(certificateValidator));
-
-        return new OxalisAs4WsOutInterceptor(outProps, crypto, alias);
     }
 
     @Override

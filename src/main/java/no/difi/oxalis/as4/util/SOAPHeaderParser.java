@@ -129,7 +129,7 @@ public class SOAPHeaderParser {
         }
 
         try {
-            Unmarshaller unmarshaller = Marshalling.getInstance().getJaxbContext().createUnmarshaller();
+            Unmarshaller unmarshaller = Marshalling.getInstance().createUnmarshaller();
             for (int i = 0; i < refNodes.getLength(); i++) {
                 referenceList.add(unmarshaller.unmarshal(refNodes.item(i), ReferenceType.class).getValue());
             }
@@ -144,7 +144,7 @@ public class SOAPHeaderParser {
         Messaging messaging;
         Unmarshaller unmarshaller;
         try {
-            unmarshaller = Marshalling.getInstance().getJaxbContext().createUnmarshaller();
+            unmarshaller = Marshalling.getInstance().createUnmarshaller();
             messaging = unmarshaller.unmarshal(messagingNode, Messaging.class).getValue();
         } catch (JAXBException e) {
             throw new OxalisAs4Exception("Could not unmarshal Messaging node from header");
