@@ -460,10 +460,12 @@ public class As4InboundHandler {
     private X509Certificate extractSenderCertificate(SOAPHeader header) throws OxalisAs4Exception {
         Map<String, String> ns = new TreeMap<>();
         ns.put("wsse", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd");
+        ns.put("secutil", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd");
+        ns.put("xmldsig", "http://www.w3.org/2000/09/xmldsig#");
         XPathUtils xu = new XPathUtils(ns);
-        String cert = xu.getValueString("//wsse:BinarySecurityToken[1]/text()", header);
 
-
+        // Thanks to 'tjeb' for good info in PR #28
+        String cert = xu.getValueString("//wsse:BinarySecurityToken[@secutil:Id=substring-after(//xmldsig:Signature/xmldsig:KeyInfo/wsse:SecurityTokenReference/wsse:Reference[1]/@URI, '#')]", header);
         if (cert == null) {
             throw new OxalisAs4Exception("Unable to locate sender certificate");
         }

@@ -15,6 +15,7 @@ import no.difi.oxalis.commons.security.KeyStoreConf;
 import org.apache.cxf.Bus;
 import org.apache.cxf.attachment.AttachmentUtil;
 import org.apache.cxf.binding.soap.SoapHeader;
+import org.apache.cxf.ext.logging.LoggingFeature;
 import org.apache.cxf.headers.Header;
 import org.apache.cxf.jaxws.DispatchImpl;
 import org.apache.cxf.message.Attachment;
@@ -79,7 +80,7 @@ public class As4MessageSender {
 
         final String address = request.getEndpoint().getAddress().toString();
 
-        Service service = Service.create(SERVICE_NAME, new WSPolicyFeature());
+        Service service = Service.create(SERVICE_NAME, new LoggingFeature(), new WSPolicyFeature());
         service.addPort(PORT_NAME, SOAPBinding.SOAP12HTTP_BINDING, "BindingProvider.ENDPOINT_ADDRESS_PROPERTY placeholder");
 
 
@@ -116,22 +117,16 @@ public class As4MessageSender {
         dispatch.getRequestContext().put(Message.ATTACHMENTS, attachments);
 
 
+        Merlin signatureCrypto = new Merlin();
+        signatureCrypto.setCryptoProvider(BouncyCastleProvider.PROVIDER_NAME);
+        signatureCrypto.setKeyStore(keyStore);
+        signatureCrypto.setTrustStore(trustStore);
 
-
-        Merlin encryptCrypto = new Merlin();
-        encryptCrypto.setCryptoProvider(BouncyCastleProvider.PROVIDER_NAME);
-        encryptCrypto.setKeyStore(keyStore);
-        encryptCrypto.setTrustStore(trustStore);
-
-        dispatch.getRequestContext().put(SecurityConstants.SIGNATURE_CRYPTO, encryptCrypto);
+        dispatch.getRequestContext().put(SecurityConstants.SIGNATURE_CRYPTO, signatureCrypto);
         dispatch.getRequestContext().put(SecurityConstants.SIGNATURE_PASSWORD, settings.getString(KeyStoreConf.KEY_PASSWORD));
         dispatch.getRequestContext().put(SecurityConstants.SIGNATURE_USERNAME, settings.getString(KeyStoreConf.KEY_ALIAS));
-        dispatch.getRequestContext().put(ConfigurationConstants.SIG_VER_PROP_REF_ID, "oxalisTrustStore");
 
-        dispatch.getRequestContext().put(SecurityConstants.ENCRYPT_CRYPTO, encryptCrypto);
-        dispatch.getRequestContext().put(SecurityConstants.ENCRYPT_USERNAME, settings.getString(KeyStoreConf.KEY_ALIAS));
-        dispatch.getRequestContext().put(ConfigurationConstants.DEC_PROP_REF_ID, "oxalisAPCrypto");
-
+        dispatch.getRequestContext().put(SecurityConstants.ENCRYPT_CERT, request.getEndpoint().getCertificate());
 
 
         try {

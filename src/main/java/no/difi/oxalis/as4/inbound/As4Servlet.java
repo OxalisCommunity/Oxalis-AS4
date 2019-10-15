@@ -6,6 +6,7 @@ import com.google.inject.name.Named;
 import no.difi.oxalis.api.settings.Settings;
 import no.difi.oxalis.as4.config.TrustStore;
 import no.difi.oxalis.commons.security.KeyStoreConf;
+import org.apache.cxf.ext.logging.LoggingInInterceptor;
 import org.apache.cxf.jaxws.EndpointImpl;
 import org.apache.cxf.transport.servlet.CXFNonSpringServlet;
 import org.apache.cxf.ws.security.SecurityConstants;
@@ -65,11 +66,11 @@ public class As4Servlet extends CXFNonSpringServlet {
         endpointImpl.getProperties().put(SecurityConstants.SIGNATURE_CRYPTO, encryptCrypto);
         endpointImpl.getProperties().put(SecurityConstants.SIGNATURE_PASSWORD, settings.getString(KeyStoreConf.KEY_PASSWORD));
         endpointImpl.getProperties().put(SecurityConstants.SIGNATURE_USERNAME, settings.getString(KeyStoreConf.KEY_ALIAS));
-        endpointImpl.getProperties().put(ConfigurationConstants.SIG_VER_PROP_REF_ID, "oxalisTrustStore");
+//        endpointImpl.getProperties().put(ConfigurationConstants.SIG_VER_PROP_REF_ID, "oxalisTrustStore");
 
         endpointImpl.getProperties().put(SecurityConstants.ENCRYPT_CRYPTO, encryptCrypto);
         endpointImpl.getProperties().put(SecurityConstants.ENCRYPT_USERNAME, settings.getString(KeyStoreConf.KEY_ALIAS));
-        endpointImpl.getProperties().put(ConfigurationConstants.DEC_PROP_REF_ID, "oxalisAPCrypto");
+//        endpointImpl.getProperties().put(ConfigurationConstants.DEC_PROP_REF_ID, "oxalisAPCrypto");
 
         endpointImpl.getInInterceptors().add(new PolicyBasedWSS4JInInterceptor());
         endpointImpl.getOutInterceptors().add(new PolicyBasedWSS4JOutInterceptor());
