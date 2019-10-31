@@ -16,7 +16,6 @@ import no.difi.oxalis.api.tag.Tag;
 import no.difi.oxalis.as4.api.MessageIdGenerator;
 import no.difi.oxalis.as4.common.DefaultMessageIdGenerator;
 import no.difi.oxalis.as4.inbound.As4InboundModule;
-import no.difi.oxalis.as4.outbound.As4OutboundModule;
 import no.difi.oxalis.as4.util.PeppolConfiguration;
 import no.difi.oxalis.commons.guice.GuiceModuleLoader;
 import no.difi.oxalis.test.jetty.AbstractJettyServerTest;
@@ -68,7 +67,7 @@ public class SendReceiveTest extends AbstractJettyServerTest {
     @Override
     public Injector getInjector() {
         return Guice.createInjector(
-                new As4OutboundModule(),
+//                new As4OutboundModule(),
                 new As4InboundModule(),
                 Modules.override(new GuiceModuleLoader()).with(new AbstractModule() {
                     @Override
@@ -138,11 +137,6 @@ public class SendReceiveTest extends AbstractJettyServerTest {
                     }
 
                     @Override
-                    public String getServiceType() {
-                        return "TestServiceType";
-                    }
-
-                    @Override
                     public String getFromRole() {
                         return "TestFromRole";
                     }
@@ -185,8 +179,8 @@ public class SendReceiveTest extends AbstractJettyServerTest {
                 return Header.newInstance()
                         .sender(ParticipantIdentifier.of("9908:991825827"))
                         .receiver(ParticipantIdentifier.of("9908:991825827"))
-                        .documentType(DocumentTypeIdentifier.of("urn:oasis:names:specification:ubl:schema:xsd:Invoice-2::Invoice##urn:www.cenbii.eu:transaction:biicoretrdm010:ver1.0:#urn:test.com:bis:something_else:ver1.0::2.0"))
-                        .process(ProcessIdentifier.of("urn:www.cenbii.eu:profile:something_else:ver1.0"));
+                        .documentType(DocumentTypeIdentifier.of("urn:oasis:names:specification:ubl:schema:xsd:Invoice-2::Invoice##urn:www.cenbii.eu:transaction:biicoretrdm010:ver1.0:#urn:test.com:bis:something_else:ver1.0::2.0", Scheme.of("TestSchema")))
+                        .process(ProcessIdentifier.of("urn:www.cenbii.eu:profile:something_else:ver1.0", Scheme.of("TestSchema")));
             }
 
             @Override

@@ -5,11 +5,10 @@ import com.google.inject.name.Named;
 import no.difi.oxalis.api.outbound.TransmissionRequest;
 import no.difi.oxalis.api.outbound.TransmissionResponse;
 import no.difi.oxalis.api.settings.Settings;
-import no.difi.oxalis.api.timestamp.TimestampProvider;
 import no.difi.oxalis.as4.api.MessageIdGenerator;
 import no.difi.oxalis.as4.lang.OxalisAs4TransmissionException;
 import no.difi.oxalis.as4.util.CompressionUtil;
-import no.difi.oxalis.as4.util.OxalisAlgorithmSuiteLoader;
+import no.difi.oxalis.as4.util.Constants;
 import no.difi.oxalis.commons.http.HttpConf;
 import no.difi.oxalis.commons.security.KeyStoreConf;
 import org.apache.cxf.Bus;
@@ -17,6 +16,7 @@ import org.apache.cxf.attachment.AttachmentUtil;
 import org.apache.cxf.binding.soap.SoapHeader;
 import org.apache.cxf.ext.logging.LoggingFeature;
 import org.apache.cxf.headers.Header;
+import org.apache.cxf.jaxb.JAXBDataBinding;
 import org.apache.cxf.jaxws.DispatchImpl;
 import org.apache.cxf.message.Attachment;
 import org.apache.cxf.message.Message;
@@ -26,13 +26,13 @@ import org.apache.cxf.ws.policy.PolicyBuilder;
 import org.apache.cxf.ws.policy.PolicyConstants;
 import org.apache.cxf.ws.policy.WSPolicyFeature;
 import org.apache.cxf.ws.security.SecurityConstants;
-import org.apache.cxf.ws.security.policy.custom.AlgorithmSuiteLoader;
 import org.apache.neethi.Policy;
-import org.apache.wss4j.common.ConfigurationConstants;
 import org.apache.wss4j.common.crypto.Merlin;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.Messaging;
 import org.xml.sax.SAXException;
 
+import javax.xml.bind.JAXBException;
 import javax.xml.namespace.QName;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.soap.SOAPMessage;
@@ -69,53 +69,55 @@ public class As4MessageSender {
     private CompressionUtil compressionUtil;
 
     @Inject
-    private TimestampProvider timestampProvider;
-
-    @Inject
     private Settings<HttpConf> httpConfSettings;
 
+    @Inject
+    private TransmissionResponseConverter transmissionResponseConverter;
 
+    @Inject
+    private Bus bus;
+
+    private Service service;
+
+    public As4MessageSender() {
+        service = Service.create(SERVICE_NAME, new LoggingFeature(), new WSPolicyFeature());
+        service.addPort(PORT_NAME, SOAPBinding.SOAP12HTTP_BINDING, "BindingProvider.ENDPOINT_ADDRESS_PROPERTY placeholder");
+    }
 
     public TransmissionResponse send(TransmissionRequest request) throws OxalisAs4TransmissionException {
 
-        final String address = request.getEndpoint().getAddress().toString();
-
-        Service service = Service.create(SERVICE_NAME, new LoggingFeature(), new WSPolicyFeature());
-        service.addPort(PORT_NAME, SOAPBinding.SOAP12HTTP_BINDING, "BindingProvider.ENDPOINT_ADDRESS_PROPERTY placeholder");
+        Dispatch<SOAPMessage> dispatch = createDispatch(request.getEndpoint().getAddress().toString());
 
 
+        Collection<Attachment> attachments = prepareAttachments(request);
+        Messaging messaging = messagingProvider.createMessagingHeader(request, attachments);
 
-
-        Dispatch<SOAPMessage> dispatch = service.createDispatch(PORT_NAME, SOAPMessage.class, Service.Mode.MESSAGE);
-        dispatch.getRequestContext().put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, address);
-
-        HTTPClientPolicy httpClientPolicy = new HTTPClientPolicy();
-        httpClientPolicy.setConnectionTimeout(httpConfSettings.getInt(HttpConf.TIMEOUT_CONNECT));
-        httpClientPolicy.setReceiveTimeout(httpConfSettings.getInt(HttpConf.TIMEOUT_READ));
-        ((HTTPConduit)((DispatchImpl)dispatch).getClient().getConduit()).setClient(httpClientPolicy);
-
-
-
-        HashMap<String, List<String>> headers = new HashMap<>();
-        headers.put("Content-ID", Collections.singletonList(messageIdGenerator.generate()));
-        headers.put("CompressionType", Collections.singletonList("application/gzip"));
-        headers.put("MimeType", Collections.singletonList("application/xml"));
-
-        Attachment attachment = null;
-        try{
-            attachment = AttachmentUtil.createAttachment(compressionUtil.getCompressedStream(request.getPayload()), headers);
-
-        }catch (IOException e){
-            throw new OxalisAs4TransmissionException("Unable to compress payload", e);
+        SoapHeader header = null;
+        try {
+            header = new SoapHeader(
+                    Constants.MESSAGING_QNAME,
+                    messaging,
+                    new JAXBDataBinding(Messaging.class),
+                    true);
+        }catch (JAXBException e){
+            throw new OxalisAs4TransmissionException("Unable to marshal AS4 header", e);
         }
-        Collection<Attachment> attachments = new ArrayList<>(Arrays.asList(attachment));
-
-        SoapHeader header = messagingProvider.createMessagingHeader(request, attachments);
 
 
         dispatch.getRequestContext().put(Header.HEADER_LIST, new ArrayList(Arrays.asList(header)));
         dispatch.getRequestContext().put(Message.ATTACHMENTS, attachments);
 
+
+        configureSecurity(request, dispatch);
+
+        SOAPMessage response = dispatch.invoke(null);
+
+
+        return transmissionResponseConverter.convert(request, response);
+
+    }
+
+    private void configureSecurity(TransmissionRequest request, Dispatch<SOAPMessage> dispatch) throws OxalisAs4TransmissionException {
 
         Merlin signatureCrypto = new Merlin();
         signatureCrypto.setCryptoProvider(BouncyCastleProvider.PROVIDER_NAME);
@@ -130,21 +132,45 @@ public class As4MessageSender {
 
 
         try {
-            Bus bus = ((DispatchImpl) dispatch).getClient().getBus();
-            bus.setExtension(new OxalisAlgorithmSuiteLoader(bus), AlgorithmSuiteLoader.class);
 
-            PolicyBuilder builder = ((DispatchImpl) dispatch).getClient().getBus().getExtension(org.apache.cxf.ws.policy.PolicyBuilder.class);
+            PolicyBuilder builder = bus.getExtension(PolicyBuilder.class);
             Policy policy = builder.getPolicy(getClass().getResourceAsStream("/policy.xml"));
             dispatch.getRequestContext().put(PolicyConstants.POLICY_OVERRIDE, policy);
         }catch (IOException | ParserConfigurationException | SAXException e){
             throw new OxalisAs4TransmissionException("Unable to parse WSPolicy \"/policy.xml\"", e);
         }
+    }
 
+    public Collection<Attachment> prepareAttachments(TransmissionRequest request) throws OxalisAs4TransmissionException {
 
-        SOAPMessage response = dispatch.invoke(null);
+        HashMap<String, List<String>> headers = new HashMap<>();
+        headers.put("Content-ID", Collections.singletonList(messageIdGenerator.generate()));
+        headers.put("CompressionType", Collections.singletonList("application/gzip"));
+        headers.put("MimeType", Collections.singletonList("application/xml"));
 
-        return new TransmissionResponseConverter(request, timestampProvider).convert(response);
+        try{
 
+            Attachment attachment = AttachmentUtil.createAttachment(compressionUtil.getCompressedStream(request.getPayload()), headers);
+            return new ArrayList<>(Arrays.asList(attachment));
+
+        }catch (IOException e){
+
+            throw new OxalisAs4TransmissionException("Unable to compress payload", e);
+        }
+    }
+
+    private Dispatch<SOAPMessage> createDispatch(String address) {
+
+        Dispatch<SOAPMessage> dispatch = service.createDispatch(PORT_NAME, SOAPMessage.class, Service.Mode.MESSAGE);
+        dispatch.getRequestContext().put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, address);
+
+        HTTPClientPolicy httpClientPolicy = new HTTPClientPolicy();
+        httpClientPolicy.setConnectionTimeout(httpConfSettings.getInt(HttpConf.TIMEOUT_CONNECT));
+        httpClientPolicy.setReceiveTimeout(httpConfSettings.getInt(HttpConf.TIMEOUT_READ));
+
+        ((HTTPConduit)((DispatchImpl)dispatch).getClient().getConduit()).setClient(httpClientPolicy);
+
+        return dispatch;
     }
 
 

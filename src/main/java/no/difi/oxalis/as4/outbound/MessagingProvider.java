@@ -5,17 +5,13 @@ import com.google.inject.Inject;
 import no.difi.oxalis.api.outbound.TransmissionRequest;
 import no.difi.oxalis.as4.api.MessageIdGenerator;
 import no.difi.oxalis.as4.lang.OxalisAs4TransmissionException;
-import no.difi.oxalis.as4.util.CompressionUtil;
-import no.difi.oxalis.as4.util.Constants;
 import no.difi.oxalis.as4.util.PeppolConfiguration;
 import no.difi.oxalis.commons.security.CertificateUtils;
+import no.difi.vefa.peppol.common.model.ProcessIdentifier;
 import org.apache.cxf.attachment.AttachmentUtil;
-import org.apache.cxf.binding.soap.SoapHeader;
-import org.apache.cxf.jaxb.JAXBDataBinding;
 import org.apache.cxf.message.Attachment;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.*;
 
-import javax.xml.bind.JAXBException;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
@@ -24,29 +20,28 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import static no.difi.oxalis.as4.util.Constants.TEST_ACTION;
 import static no.difi.oxalis.as4.util.Constants.TEST_SERVICE;
+import static no.difi.oxalis.as4.util.GeneralUtils.iteratorToStreamOfUnknownSize;
+import static no.difi.oxalis.as4.util.TransmissionRequestUtil.translateDocumentTypeToAction;
+import static no.difi.oxalis.as4.util.TransmissionRequestUtil.translateParticipantIdentifierToRecipient;
 
 public class MessagingProvider {
 
     private final X509Certificate certificate;
-    private final CompressionUtil compressionUtil;
     private final MessageIdGenerator messageIdGenerator;
     private final PeppolConfiguration defaultOutboundConfiguration;
 
 
     @Inject
-    public MessagingProvider(X509Certificate certificate, CompressionUtil compressionUtil, MessageIdGenerator messageIdGenerator, PeppolConfiguration defaultOutboundConfiguration) {
+    public MessagingProvider(X509Certificate certificate, MessageIdGenerator messageIdGenerator, PeppolConfiguration defaultOutboundConfiguration) {
         this.certificate = certificate;
-        this.compressionUtil = compressionUtil;
         this.messageIdGenerator = messageIdGenerator;
         this.defaultOutboundConfiguration = defaultOutboundConfiguration;
     }
 
-    public SoapHeader createMessagingHeader(TransmissionRequest request, Collection<Attachment> attachments) throws OxalisAs4TransmissionException {
+    public Messaging createMessagingHeader(TransmissionRequest request, Collection<Attachment> attachments) throws OxalisAs4TransmissionException {
 
         UserMessage userMessage = UserMessage.builder()
                 .withMessageInfo(createMessageInfo(request))
@@ -57,24 +52,10 @@ public class MessagingProvider {
                 .build();
 
 
-        Messaging messaging = Messaging.builder()
+        return Messaging.builder()
                 .addUserMessage(userMessage)
                 .build();
-
-        try {
-            return new SoapHeader(
-                    Constants.MESSAGING_QNAME,
-                    messaging,
-                    new JAXBDataBinding(Messaging.class),
-                    true);
-        }catch (JAXBException e){
-            throw new OxalisAs4TransmissionException("Unable to marshal AS4 header", e);
-        }
     }
-
-
-
-
 
     private PayloadInfo createPayloadInfo(TransmissionRequest request, Collection<Attachment> attachments) {
 
@@ -85,7 +66,7 @@ public class MessagingProvider {
 
             String cid = "cid:" + AttachmentUtil.cleanContentId(attachment.getId());
 
-            iteratorToStream(attachment.getHeaderNames())
+            iteratorToStreamOfUnknownSize(attachment.getHeaderNames(), Spliterator.ORDERED, false)
                     .filter(header -> !"Content-ID".equals(header))
                     .map(header -> Property.builder().withName(header).withValue(attachment.getHeader(header)).build())
                     .forEach(partProperties::addProperty);
@@ -115,11 +96,6 @@ public class MessagingProvider {
     }
 
 
-
-
-
-
-
     private MessageProperties createMessageProperties(TransmissionRequest request) {
         Map<String, String> properties = new HashMap<>();
 
@@ -130,12 +106,15 @@ public class MessagingProvider {
             }
         }
 
+        String originalSender = translateParticipantIdentifierToRecipient(request.getHeader().getSender());
+        String finalRecipient = translateParticipantIdentifierToRecipient(request.getHeader().getReceiver());
+
         if (!properties.containsKey("originalSender")) {
-            properties.put("originalSender", request.getHeader().getSender().toString());
+            properties.put("originalSender", originalSender);
         }
 
         if (!properties.containsKey("finalRecipient")) {
-            properties.put("finalRecipient", request.getHeader().getReceiver().toString());
+            properties.put("finalRecipient", finalRecipient);
         }
 
         return MessageProperties.builder()
@@ -177,17 +156,19 @@ public class MessagingProvider {
 
     private CollaborationInfo createCollaborationInfo(TransmissionRequest request) {
 
-        PeppolConfiguration outboundConfiguration = request.getTag() instanceof PeppolConfiguration ?
-                (PeppolConfiguration) request.getTag() : defaultOutboundConfiguration;
+        String action = translateDocumentTypeToAction(request.getHeader().getDocumentType());
+        ProcessIdentifier process = request.getHeader().getProcess();
+
 
         CollaborationInfo.Builder cib = CollaborationInfo.builder()
                 .withConversationId(getConversationId(request))
-                .withAction(request.getHeader().getDocumentType().toString())
+                .withAction(action)
                 .withService(Service.builder()
-                        .withType(outboundConfiguration.getServiceType())
-                        .withValue(request.getHeader().getProcess().getIdentifier())
+                        .withType(process.getScheme().getIdentifier())
+                        .withValue(process.getIdentifier())
                         .build()
                 );
+
 
         if (request instanceof As4TransmissionRequest && ((As4TransmissionRequest)request).isPing()) {
             cib = cib.withAction(TEST_ACTION)
@@ -197,13 +178,13 @@ public class MessagingProvider {
         }
 
 
-
         if (defaultOutboundConfiguration.getAgreementRef() != null) {
             cib = cib.withAgreementRef(AgreementRef.builder()
                     .withValue(defaultOutboundConfiguration.getAgreementRef())
                     .build()
             );
         }
+
 
         return cib.build();
     }
@@ -258,9 +239,4 @@ public class MessagingProvider {
     }
 
 
-    private <T> Stream<T> iteratorToStream(Iterator<T> iterator){
-        return StreamSupport.stream(
-                Spliterators.spliteratorUnknownSize(iterator, Spliterator.ORDERED),
-                false);
-    }
 }

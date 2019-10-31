@@ -6,7 +6,11 @@ import no.difi.oxalis.api.outbound.MessageSender;
 import no.difi.oxalis.api.settings.Settings;
 import no.difi.oxalis.as4.config.As4Conf;
 import no.difi.oxalis.as4.util.CompressionUtil;
+import no.difi.oxalis.as4.util.OxalisAlgorithmSuiteLoader;
 import no.difi.oxalis.as4.util.PeppolConfiguration;
+import org.apache.cxf.Bus;
+import org.apache.cxf.BusFactory;
+import org.apache.cxf.ws.security.policy.custom.AlgorithmSuiteLoader;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import java.security.Security;
@@ -33,19 +37,25 @@ public class As4OutboundModule extends AbstractModule {
 
         bind(As4MessageSender.class);
 
+        bind(TransmissionResponseConverter.class);
+
     }
 
     @Provides
     @Singleton
-    protected PeppolConfiguration getPeppolOutboundConfiguration(Settings<As4Conf> settings){
+    public Bus getBus(){
+        Bus bus =  BusFactory.getThreadDefaultBus(true);
+        bus.setExtension(new OxalisAlgorithmSuiteLoader(bus), AlgorithmSuiteLoader.class);
+
+        return bus;
+    }
+
+    @Provides
+    @Singleton
+    public PeppolConfiguration getPeppolOutboundConfiguration(Settings<As4Conf> settings){
 
         if("cef-connectivity".equalsIgnoreCase(settings.getString(As4Conf.TYPE))){
             return new PeppolConfiguration(){
-
-                @Override
-                public String getServiceType() {
-                    return "urn:oasis:names:tc:ebcore:partyid-type:unregistered";
-                }
 
                 @Override
                 public String getPartyIDType() {

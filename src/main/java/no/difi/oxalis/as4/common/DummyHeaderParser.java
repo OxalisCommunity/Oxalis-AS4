@@ -4,10 +4,11 @@ import com.google.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import no.difi.oxalis.api.header.HeaderParser;
 import no.difi.oxalis.api.util.Type;
-import no.difi.vefa.peppol.common.model.Header;
+import no.difi.vefa.peppol.common.model.*;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Date;
 
 @Slf4j
 @Singleton
@@ -26,6 +27,13 @@ public class DummyHeaderParser implements HeaderParser {
             log.error("IOException while parsing header", e);
         }
 
-        return new Header();
+        return Header.of(
+                ParticipantIdentifier.of("DummySender"),
+                ParticipantIdentifier.of("DummyReceiver"),
+                ProcessIdentifier.of("DummyProcess"),
+                DocumentTypeIdentifier.of("DummyDocument"),
+                InstanceIdentifier.of("DummyInstance"),
+                InstanceType.of("Dummy", "InstanceType", "1.0"),
+                new Date(0L));
     }
 }

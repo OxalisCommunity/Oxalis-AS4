@@ -15,7 +15,6 @@ public class PeppolConfiguration implements Tag {
 
     private String partyIDType = "urn:fdc:peppol.eu:2017:identifiers:ap";
     private String agreementRef = "urn:fdc:peppol.eu:2017:agreements:tia:ap_provider";
-    private String serviceType = "cenbii-procid-ubl";
 
     private String fromRole = "http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/initiator";
     private String toRole = "http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/responder";

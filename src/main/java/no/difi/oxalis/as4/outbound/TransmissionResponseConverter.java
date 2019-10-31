@@ -1,5 +1,6 @@
 package no.difi.oxalis.as4.outbound;
 
+import com.google.inject.Inject;
 import no.difi.oxalis.api.lang.TimestampException;
 import no.difi.oxalis.api.model.Direction;
 import no.difi.oxalis.api.model.TransmissionIdentifier;
@@ -31,15 +32,14 @@ import static no.difi.oxalis.as4.util.Constants.DIGEST_ALGORITHM_SHA256;
 
 public class TransmissionResponseConverter {
 
-    private TransmissionRequest request;
     private TimestampProvider timestampProvider;
 
-    public TransmissionResponseConverter(TransmissionRequest request, TimestampProvider timestampProvider) {
-        this.request = request;
+    @Inject
+    public TransmissionResponseConverter(TimestampProvider timestampProvider) {
         this.timestampProvider = timestampProvider;
     }
 
-    public TransmissionResponse convert(SOAPMessage response) {
+    public TransmissionResponse convert(TransmissionRequest request, SOAPMessage response) {
         try {
             SignalMessage signalMessage = getSignalMessage(response);
 
