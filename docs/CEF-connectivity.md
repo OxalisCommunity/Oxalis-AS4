@@ -28,7 +28,11 @@ The following Oxalis features needs to be changed to be able to exchange message
 <details>
   <summary>Instruction to send CEF connectivity message</summary>
   
-  To perform the CEF-Connectivity test send this file using these parameters `-f <path to file> -u <http address to CEF> -cert <path to CEF certificate>`
+  <br/>
+  <p>
+  To perform the CEF-Connectivity test send this file using these parameters <code>-f &lt;path to filr&gt; -u &lt;http address to CEF&gt; -cert &lt;path to CEF certificate&gt;</code>
+  Use of the additional override commands will add PEPPOL prefixes to the values that will breake the connectivity test.
+  </p>
 
 ``` XML
 <?xml version="1.0" encoding="UTF-8"?>
