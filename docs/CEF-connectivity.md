@@ -2,7 +2,7 @@
 
 Oxalis-Standalone performs validations to ensure messages conform to PEPPOL standards. To work around this issue, we have made some changes to Oxalis-AS4 to allow us to bypass these restrictions for CEF-Connectivity test. These changes are kept minimal not to unnecessarily endanger the PEPPOL network. If messages using CEF PMode is to be used regularly we recommend the creation of a separate CLI wrapper or adjustments to Oxalis-Standalone. The modified version of Oxalis-AS4 can be found here.
 
-To perform the CEF-Connectivity test send use the provided configuration and payload using these parameters `-f &lt;path to file&gt; -u &lt;http address to CEF&gt; -cert &lt;path to CEF certificate&gt;`. Use of the additional override commands will add PEPPOL prefixes to the values that will break the connectivity test.
+To perform the CEF-Connectivity test send use the provided configuration and payload using these parameters `-f <path to file>; -u <http address to CEF> -cert <path to CEF certificate>`. Use of the additional override commands will add PEPPOL prefixes to the values that will break the connectivity test.
 
 Oxalis 4.1.0 added the ability to use self-signed certificates in a LOCAL mode (this mode is automatically detected if you provide a self-signed certificate). This LOCAL mode does require that you provide your own truststore and SMP (locator) address. An example is provided below.
 
