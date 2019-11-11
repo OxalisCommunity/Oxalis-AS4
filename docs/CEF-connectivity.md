@@ -1,5 +1,8 @@
 ### CEF-Connectivity using Oxalis-Standalone sending SBD payloads
 
+Oxalis-Standalone performs validations to enshure messages confor to PEPPOL standards. to work around this issue we have made som changes to Oxalis-AS4 to allow us to buypass these restrictions for CEF-Connectivity test. These changes is kept minimal not to unnesesarely endanger the PEPPOL network. If messages using CEF PMode is to be used regularly we recoment the creation of a separate CLI wrapper or adjostments to Oxalis-Standalone.
+The modified version of Oxalis-AS4 can be found [here](https://github.com/difi/Oxalis-AS4/releases/download/4.1.0-RC10/oxalis-as4-4.1.0-connectivity-SNAPSHOT-dist.zip).
+
 To perform the CEF-Connectivity test send use the provided configuration and payload using these parameters <code>-f &lt;path to filr&gt; -u &lt;http address to CEF&gt; -cert &lt;path to CEF certificate&gt;</code>.
 Use of the additional override commands will add PEPPOL prefixes to the values that will breake the connectivity test.
 
