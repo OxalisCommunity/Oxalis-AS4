@@ -1,39 +1,32 @@
-## Oxalis outside PEPPOL
+### CEF-Connectivity using Oxalis-Standalone sending SBD payloads
 
-Oxalis is made to serve as an AccessPoint in the PEPPOL network.
-If you intend to use Oxalis sending messages outside PEPPOL you should implement your own version of the relevant [Oxalis extension points](https://github.com/difi/oxalis/blob/master/doc/extension-points.adoc).
+To perform the CEF-Connectivity test send use the provided configuration and payload using these parameters <code>-f &lt;path to filr&gt; -u &lt;http address to CEF&gt; -cert &lt;path to CEF certificate&gt;</code>.
+Use of the additional override commands will add PEPPOL prefixes to the values that will breake the connectivity test.
 
-### CEF connectivity test
-
-The following Oxalis features needs to be changed to be able to exchange messages with the CEF connectivity test (RC-7 and onwards):
-* HeaderParser
-  ```
-  oxalis.header.parser=dummy
-  ```
-  See [Oxalis extention-points](https://github.com/difi/oxalis/blob/master/doc/extension-points.adoc)
-  In its default setup Oxalis will extract the SBDH form the payload. Sins the CEF connectivity test does not send messages with a SBDH, this will fail.
-  To pass the test you can disable the parsing of the SBDH header by adding the following line to your configuration file:
-
-* CEF pMode
-  ```
-  oxalis.as4.type=cef-connectivity
-  ```
-  This setting changes three tings in the AS4 header resulting from the diffrent pModes:
-  1. Removes the reference to the PEPPOL TIA agreement
-  2. Renamed the serviceType for the transmission to "urn:oasis:names:tc:ebcore:partyid-type:unregistered"
-  3. Renamed the partyIdType of the sender and reciever to "urn:oasis:names:tc:ebcore:partyid-type:unregistered"
+Oxalis 4.1.0 added the abbility to use self signed certificates in a LOCAL mode (this mode is automaticaly detected if you provide a self signed certificate). This LOCAL mode does require that you provide your own truststore and SMP (locator) address. An example is provided below.
   
-### CEF-Connectivity using Oxalis-Standalone
+Example oxalis.conf
+```
+oxalis.keystore {
+        # Relative to OXALIS_HOME
+        path = keystore.jks
+        password = changeit
+        key.alias = selfsigned
+        key.password = changeit
+}
 
-<details>
-  <summary>Instruction to send CEF connectivity message</summary>
-  
-  <br/>
-  <p>
-  To perform the CEF-Connectivity test send this file using these parameters <code>-f &lt;path to filr&gt; -u &lt;http address to CEF&gt; -cert &lt;path to CEF certificate&gt;</code>
-  Use of the additional override commands will add PEPPOL prefixes to the values that will breake the connectivity test.
-  </p>
+security.truststore.ap = truststore.jks
+security.truststore.password = changeit
 
+lookup.locator.hostname="acc.edelivery.tech.ec.europa.eu/edelivery-sml/"
+
+oxalis.as4.type=cef-connectivity
+
+oxalis.path.inbound = /var/peppol/IN`
+
+```
+
+Example payload.xml
 ``` XML
 <?xml version="1.0" encoding="UTF-8"?>
 <StandardBusinessDocument xmlns="http://www.unece.org/cefact/namespaces/StandardBusinessDocumentHeader">
@@ -85,8 +78,12 @@ The following Oxalis features needs to be changed to be able to exchange message
     <Request> eDelivery AS4 Connectivity test. Sending Message </Request>
 </StandardBusinessDocument>
 ```
-</details>
 
+
+
+<details>
+  <summary>More info regarding Oxalis-Standalone and CEF-Connectivity testing</summary>
+  
 Oxalis-Standalone is a commandline wrapper around Oxalis-Outbound that facilitate sending of PEPPOL messages.
 
 The base functionallity of Standalone is to send files that is in the form of a Standard Bussines Document (SBD). SBD files starts with a Standard Bussines Ducument Header (SBDH) that describes the message, sender, and reciever and some more. Standalone reads this information and uses it to perform the transmission. 
@@ -96,6 +93,8 @@ The standalone component also has the ability to override these settings, this i
 One of the values that is extracted and parsed is the DocumentType (This corresponds to an Action in AS4 terms). This value has to be in the following form to be accespted: <em>TextAndNumbers::TextAndNumbers##TextAndNumbers::TextAndNumbers</em>. This is the main hurdle to using Standalone to perform CEF-Connectivity test. To work around this issue we have added a feature that stripps the parts of the action taht does not conform to the conenctivity test.
 
 DocumentTypes on the form of `connectivity::cef##connectivity::submitMessage` will be converted to `submitMessage` by stripping avay the unwanted prefix. This only works for this prefix.
+
+</details>
  
 ### CEF-Connectivity using Custom Integration
 
@@ -177,3 +176,19 @@ The TransmissionRequest describes the tramsmission that is to be sent.
 TransmissionRequest consists of thre objects:
 
 </details>
+
+#### Sending files without SBDH
+
+<em>This feature is considered for removal</em>.
+
+When detecting parameters from payloads, to configure sending or documenting receipt, Oxalis uses a headerParser to extract values. By default Oxalis is configured to extract values from SBDH headers. This is a problem when messages is sent without a header. To aid with this we provid a "dummy" parser that provides static hard coded values. This is only intended for testing purpouses and if your intention is to use Oxalis to send non SBDH payloads you shoul provide your own parsers.
+See [Oxalis extention-points](https://github.com/difi/oxalis/blob/master/doc/extension-points.adoc)
+```
+oxalis.header.parser=dummy
+```
+
+
+## Oxalis outside PEPPOL
+
+Oxalis is made to serve as an AccessPoint in the PEPPOL network.
+If you intend to use Oxalis sending messages outside PEPPOL you should implement your own version of the relevant [Oxalis extension points](https://github.com/difi/oxalis/blob/master/doc/extension-points.adoc).
