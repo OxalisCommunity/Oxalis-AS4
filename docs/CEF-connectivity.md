@@ -1,6 +1,6 @@
 ### CEF-Connectivity using Oxalis-Standalone sending SBD payloads
 
-Oxalis-Standalone performs validations to ensure messages conform to PEPPOL standards. to work around this issue, we have made some changes to Oxalis-AS4 to allow us to bypass these restrictions for CEF-Connectivity test. These changes are kept minimal not to unnecessarily endanger the PEPPOL network. If messages using CEF PMode is to be used regularly we recommend the creation of a separate CLI wrapper or adjustments to Oxalis-Standalone. The modified version of Oxalis-AS4 can be found here.
+Oxalis-Standalone performs validations to ensure messages conform to PEPPOL standards. To work around this issue, we have made some changes to Oxalis-AS4 to allow us to bypass these restrictions for CEF-Connectivity test. These changes are kept minimal not to unnecessarily endanger the PEPPOL network. If messages using CEF PMode is to be used regularly we recommend the creation of a separate CLI wrapper or adjustments to Oxalis-Standalone. The modified version of Oxalis-AS4 can be found here.
 
 To perform the CEF-Connectivity test send use the provided configuration and payload using these parameters `-f &lt;path to file&gt; -u &lt;http address to CEF&gt; -cert &lt;path to CEF certificate&gt;`. Use of the additional override commands will add PEPPOL prefixes to the values that will break the connectivity test.
 
@@ -181,7 +181,7 @@ TransmissionRequest consists of three objects:
 
 #### Sending files without SBDH
 
-<em>This feature is considered for removal</em>.
+<em>This feature ("dummy" headerParser) is considered for removal</em>.
 
 When detecting parameters from payloads, to configure sending or documenting receipt, Oxalis uses a headerParser to extract values. By default, Oxalis is configured to extract values from SBDH headers. This is a problem when messages is sent without a header. To aid with this we provide a "dummy" parser that provides static hard coded values. This is only intended for testing purposes and if your intention is to use Oxalis to send non SBDH payloads you should provide your own parsers.
 See [Oxalis extention-points](https://github.com/difi/oxalis/blob/master/doc/extension-points.adoc)
