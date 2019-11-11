@@ -1,12 +1,11 @@
 ### CEF-Connectivity using Oxalis-Standalone sending SBD payloads
 
-Oxalis-Standalone performs validations to enshure messages confor to PEPPOL standards. to work around this issue we have made som changes to Oxalis-AS4 to allow us to buypass these restrictions for CEF-Connectivity test. These changes is kept minimal not to unnesesarely endanger the PEPPOL network. If messages using CEF PMode is to be used regularly we recoment the creation of a separate CLI wrapper or adjostments to Oxalis-Standalone.
-The modified version of Oxalis-AS4 can be found [here](https://github.com/difi/Oxalis-AS4/releases/download/4.1.0-RC10/oxalis-as4-4.1.0-connectivity-SNAPSHOT-dist.zip).
+Oxalis-Standalone performs validations to ensure messages conform to PEPPOL standards. to work around this issue, we have made some changes to Oxalis-AS4 to allow us to bypass these restrictions for CEF-Connectivity test. These changes are kept minimal not to unnecessarily endanger the PEPPOL network. If messages using CEF PMode is to be used regularly we recommend the creation of a separate CLI wrapper or adjustments to Oxalis-Standalone. The modified version of Oxalis-AS4 can be found here.
 
-To perform the CEF-Connectivity test send use the provided configuration and payload using these parameters <code>-f &lt;path to filr&gt; -u &lt;http address to CEF&gt; -cert &lt;path to CEF certificate&gt;</code>.
-Use of the additional override commands will add PEPPOL prefixes to the values that will breake the connectivity test.
+To perform the CEF-Connectivity test send use the provided configuration and payload using these parameters `-f &lt;path to file&gt; -u &lt;http address to CEF&gt; -cert &lt;path to CEF certificate&gt;`. Use of the additional override commands will add PEPPOL prefixes to the values that will break the connectivity test.
 
-Oxalis 4.1.0 added the abbility to use self signed certificates in a LOCAL mode (this mode is automaticaly detected if you provide a self signed certificate). This LOCAL mode does require that you provide your own truststore and SMP (locator) address. An example is provided below.
+Oxalis 4.1.0 added the ability to use self-signed certificates in a LOCAL mode (this mode is automatically detected if you provide a self-signed certificate). This LOCAL mode does require that you provide your own truststore and SMP (locator) address. An example is provided below.
+
   
 Example oxalis.conf
 ```
@@ -93,7 +92,7 @@ The base functionallity of Standalone is to send files that is in the form of a 
 
 The standalone component also has the ability to override these settings, this is mostly in place to facilitate testing of your own innbound instalation.
 
-One of the values that is extracted and parsed is the DocumentType (This corresponds to an Action in AS4 terms). This value has to be in the following form to be accespted: <em>TextAndNumbers::TextAndNumbers##TextAndNumbers::TextAndNumbers</em>. This is the main hurdle to using Standalone to perform CEF-Connectivity test. To work around this issue we have added a feature that stripps the parts of the action taht does not conform to the conenctivity test.
+One of the values that is extracted and parsed is the DocumentType (This corresponds to an Action in AS4 terms). This value has to be in the following form to be accespted: <em>TextAndNumbers::TextAndNumbers##TextAndNumbers::TextAndNumbers</em>. This is the main hurdle to using Standalone to perform CEF-Connectivity test. To work around this issue, we have added a feature that stripps the parts of the action taht does not conform to the conenctivity test.
 
 DocumentTypes on the form of `connectivity::cef##connectivity::submitMessage` will be converted to `submitMessage` by stripping avay the unwanted prefix. This only works for this prefix.
 
@@ -176,7 +175,7 @@ DocumentTypes on the form of `connectivity::cef##connectivity::submitMessage` wi
 
 The TransmissionRequest describes the tramsmission that is to be sent.
 
-TransmissionRequest consists of thre objects:
+TransmissionRequest consists of three objects:
 
 </details>
 
@@ -184,7 +183,7 @@ TransmissionRequest consists of thre objects:
 
 <em>This feature is considered for removal</em>.
 
-When detecting parameters from payloads, to configure sending or documenting receipt, Oxalis uses a headerParser to extract values. By default Oxalis is configured to extract values from SBDH headers. This is a problem when messages is sent without a header. To aid with this we provid a "dummy" parser that provides static hard coded values. This is only intended for testing purpouses and if your intention is to use Oxalis to send non SBDH payloads you shoul provide your own parsers.
+When detecting parameters from payloads, to configure sending or documenting receipt, Oxalis uses a headerParser to extract values. By default, Oxalis is configured to extract values from SBDH headers. This is a problem when messages is sent without a header. To aid with this we provide a "dummy" parser that provides static hard coded values. This is only intended for testing purposes and if your intention is to use Oxalis to send non SBDH payloads you should provide your own parsers.
 See [Oxalis extention-points](https://github.com/difi/oxalis/blob/master/doc/extension-points.adoc)
 ```
 oxalis.header.parser=dummy
