@@ -31,16 +31,17 @@ public class As4TransmissionResponse implements TransmissionResponse {
         this.digest = digest;
         this.receipt = Receipt.of("message/disposition-notification", nativeEvidenceBytes);
         this.timestamp = date;
-        transmissionException = null;
+        this.transmissionException = null;
 
-        List<Receipt> receipts = new ArrayList<>();
-        receipts.add(receipt);
-        if (timestamp.getReceipt().isPresent())
-            receipts.add(timestamp.getReceipt().get());
-        this.receipts = Collections.unmodifiableList(receipts);
+        List<Receipt> receiptList = new ArrayList<>();
+        receiptList.add(receipt);
+        timestamp.getReceipt().ifPresent(receiptList::add);
+
+        this.receipts = Collections.unmodifiableList(receiptList);
     }
-    public As4TransmissionResponse(OxalisAs4TransmissionException transmissionException, TransmissionIdentifier transmissionIdentifier){
-        this.transmissionRequest = null;
+
+    public As4TransmissionResponse(TransmissionIdentifier transmissionIdentifier, TransmissionRequest transmissionRequest, OxalisAs4TransmissionException transmissionException) {
+        this.transmissionRequest = transmissionRequest;
         this.transmissionIdentifier = transmissionIdentifier;
         this.transmissionException = transmissionException;
         this.digest = null;

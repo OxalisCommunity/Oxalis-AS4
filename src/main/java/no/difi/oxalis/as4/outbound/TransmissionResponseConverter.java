@@ -16,6 +16,7 @@ import no.difi.vefa.peppol.common.code.DigestMethod;
 import no.difi.vefa.peppol.common.model.Digest;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.Error;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.SignalMessage;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import javax.xml.bind.JAXBException;
@@ -26,7 +27,6 @@ import javax.xml.transform.TransformerException;
 import java.io.ByteArrayOutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.List;
 
 import static no.difi.oxalis.as4.util.Constants.DIGEST_ALGORITHM_SHA256;
 
@@ -46,31 +46,19 @@ public class TransmissionResponseConverter {
             String refToMessageId = signalMessage.getMessageInfo().getRefToMessageId();
             TransmissionIdentifier ti = TransmissionIdentifier.of(refToMessageId);
 
-            if( !signalMessage.getError().isEmpty() ){
-                List<Error> errorList = signalMessage.getError();
+            if (!signalMessage.getError().isEmpty()) {
+                Error error = signalMessage.getError().get(0);
 
-                for(Error error : errorList){
-                    // TODO: Find better handling of AS4 errors
-                    OxalisAs4TransmissionException exception = new OxalisAs4TransmissionException(error.getErrorDetail(), AS4ErrorCode.nameOf(error.getErrorCode()), AS4ErrorCode.Severity.nameOf(error.getSeverity()));
-                    return new As4TransmissionResponse(exception, ti);
-                }
+                OxalisAs4TransmissionException exception = new OxalisAs4TransmissionException(
+                        error.getErrorDetail(),
+                        AS4ErrorCode.nameOf(error.getErrorCode()),
+                        AS4ErrorCode.Severity.nameOf(error.getSeverity()));
 
+                return new As4TransmissionResponse(ti, request, exception);
             }
 
-            Timestamp ts;
-            try {
-                ts = timestampProvider.generate(null, Direction.OUT);
-            } catch (TimestampException e) {
-                throw new TransformerException("Could not create timestamp", e);
-            }
-
-            MessageDigest md;
-            try {
-                md = BCHelper.getMessageDigest(DIGEST_ALGORITHM_SHA256);
-            } catch (NoSuchAlgorithmException e) {
-                throw new TransformerException("Could not create message digest", e);
-            }
-            Digest digest = Digest.of(DigestMethod.SHA256, md.digest());
+            Timestamp ts = getTimestamp();
+            Digest digest = getDigest();
 
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             response.writeTo(bos);
@@ -84,25 +72,47 @@ public class TransmissionResponseConverter {
                     ts.getDate()
             );
 
-        }catch (Exception e){
+        } catch (Exception e) {
             return null;
         }
     }
 
+    private Digest getDigest() throws TransformerException {
+        try {
+            MessageDigest md = BCHelper.getMessageDigest(DIGEST_ALGORITHM_SHA256);
+            return Digest.of(DigestMethod.SHA256, md.digest());
+        } catch (NoSuchAlgorithmException e) {
+            throw new TransformerException("Could not create message digest", e);
+        }
+    }
+
+    private Timestamp getTimestamp() throws TransformerException {
+        try {
+            return timestampProvider.generate(null, Direction.OUT);
+        } catch (TimestampException e) {
+            throw new TransformerException("Could not create timestamp", e);
+        }
+    }
+
     private SignalMessage getSignalMessage(SOAPMessage soapMessage) throws TransformerException {
+        Node signalNode = getSignalNode(soapMessage);
 
         try {
-            NodeList signalNode = soapMessage.getSOAPHeader().getElementsByTagNameNS("*", "SignalMessage");
-            if (signalNode.getLength() != 1) {
+            Unmarshaller unmarshaller = Marshalling.getInstance().createUnmarshaller();
+            return unmarshaller.unmarshal(signalNode, SignalMessage.class).getValue();
+        } catch (JAXBException e) {
+            throw new TransformerException("Could not create unmarshaller", e);
+        }
+    }
+
+    private Node getSignalNode(SOAPMessage soapMessage) throws TransformerException {
+        try {
+            NodeList signalNodeList = soapMessage.getSOAPHeader().getElementsByTagNameNS("*", "SignalMessage");
+            if (signalNodeList.getLength() != 1) {
                 throw new TransformerException("SOAP header contains zero or multiple SignalMessage elements, should only contain one");
             }
-            try {
-                Unmarshaller unmarshaller = Marshalling.getInstance().createUnmarshaller();
-                return unmarshaller.unmarshal(signalNode.item(0), SignalMessage.class).getValue();
-            } catch (JAXBException e) {
-                throw new TransformerException("Could not create unmarshaller", e);
-            }
-        }catch (SOAPException e){
+            return signalNodeList.item(0);
+        } catch (SOAPException e) {
             throw new TransformerException("Could not access response body", e);
         }
     }
