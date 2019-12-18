@@ -33,7 +33,6 @@ public class MessagingProvider {
     private final MessageIdGenerator messageIdGenerator;
     private final PeppolConfiguration defaultOutboundConfiguration;
 
-
     @Inject
     public MessagingProvider(X509Certificate certificate, MessageIdGenerator messageIdGenerator, PeppolConfiguration defaultOutboundConfiguration) {
         this.certificate = certificate;
@@ -41,28 +40,28 @@ public class MessagingProvider {
         this.defaultOutboundConfiguration = defaultOutboundConfiguration;
     }
 
-    public Messaging createMessagingHeader(TransmissionRequest request, Collection<Attachment> attachments) throws OxalisAs4TransmissionException {
-
-        UserMessage userMessage = UserMessage.builder()
-                .withMessageInfo(createMessageInfo(request))
-                .withPartyInfo(createPartyInfo(request))
-                .withCollaborationInfo(createCollaborationInfo(request))
-                .withMessageProperties(createMessageProperties(request))
-                .withPayloadInfo(createPayloadInfo(request, attachments))
-                .build();
-
-
+    public Messaging createMessagingHeader(TransmissionRequest request, Collection<Attachment> attachments) {
         return Messaging.builder()
-                .addUserMessage(userMessage)
+                .addUserMessage(getUserMessage(request, attachments))
                 .build();
+    }
+
+    public UserMessage getUserMessage(TransmissionRequest request, Collection<Attachment> attachments) {
+        return UserMessage.builder()
+                    .withMessageInfo(createMessageInfo(request))
+                    .withPartyInfo(createPartyInfo(request))
+                    .withCollaborationInfo(createCollaborationInfo(request))
+                    .withMessageProperties(createMessageProperties(request))
+                    .withPayloadInfo(createPayloadInfo(request, attachments))
+                    .build();
     }
 
     private PayloadInfo createPayloadInfo(TransmissionRequest request, Collection<Attachment> attachments) {
 
         ArrayList<PartInfo> partInfos = Lists.newArrayList();
-        for(Attachment attachment : attachments){
+        for (Attachment attachment : attachments) {
 
-            PartProperties.Builder partProperties = PartProperties.builder();
+            PartProperties.Builder<Void> partProperties = PartProperties.builder();
 
             String cid = "cid:" + AttachmentUtil.cleanContentId(attachment.getId());
 
@@ -73,11 +72,11 @@ public class MessagingProvider {
 
             if (request instanceof As4TransmissionRequest) {
                 As4TransmissionRequest as4TransmissionRequest = (As4TransmissionRequest) request;
-                if(null != as4TransmissionRequest.getPayloadCharset()){
+                if (null != as4TransmissionRequest.getPayloadCharset()) {
                     partProperties.addProperty(
                             Property.builder()
                                     .withName("CharacterSet")
-                                    .withValue( as4TransmissionRequest.getPayloadCharset().name().toLowerCase() )
+                                    .withValue(as4TransmissionRequest.getPayloadCharset().name().toLowerCase())
                                     .build()
                     );
                 }
@@ -160,7 +159,7 @@ public class MessagingProvider {
         ProcessIdentifier process = request.getHeader().getProcess();
 
 
-        CollaborationInfo.Builder cib = CollaborationInfo.builder()
+        CollaborationInfo.Builder<Void> cib = CollaborationInfo.builder()
                 .withConversationId(getConversationId(request))
                 .withAction(action)
                 .withService(Service.builder()
@@ -170,7 +169,7 @@ public class MessagingProvider {
                 );
 
 
-        if (request instanceof As4TransmissionRequest && ((As4TransmissionRequest)request).isPing()) {
+        if (request instanceof As4TransmissionRequest && ((As4TransmissionRequest) request).isPing()) {
             cib = cib.withAction(TEST_ACTION)
                     .withService(Service.builder()
                             .withValue(TEST_SERVICE)
@@ -198,14 +197,14 @@ public class MessagingProvider {
             throw new RuntimeException("Error getting xml date", e);
         }
 
-        MessageInfo.Builder builder = MessageInfo.builder()
+        MessageInfo.Builder<Void> builder = MessageInfo.builder()
                 .withMessageId(getMessageId(request))
                 .withTimestamp(xmlDate);
 
-        if( request instanceof As4TransmissionRequest){
+        if (request instanceof As4TransmissionRequest) {
             As4TransmissionRequest as4TransmissionRequest = (As4TransmissionRequest) request;
-            if( as4TransmissionRequest.getRefToMessageId() != null ){
-                builder.withRefToMessageId( as4TransmissionRequest.getRefToMessageId() );
+            if (as4TransmissionRequest.getRefToMessageId() != null) {
+                builder.withRefToMessageId(as4TransmissionRequest.getRefToMessageId());
             }
         }
 

@@ -13,35 +13,30 @@ public class CompressionUtil {
     private final ExecutorService pool;
 
     @Inject
-    public CompressionUtil(@Named("compression-pool") ExecutorService executorService){
+    public CompressionUtil(@Named("compression-pool") ExecutorService executorService) {
         this.pool = executorService;
     }
 
     /**
      * Gets Compressed Stream for given input Stream
-     * @param sourceStream  : Input Stream to be compressed to
-     * @return  Compressed Stream
+     *
+     * @param sourceStream : Input Stream to be compressed to
+     * @return Compressed Stream
      * @throws IOException when some thing bad happens
      */
     public InputStream getCompressedStream(final InputStream sourceStream) throws IOException {
 
-        if(sourceStream == null) {
+        if (sourceStream == null) {
             throw new IllegalArgumentException("Source Stream cannot be NULL");
         }
 
-        /**
-         *  sourceStream --> zipperOutStream(->intermediateStream -)--> resultStream
-         */
         final PipedInputStream resultStream = new PipedInputStream();
         final PipedOutputStream intermediateStream = new PipedOutputStream(resultStream);
         final OutputStream zipperOutStream = new GZIPOutputStream(intermediateStream);
 
         Runnable copyTask = () -> {
             try {
-                int content;
-                while((content = sourceStream.read()) >= 0) {
-                    zipperOutStream.write(content);
-                }
+                IOUtils.copy(sourceStream, zipperOutStream);
                 zipperOutStream.flush();
             } catch (IOException e) {
                 IOUtils.closeQuietly(resultStream);  // close it on error case only

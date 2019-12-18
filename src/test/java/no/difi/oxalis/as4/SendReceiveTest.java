@@ -6,6 +6,8 @@ import com.google.inject.Injector;
 import com.google.inject.Key;
 import com.google.inject.name.Names;
 import com.google.inject.util.Modules;
+import lombok.SneakyThrows;
+import lombok.Value;
 import no.difi.oxalis.api.model.TransmissionIdentifier;
 import no.difi.oxalis.api.outbound.MessageSender;
 import no.difi.oxalis.api.outbound.TransmissionRequest;
@@ -29,18 +31,16 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.URI;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.cert.X509Certificate;
 import java.util.*;
 
 public class SendReceiveTest extends AbstractJettyServerTest {
 
-    private MemoryPersister memoryPersister = new MemoryPersister();
+    private TemporaryFilePersister temporaryFilePersister = new TemporaryFilePersister();
 
     private byte[] firstPayload;
     private byte[] secondPayload;
@@ -53,7 +53,6 @@ public class SendReceiveTest extends AbstractJettyServerTest {
         IOUtils.copy(is, buffer);
 
         this.firstPayload = buffer.toByteArray();
-
 
 
         is = getClass().getResourceAsStream("/simple-sbd.xml");
@@ -72,8 +71,9 @@ public class SendReceiveTest extends AbstractJettyServerTest {
                 Modules.override(new GuiceModuleLoader()).with(new AbstractModule() {
                     @Override
                     protected void configure() {
-                        bind(ReceiptPersister.class).toInstance((m, p) -> {});
-                        bind(PayloadPersister.class).toInstance(memoryPersister);
+                        bind(ReceiptPersister.class).toInstance((m, p) -> {
+                        });
+                        bind(PayloadPersister.class).toInstance(temporaryFilePersister);
                         bind(MessageIdGenerator.class).toInstance(new DefaultMessageIdGenerator("test.com"));
                     }
                 })
@@ -81,7 +81,7 @@ public class SendReceiveTest extends AbstractJettyServerTest {
     }
 
     @BeforeClass
-    public void addLoggingInterceptors(){
+    public void addLoggingInterceptors() {
         Collection<Feature> features = BusFactory.getDefaultBus().getFeatures();
         features.add(new LoggingFeature());
         BusFactory.getDefaultBus().setFeatures(features);
@@ -89,7 +89,7 @@ public class SendReceiveTest extends AbstractJettyServerTest {
 
     @BeforeTest
     public void reset() {
-        memoryPersister.reset();
+        temporaryFilePersister.reset();
     }
 
     @Test
@@ -120,7 +120,7 @@ public class SendReceiveTest extends AbstractJettyServerTest {
 
             @Override
             public Tag getTag() {
-                return new PeppolConfiguration(){
+                return new PeppolConfiguration() {
                     @Override
                     public List<String> getActions() {
                         return super.getActions();
@@ -157,14 +157,13 @@ public class SendReceiveTest extends AbstractJettyServerTest {
         Assert.assertNotNull(firstResponse);
         Assert.assertEquals(TransportProfile.AS4, firstResponse.getProtocol());
 
-        Assert.assertEquals(memoryPersister.getPersistedData().size(), 1);
-        Map<MemoryPersister.Types, Object> dataFromFirstTransmission = memoryPersister.getPersistedData().
-                get(firstResponse.getTransmissionIdentifier().getIdentifier());
+        Assert.assertEquals(temporaryFilePersister.size(), 1);
+        Map<TemporaryFilePersister.Types, Object> dataFromFirstTransmission = temporaryFilePersister.getPersistedData(firstResponse.getTransmissionIdentifier());
         Assert.assertNotNull(dataFromFirstTransmission);
 
-        Assert.assertEquals(firstResponse.getTransmissionIdentifier(), dataFromFirstTransmission.get(MemoryPersister.Types.ID));
-        Assert.assertNotNull(dataFromFirstTransmission.get(MemoryPersister.Types.HEADER));
-        Assert.assertEquals(firstPayload, (byte[]) dataFromFirstTransmission.get(MemoryPersister.Types.PAYLOAD));
+        Assert.assertEquals(firstResponse.getTransmissionIdentifier(), dataFromFirstTransmission.get(TemporaryFilePersister.Types.ID));
+        Assert.assertNotNull(dataFromFirstTransmission.get(TemporaryFilePersister.Types.HEADER));
+        Assert.assertEquals(firstPayload, (byte[]) dataFromFirstTransmission.get(TemporaryFilePersister.Types.PAYLOAD));
 
         // Perform a second transmission
         TransmissionResponse secondResponse = messageSender.send(new TransmissionRequest() {
@@ -195,47 +194,65 @@ public class SendReceiveTest extends AbstractJettyServerTest {
 
         Assert.assertNotEquals(secondResponse.getTransmissionIdentifier(), firstResponse.getTransmissionIdentifier());
 
-        Assert.assertEquals(memoryPersister.getPersistedData().size(), 2);
-        Map<MemoryPersister.Types, Object> dataFromSecondTransmission = memoryPersister.getPersistedData().
-                get(secondResponse.getTransmissionIdentifier().getIdentifier());
+        Assert.assertEquals(temporaryFilePersister.size(), 2);
+        Map<TemporaryFilePersister.Types, Object> dataFromSecondTransmission = temporaryFilePersister.getPersistedData(secondResponse.getTransmissionIdentifier());
         Assert.assertNotNull(dataFromSecondTransmission);
 
-        Assert.assertEquals(secondResponse.getTransmissionIdentifier(), dataFromSecondTransmission.get(MemoryPersister.Types.ID));
-        Assert.assertNotNull(dataFromSecondTransmission.get(MemoryPersister.Types.HEADER));
-        Assert.assertEquals(secondPayload, (byte[]) dataFromSecondTransmission.get(MemoryPersister.Types.PAYLOAD));
+        Assert.assertEquals(secondResponse.getTransmissionIdentifier(), dataFromSecondTransmission.get(TemporaryFilePersister.Types.ID));
+        Assert.assertNotNull(dataFromSecondTransmission.get(TemporaryFilePersister.Types.HEADER));
+        Assert.assertEquals(secondPayload, (byte[]) dataFromSecondTransmission.get(TemporaryFilePersister.Types.PAYLOAD));
     }
 
-
-    static class MemoryPersister implements PayloadPersister {
-        enum Types{
+    static class TemporaryFilePersister implements PayloadPersister {
+        enum Types {
             ID, HEADER, PAYLOAD
         }
 
-        private Map<String, EnumMap<Types, Object>> persistedData = new TreeMap<>();
+        private Map<String, Data> map = new TreeMap<>();
 
         @Override
         public Path persist(TransmissionIdentifier transmissionIdentifier, Header header, InputStream is) throws IOException {
 
+            Path path = Files.createTempFile(transmissionIdentifier.getIdentifier(), "tmp");
+
             ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-
             IOUtils.copy(is, buffer);
+            byte[] payload = buffer.toByteArray();
 
-            EnumMap<Types, Object> map = new EnumMap<>(Types.class);
-            map.put(Types.ID, transmissionIdentifier);
-            map.put(Types.HEADER, header);
-            map.put(Types.PAYLOAD, buffer.toByteArray());
+            try (FileOutputStream fileOutputStream = new FileOutputStream(path.toFile())) {
+                fileOutputStream.write(payload);
+            }
 
-            persistedData.put(transmissionIdentifier.getIdentifier(), map);
+            map.put(transmissionIdentifier.getIdentifier(), new Data(path, header));
 
-            return null;
+            return path;
         }
 
         public void reset() {
-            persistedData.clear();
+            map.clear();
         }
 
-        public Map<String, EnumMap<Types, Object>> getPersistedData(){
-            return Collections.unmodifiableMap(persistedData);
+        public int size() {
+            return map.size();
+        }
+
+        @SneakyThrows
+        public EnumMap<Types, Object> getPersistedData(TransmissionIdentifier transmissionIdentifier) {
+            Data data = map.get(transmissionIdentifier.getIdentifier());
+
+            try (FileInputStream fi = new FileInputStream(data.path.toFile())) {
+                EnumMap<Types, Object> map = new EnumMap<>(Types.class);
+                map.put(Types.ID, transmissionIdentifier);
+                map.put(Types.HEADER, data.header);
+                map.put(Types.PAYLOAD, IOUtils.toByteArray(fi));
+                return map;
+            }
+        }
+
+        @Value
+        private static class Data {
+            private final Path path;
+            private final Header header;
         }
     }
 }

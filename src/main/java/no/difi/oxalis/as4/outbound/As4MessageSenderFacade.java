@@ -17,8 +17,6 @@ public class As4MessageSenderFacade implements MessageSender {
 
     @Override
     public TransmissionResponse send(TransmissionRequest transmissionRequest) throws OxalisTransmissionException {
-
         return messageSender.send(transmissionRequest);
-
     }
 }

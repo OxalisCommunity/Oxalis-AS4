@@ -10,7 +10,6 @@ import org.apache.neethi.AssertionBuilderFactory;
 import org.apache.neethi.Policy;
 import org.apache.neethi.builders.xml.XMLPrimitiveAssertionBuilder;
 import org.apache.wss4j.common.WSS4JConstants;
-import org.apache.wss4j.dom.WSConstants;
 import org.apache.wss4j.policy.SPConstants;
 import org.apache.wss4j.policy.model.AbstractSecurityAssertion;
 import org.apache.wss4j.policy.model.AlgorithmSuite;
@@ -20,14 +19,14 @@ import javax.xml.namespace.QName;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.apache.wss4j.common.WSS4JConstants.MGF_SHA256;
+
 
 // Based on from CEF e-delivery Domibus
 // https://ec.europa.eu/cefdigital/code/projects/EDELIVERY/repos/domibus/browse/Domibus-MSH/src/main/java/eu/domibus/ebms3/security/custom/DomibusAlgorithmSuiteLoader.java
 public class OxalisAlgorithmSuiteLoader implements AlgorithmSuiteLoader {
 
     public static final String OXALIS_ALGORITHM_NAMESPACE = "http://oxalis.difi.no/custom/security-policy";
-
-    public static final String MGF1_KEY_TRANSPORT_ALGORITHM = "http://www.w3.org/2009/xmlenc11#rsa-oaep";
     public static final String AES128_GCM_ALGORITHM = "http://www.w3.org/2009/xmlenc11#aes128-gcm";
     public static final String BASIC_128_GCM_SHA_256 = "Basic128GCMSha256";
     public static final String BASIC_128_GCM_SHA_256_MGF_SHA_256 = "Basic128GCMSha256MgfSha256";
@@ -35,19 +34,26 @@ public class OxalisAlgorithmSuiteLoader implements AlgorithmSuiteLoader {
 
     public OxalisAlgorithmSuiteLoader(final Bus bus) {
         bus.setExtension(this, AlgorithmSuiteLoader.class);
+        register(bus);
     }
 
 
     public AlgorithmSuite getAlgorithmSuite(final Bus bus, final SPConstants.SPVersion version, final Policy nestedPolicy) {
+        register(bus);
+        return new OxalisAlgorithmSuite(version, nestedPolicy);
+    }
+
+    private void register(final Bus bus) {
         final AssertionBuilderRegistry reg = bus.getExtension(AssertionBuilderRegistry.class);
         if (reg != null) {
-            final Map<QName, Assertion> assertions = new HashMap<QName, Assertion>();
+            final Map<QName, Assertion> assertions = new HashMap<>();
             QName qName = new QName(OXALIS_ALGORITHM_NAMESPACE, BASIC_128_GCM_SHA_256);
             assertions.put(qName, new PrimitiveAssertion(qName));
             qName = new QName(OXALIS_ALGORITHM_NAMESPACE, BASIC_128_GCM_SHA_256_MGF_SHA_256);
             assertions.put(qName, new PrimitiveAssertion(qName));
 
             reg.registerBuilder(new PrimitiveAssertionBuilder(assertions.keySet()) {
+                @Override
                 public Assertion build(final Element element, final AssertionBuilderFactory fact) {
                     if (XMLPrimitiveAssertionBuilder.isOptional(element)
                             || XMLPrimitiveAssertionBuilder.isIgnorable(element)) {
@@ -58,7 +64,6 @@ public class OxalisAlgorithmSuiteLoader implements AlgorithmSuiteLoader {
                 }
             });
         }
-        return new OxalisAlgorithmSuite(version, nestedPolicy);
     }
 
     public static class OxalisAlgorithmSuite extends AlgorithmSuite {
@@ -91,7 +96,7 @@ public class OxalisAlgorithmSuiteLoader implements AlgorithmSuiteLoader {
                             128, 128, 128, 256, 1024, 4096
                     )
             );
-            ALGORITHM_SUITE_TYPES.get(BASIC_128_GCM_SHA_256_MGF_SHA_256).setMGFAlgo(WSConstants.MGF_SHA256);
+            ALGORITHM_SUITE_TYPES.get(BASIC_128_GCM_SHA_256_MGF_SHA_256).setMGFAlgo(MGF_SHA256);
             ALGORITHM_SUITE_TYPES.get(BASIC_128_GCM_SHA_256_MGF_SHA_256).setEncryptionDigest(SPConstants.SHA256);
         }
 

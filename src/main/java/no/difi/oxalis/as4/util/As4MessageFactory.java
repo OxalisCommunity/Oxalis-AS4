@@ -6,6 +6,7 @@ import no.difi.oxalis.as4.api.MessageIdGenerator;
 import no.difi.oxalis.as4.inbound.ProsessingContext;
 import no.difi.oxalis.as4.lang.OxalisAs4Exception;
 import org.apache.cxf.interceptor.Fault;
+import org.apache.cxf.ws.policy.PolicyConstants;
 import org.oasis_open.docs.ebxml_bp.ebbp_signals_2.MessagePartNRInformation;
 import org.oasis_open.docs.ebxml_bp.ebbp_signals_2.NonRepudiationInformation;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.Error;
@@ -22,15 +23,12 @@ import java.util.stream.Collectors;
 @Singleton
 public class As4MessageFactory {
 
-    private MessageIdGenerator messageIdGenerator;
-
-    private MessageFactory messageFactory;
-    private JAXBContext jaxbContext;
-
+    private final MessageIdGenerator messageIdGenerator;
+    private final MessageFactory messageFactory;
+    private final JAXBContext jaxbContext;
 
     @Inject
     public As4MessageFactory(MessageIdGenerator messageIdGenerator) throws SOAPException {
-
         this(
                 messageIdGenerator,
                 MessageFactory.newInstance(SOAPConstants.SOAP_1_2_PROTOCOL),
@@ -39,7 +37,6 @@ public class As4MessageFactory {
     }
 
     public As4MessageFactory(MessageIdGenerator messageIdGenerator, MessageFactory messageFactory, JAXBContext jaxbContext) {
-
         this.messageFactory = messageFactory;
         this.jaxbContext = jaxbContext;
         this.messageIdGenerator = messageIdGenerator;
@@ -91,7 +88,7 @@ public class As4MessageFactory {
                     .withRefToMessageInError(messageId.getValue())
 
                     .withErrorCode(oxalisException.getErrorCode().toString())
-                    .withErrorDetail(oxalisException.getMessage())
+                    .withErrorDetail(getErrorDetail(oxalisException))
                     .withShortDescription(oxalisException.getErrorCode().getShortDescription())
                     //                .withDescription()
 
@@ -114,10 +111,24 @@ public class As4MessageFactory {
         }
     }
 
+    private String getErrorDetail(OxalisAs4Exception oxalisException) {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append(oxalisException.getMessage());
+
+        Throwable throwable = oxalisException;
+
+        while (throwable.getCause() != null) {
+            throwable = throwable.getCause();
+            sb.append("\ncause: ").append(throwable.getMessage());
+        }
+
+        return sb.toString();
+    }
+
     public SOAPMessage marshalSignalMessage(SignalMessage signalMessage) throws OxalisAs4Exception {
         try {
             SOAPMessage message = messageFactory.createMessage();
-
             SOAPHeader soapHeader = message.getSOAPHeader();
 
             SOAPHeaderElement messagingHeader = soapHeader.addHeaderElement(Constants.MESSAGING_QNAME);
@@ -130,6 +141,8 @@ public class As4MessageFactory {
             );
 
             jaxbContext.createMarshaller().marshal(userMessageJAXBElement, messagingHeader);
+
+//            message.setProperty(PolicyConstants.POLICY_OVERRIDE, PolicyUtil.getPolicy());
 
             return message;
 

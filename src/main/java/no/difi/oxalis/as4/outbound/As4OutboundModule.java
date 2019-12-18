@@ -38,15 +38,13 @@ public class As4OutboundModule extends AbstractModule {
         bind(As4MessageSender.class);
 
         bind(TransmissionResponseConverter.class);
-
     }
 
     @Provides
     @Singleton
     public Bus getBus(){
-        Bus bus =  BusFactory.getThreadDefaultBus(true);
-        bus.setExtension(new OxalisAlgorithmSuiteLoader(bus), AlgorithmSuiteLoader.class);
-
+        Bus bus =  BusFactory.getDefaultBus(true);
+        new OxalisAlgorithmSuiteLoader(bus);
         return bus;
     }
 

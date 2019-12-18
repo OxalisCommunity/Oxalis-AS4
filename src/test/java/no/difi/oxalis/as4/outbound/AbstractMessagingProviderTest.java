@@ -122,7 +122,7 @@ public abstract class AbstractMessagingProviderTest {
         Attachment attachment = AttachmentUtil.createAttachment(transmissionRequest.getPayload(), headers);
 
         Messaging messaging = messagingProvider.createMessagingHeader(
-                transmissionRequest , new ArrayList<>(Arrays.asList(attachment))
+                transmissionRequest , new ArrayList<>(Collections.singletonList(attachment))
         );
 
         UserMessage userMessage = messaging.getUserMessage().get(0);

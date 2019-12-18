@@ -11,7 +11,7 @@ import java.util.List;
 
 @Getter
 @ToString
-public class As4PayloadHeader extends Header{
+public class As4PayloadHeader extends Header {
 
     private final Header header;
     private final Collection<MimeHeader> mimeHeaders;
@@ -19,20 +19,12 @@ public class As4PayloadHeader extends Header{
 
     private final String conversationId;
 
-    public As4PayloadHeader(Header header, Collection<MimeHeader> mimeHeaders, String cid) {
-       this.header = header;
-       this.mimeHeaders = mimeHeaders;
-       this.cid = cid;
-       this.conversationId = null;
-    }
-
     public As4PayloadHeader(Header header, Collection<MimeHeader> mimeHeaders, String cid, String conversationId) {
         this.header = header;
         this.mimeHeaders = mimeHeaders;
         this.cid = cid;
         this.conversationId = conversationId;
     }
-
 
     @Override
     public Header sender(ParticipantIdentifier sender) {

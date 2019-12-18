@@ -5,7 +5,6 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import no.difi.oxalis.api.header.HeaderParser;
-import no.difi.oxalis.api.lang.OxalisContentException;
 import no.difi.oxalis.api.lang.TimestampException;
 import no.difi.oxalis.api.lang.VerifierException;
 import no.difi.oxalis.api.model.Direction;
@@ -15,6 +14,7 @@ import no.difi.oxalis.api.timestamp.Timestamp;
 import no.difi.oxalis.api.timestamp.TimestampProvider;
 import no.difi.oxalis.api.transmission.TransmissionVerifier;
 import no.difi.oxalis.as4.lang.OxalisAs4Exception;
+import no.difi.oxalis.as4.lang.OxalisAs4TransmissionException;
 import no.difi.oxalis.as4.util.*;
 import no.difi.oxalis.commons.header.SbdhHeaderParser;
 import no.difi.oxalis.commons.io.PeekingInputStream;
@@ -26,27 +26,22 @@ import no.difi.vefa.peppol.common.model.ParticipantIdentifier;
 import no.difi.vefa.peppol.common.model.TransportProfile;
 import no.difi.vefa.peppol.sbdh.SbdReader;
 import no.difi.vefa.peppol.sbdh.lang.SbdhException;
-import org.apache.cxf.BusFactory;
 import org.apache.cxf.attachment.AttachmentUtil;
 import org.apache.cxf.helpers.CastUtils;
-import org.apache.cxf.helpers.XPathUtils;
 import org.apache.cxf.message.Attachment;
 import org.apache.cxf.phase.PhaseInterceptorChain;
 import org.apache.cxf.ws.policy.AssertionInfoMap;
-import org.apache.cxf.ws.policy.PolicyBuilder;
 import org.apache.neethi.Policy;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.*;
 import org.w3.xmldsig.ReferenceType;
 
 import javax.xml.soap.*;
-import java.io.ByteArrayInputStream;
+import javax.xml.ws.handler.MessageContext;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -59,6 +54,7 @@ import java.util.zip.ZipException;
 public class As4InboundHandler {
 
     private static final String REQUIRED_PAYLOAD_HREF_PREFIX = "cid:";
+    public static final String COMPRESSION_TYPE = "CompressionType";
 
     private final TransmissionVerifier transmissionVerifier;
     private final PersisterHandler persisterHandler;
@@ -75,9 +71,7 @@ public class As4InboundHandler {
         this.as4MessageFactory = as4MessageFactory;
     }
 
-
-    public SOAPMessage handle(SOAPMessage request) throws OxalisAs4Exception {
-
+    public SOAPMessage handle(SOAPMessage request, MessageContext messageContext) throws OxalisAs4Exception {
         SOAPHeader soapHeader = getSoapHeader(request);
         Timestamp timestamp = getTimestamp(soapHeader);
         Iterator<AttachmentPart> attachments = CastUtils.cast(request.getAttachments());
@@ -87,14 +81,10 @@ public class As4InboundHandler {
 
         As4EnvelopeHeader envelopeHeader = parseAs4EnvelopeHeader(userMessage);
 
-
-
-
         TransmissionIdentifier messageId = TransmissionIdentifier.of(envelopeHeader.getMessageId());
 
         validateMessageId(messageId.getIdentifier()); // Validate UserMessage
         validatePayloads(userMessage.getPayloadInfo()); // Validate Payloads
-
 
         List<ReferenceType> referenceList = SOAPHeaderParser.getReferenceListFromSignedInfo(soapHeader);
         ProsessingContext prosessingContext = new ProsessingContext(timestamp, referenceList);
@@ -102,32 +92,33 @@ public class As4InboundHandler {
         // Prepare response
         SOAPMessage response = as4MessageFactory.createReceiptMessage(userMessage, prosessingContext);
 
-        if( ! isPingMessage(Optional.of(userMessage)) ) {
-
+        if (!isPingMessage(userMessage)) {
             // Inform Backend
 
             // Take a copy of the response so that we can persist it as metadata/proof
             byte[] copyOfReceipt = copyReceipt(response);
 
-
             // Handle payload
             LinkedHashMap<InputStream, As4PayloadHeader> payloads = parseAttachments(attachments, userMessage);
 
             List<Path> paths = new ArrayList<>();
-            for (Map.Entry<InputStream, As4PayloadHeader> paylaod : payloads.entrySet()) {
-
-                validateAttachmentHeader(paylaod.getValue());
+            for (Map.Entry<InputStream, As4PayloadHeader> payload : payloads.entrySet()) {
+                validateAttachmentHeader(payload.getValue());
 
                 // Persist payload
-                paths.add(persistPayload(paylaod.getKey(), paylaod.getValue(), messageId));
+                paths.add(persistPayload(payload.getKey(), payload.getValue(), messageId));
             }
 
+            Path firstPayloadPath = paths.get(0);
+            messageContext.put(AS4MessageContextKey.FIRST_PAYLOAD_PATH, firstPayloadPath);
+            messageContext.put(AS4MessageContextKey.FIRST_PAYLOAD_HEADER, payloads.values().iterator().next());
 
             // Persist Metadata
             As4PayloadHeader firstHeader = payloads.entrySet().iterator().next().getValue();
             String firstAttachmentId = envelopeHeader.getPayloadCIDs().get(0);
             Digest firstAttachmentDigest = Digest.of(DigestMethod.SHA256, SOAPHeaderParser.getAttachmentDigest(firstAttachmentId, soapHeader));
-            X509Certificate senderCertificate = extractSenderCertificate(soapHeader);
+
+            X509Certificate senderCertificate = SOAPHeaderParser.getSenderCertificate(soapHeader);
 
             As4InboundMetadata as4InboundMetadata = new As4InboundMetadata(
                     messageId,
@@ -141,59 +132,57 @@ public class As4InboundHandler {
                     envelopeHeader);
 
             try {
-                persisterHandler.persist(as4InboundMetadata, paths.get(0));
+                persisterHandler.persist(as4InboundMetadata, firstPayloadPath);
             } catch (IOException e) {
                 throw new OxalisAs4Exception("Error persisting AS4 metadata", e, AS4ErrorCode.EBMS_0202);
             }
         }
 
         // Send response
-
+        Policy policy = null;
+        try {
+            policy = PolicyUtil.getPolicy();
+        } catch (OxalisAs4TransmissionException e) {
+            throw new OxalisAs4Exception("Could not get policy", e, AS4ErrorCode.EBMS_0202);
+        }
 
         try {
-
-
-
-            InputStream policyStream = getClass().getResourceAsStream("/policy.xml");
-
-            PolicyBuilder builder = BusFactory.getDefaultBus().getExtension(org.apache.cxf.ws.policy.PolicyBuilder.class);
-            Policy policy = builder.getPolicy(policyStream);
-
             response.setProperty(AssertionInfoMap.class.getName(), new AssertionInfoMap(policy));
             response.saveChanges();
-
-
-        }catch (Exception e){
-            e.printStackTrace();
+        } catch (SOAPException e) {
+            throw new OxalisAs4Exception("Error persisting AS4 metadata", e, AS4ErrorCode.EBMS_0202);
         }
 
         return response;
     }
 
-    private boolean isPingMessage(Optional<UserMessage> userMessage) {
+    private boolean isPingMessage(UserMessage userMessage) {
+        if (userMessage == null) {
+            return false;
+        }
 
-        return userMessage
-                .map(UserMessage::getCollaborationInfo)
-                .map(CollaborationInfo::getService)
+        CollaborationInfo collaborationInfo = userMessage.getCollaborationInfo();
+
+        if (collaborationInfo == null) {
+            return false;
+        }
+
+        return Optional.ofNullable(collaborationInfo.getService())
                 .map(Service::getValue)
-                .map(
-                        service -> userMessage
-                                .map(UserMessage::getCollaborationInfo)
-                                .map(CollaborationInfo::getAction)
-                                .map(action ->
-                                        Constants.TEST_SERVICE.equals(service) && Constants.TEST_ACTION.equals(action)
-                                ).orElse(false)
+                .map(service -> Optional.ofNullable(collaborationInfo.getAction())
+                        .map(action ->
+                                Constants.TEST_SERVICE.equals(service) && Constants.TEST_ACTION.equals(action)
+                        ).orElse(false)
                 ).orElse(false);
-
     }
 
-    public static void validatePayloads(PayloadInfo payloadInfo) throws OxalisAs4Exception{
+    public static void validatePayloads(PayloadInfo payloadInfo) throws OxalisAs4Exception {
         List<String> externalPayloads = payloadInfo.getPartInfo().stream()
-                .map( PartInfo::getHref )
-                .filter( href -> !href.startsWith(REQUIRED_PAYLOAD_HREF_PREFIX) )
-                .collect( Collectors.toList() );
+                .map(PartInfo::getHref)
+                .filter(href -> !href.startsWith(REQUIRED_PAYLOAD_HREF_PREFIX))
+                .collect(Collectors.toList());
 
-        if(!externalPayloads.isEmpty()){
+        if (!externalPayloads.isEmpty()) {
             String errorMessage = "Invalid PayloadInfo. Href(s) detected with \"external\" source: " + externalPayloads;
             log.debug(errorMessage);
 
@@ -209,7 +198,7 @@ public class As4InboundHandler {
                 .map(PartInfo::getHref)
                 .collect(Collectors.toList());
 
-        if(!payloadsWithInvalidCharset.isEmpty()){
+        if (!payloadsWithInvalidCharset.isEmpty()) {
             String errorMessage = "Invalid PayloadInfo. Part(s) detected invalid \"CharacterSet\" header: " + payloadsWithInvalidCharset;
             log.debug(errorMessage);
 
@@ -220,13 +209,12 @@ public class As4InboundHandler {
         }
 
 
-
         List<String> payloadsMissingMimeTypeHeader = payloadInfo.getPartInfo().stream()
                 .filter(As4InboundHandler::partInfoMissingMimeTypeHeader)
                 .map(PartInfo::getHref)
                 .collect(Collectors.toList());
 
-        if(!payloadsMissingMimeTypeHeader.isEmpty()){
+        if (!payloadsMissingMimeTypeHeader.isEmpty()) {
             String errorMessage = "Invalid PayloadInfo. Part(s) detected without \"MimeType\" header: " + payloadsMissingMimeTypeHeader;
             log.debug(errorMessage);
 
@@ -240,50 +228,37 @@ public class As4InboundHandler {
 
     private static boolean partInfoHasInvalidCharset(PartInfo partInfo) {
 
-         return Optional.ofNullable(partInfo)
-
+        return Optional.ofNullable(partInfo)
                 .map(PartInfo::getPartProperties)
                 .map(PartProperties::getProperty)
-
                 .map(Collection::stream).orElse(Stream.empty())
-
-                 .anyMatch(property ->
-                         Optional.of(property)
-                                 .map(Property::getName)
-                                 .filter("CharacterSet"::equals)
-                                 .map(fieldName -> Optional.of(property)
-                                         .map(Property::getValue)
-                                         .map(charset -> {
-                                             try {
-                                                 return null == Charset.forName(property.getValue());
-                                             } catch (Exception e) {
-                                                 return true;
-                                             }
-                                         }).orElse(true)
-                                 ).orElse(false)
-
-                 );
-
-
+                .anyMatch(property ->
+                        Optional.of(property)
+                                .map(Property::getName)
+                                .filter("CharacterSet"::equals)
+                                .map(fieldName -> Optional.of(property)
+                                        .map(Property::getValue)
+                                        .map(charset -> {
+                                            try {
+                                                return null == Charset.forName(property.getValue());
+                                            } catch (Exception e) {
+                                                return true;
+                                            }
+                                        }).orElse(true)
+                                ).orElse(false)
+                );
     }
 
-
-    public static boolean partInfoMissingMimeTypeHeader(PartInfo partInfo){
-
-        return ! Optional.ofNullable(partInfo)
-
+    public static boolean partInfoMissingMimeTypeHeader(PartInfo partInfo) {
+        return Optional.ofNullable(partInfo)
                 .map(PartInfo::getPartProperties)
                 .map(PartProperties::getProperty)
-
                 .map(Collection::stream).orElse(Stream.empty())
-
                 .map(Property::getName)
-                .anyMatch("MimeType"::equals);
+                .noneMatch("MimeType"::equals);
     }
 
-
-    public byte[] copyReceipt(SOAPMessage response) throws OxalisAs4Exception{
-
+    public byte[] copyReceipt(SOAPMessage response) throws OxalisAs4Exception {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
         try {
@@ -295,7 +270,7 @@ public class As4InboundHandler {
         return bos.toByteArray();
     }
 
-    public void validateMessageId(String messageId) throws OxalisAs4Exception{
+    public void validateMessageId(String messageId) throws OxalisAs4Exception {
 
         if (!MessageIdUtil.verify(messageId)) {
             throw new OxalisAs4Exception(
@@ -306,51 +281,45 @@ public class As4InboundHandler {
 
     }
 
-    private LinkedHashMap<InputStream, As4PayloadHeader> parseAttachments(Iterator<AttachmentPart> attachments, UserMessage userMessage) throws  OxalisAs4Exception{
+    private LinkedHashMap<InputStream, As4PayloadHeader> parseAttachments(Iterator<AttachmentPart> attachments, UserMessage userMessage) throws OxalisAs4Exception {
 
-        if ( !attachments.hasNext() ) {
+        if (!attachments.hasNext()) {
             throw new OxalisAs4Exception("No attachment(s) present");
         }
 
         // <ContentId, <HeaderName, MimeHeader>>
         Map<String, Map<String, MimeHeader>> partInfoHeadersMap = userMessage.getPayloadInfo().getPartInfo().stream()
                 .collect(
-                    Collectors.toMap(
-                        partInfo -> AttachmentUtil.cleanContentId( partInfo.getHref() ),
-                        partInfo -> partInfo.getPartProperties().getProperty().stream().collect(
-                            Collectors.toMap(
-                                Property::getName,
-                                property -> new MimeHeader( property.getName(), property.getValue() )
-                            )
+                        Collectors.toMap(
+                                partInfo -> AttachmentUtil.cleanContentId(partInfo.getHref()),
+                                partInfo -> partInfo.getPartProperties().getProperty().stream().collect(
+                                        Collectors.toMap(
+                                                Property::getName,
+                                                property -> new MimeHeader(property.getName(), property.getValue())
+                                        )
+                                )
                         )
-                    )
                 );
 
         LinkedHashMap<InputStream, As4PayloadHeader> payloads = new LinkedHashMap<>();
 
         Collection<Attachment> s = PhaseInterceptorChain.getCurrentMessage().getAttachments();
 
-//        while( attachments.hasNext() ){
-        for(Attachment attachment : s){
+        for (Attachment attachment : s) {
             try {
-
-//                AttachmentPart attachmentPart = attachments.next();
-                InputStream is  = attachment.getDataHandler().getInputStream();
+                InputStream is = attachment.getDataHandler().getInputStream();
                 String contentId = AttachmentUtil.cleanContentId(attachment.getId());
 
                 Map<String, MimeHeader> mimeHeaders = new HashMap<>();
-//                Iterator<MimeHeader> mimeHeaderIterator = attachmentPart.getAllMimeHeaders();
-//                mimeHeaderIterator.forEachRemaining(m -> mimeHeaders.put(m.getName(), m));
-                attachment.getHeaderNames().forEachRemaining(h -> mimeHeaders.put(h, new MimeHeader(h, attachment.getHeader(h))));
-
+                attachment.getHeaderNames()
+                        .forEachRemaining(h -> mimeHeaders.put(h, new MimeHeader(h, attachment.getHeader(h))));
 
                 Map<String, MimeHeader> partInfoHeaders = partInfoHeadersMap.get(contentId);
 
-
-                if( isAttachmentCoompressed(partInfoHeaders, mimeHeaders) ){
+                if (isAttachmentCompressed(partInfoHeaders, mimeHeaders)) {
                     try {
                         is = new GZIPInputStream(is);
-                    }catch (IOException e){
+                    } catch (IOException e) {
                         throw new OxalisAs4Exception(
                                 "Unable to initiate decompression of payload with Content-ID: " + contentId,
                                 e,
@@ -360,10 +329,8 @@ public class As4InboundHandler {
                     }
                 }
 
-
-
                 Header sbdh;
-                if(headerParser instanceof SbdhHeaderParser) {
+                if (headerParser instanceof SbdhHeaderParser) {
 
                     try {
                         PeekingInputStream pis = new PeekingInputStream(is);
@@ -374,13 +341,11 @@ public class As4InboundHandler {
                             is = pis.newInputStream();
 
                         }
-                    }catch (SbdhException | IOException e){
-
+                    } catch (SbdhException | IOException e) {
                         launderZipException(contentId, e);
                         throw new OxalisAs4Exception("Could not extract SBDH from payload");
-
                     }
-                }else{
+                } else {
                     sbdh = new Header();
                     //TODO: populate based on userMessage
                     sbdh = sbdh.sender(ParticipantIdentifier.of(userMessage.getPartyInfo().getFrom().getPartyId().get(0).getValue()));
@@ -392,7 +357,7 @@ public class As4InboundHandler {
                 // Extract "fresh" InputStream
                 payloads.put(is, header);
 
-            } catch ( IOException  e ) {
+            } catch (IOException e) {
                 throw new OxalisAs4Exception("Could not get attachment input stream", e);
             }
         }
@@ -402,8 +367,8 @@ public class As4InboundHandler {
 
     private void launderZipException(String contentId, Exception e) throws OxalisAs4Exception {
         Throwable cause = e;
-        for(int i = 0; i < 10 && cause != null; i++){
-            if(cause instanceof ZipException){
+        for (int i = 0; i < 10 && cause != null; i++) {
+            if (cause instanceof ZipException) {
                 throw new OxalisAs4Exception(
                         "Unable to decompress of payload with Content-ID: " + contentId,
                         cause,
@@ -416,18 +381,18 @@ public class As4InboundHandler {
         }
     }
 
-    private boolean isAttachmentCoompressed(Map<String, MimeHeader> partInfoHeaders, Map<String, MimeHeader> mimeHeaders) {
-        if ( partInfoHeaders.containsKey("CompressionType") ){
-            String value = partInfoHeaders.get("CompressionType").getValue();
+    private boolean isAttachmentCompressed(Map<String, MimeHeader> partInfoHeaders, Map<String, MimeHeader> mimeHeaders) {
+        if (partInfoHeaders.containsKey(COMPRESSION_TYPE)) {
+            String value = partInfoHeaders.get(COMPRESSION_TYPE).getValue();
 
             // Somehow this fails
-            if( "application/gzip".equals(value) ){
+            if ("application/gzip".equals(value)) {
                 return true;
             }
         }
 
-        if ( mimeHeaders.containsKey("CompressionType") &&
-                "application/gzip".equals(mimeHeaders.get("CompressionType").getValue()) ){
+        if (mimeHeaders.containsKey(COMPRESSION_TYPE) &&
+                "application/gzip".equals(mimeHeaders.get(COMPRESSION_TYPE).getValue())) {
             return true;
         }
 
@@ -457,59 +422,27 @@ public class As4InboundHandler {
         return as4EnvelopeHeader;
     }
 
-    private X509Certificate extractSenderCertificate(SOAPHeader header) throws OxalisAs4Exception {
-        Map<String, String> ns = new TreeMap<>();
-        ns.put("wsse", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd");
-        ns.put("secutil", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd");
-        ns.put("xmldsig", "http://www.w3.org/2000/09/xmldsig#");
-        XPathUtils xu = new XPathUtils(ns);
-
-        // Thanks to 'tjeb' for good info in PR #28
-        String cert = xu.getValueString("//wsse:BinarySecurityToken[@secutil:Id=substring-after(//xmldsig:Signature/xmldsig:KeyInfo/wsse:SecurityTokenReference/wsse:Reference[1]/@URI, '#')]", header);
-        if (cert == null) {
-            throw new OxalisAs4Exception("Unable to locate sender certificate");
-        }
-
-        try {
-            CertificateFactory cf = CertificateFactory.getInstance("X.509");
-            byte[] certBytes = Base64.getDecoder().decode(cert.replaceAll("\r|\n", ""));
-            return (X509Certificate) cf.generateCertificate(new ByteArrayInputStream(certBytes));
-        } catch ( CertificateException e ) {
-            throw new OxalisAs4Exception("Unable to parse sender certificate", e);
-        }
-    }
-
-
     private Timestamp getTimestamp(SOAPHeader header) throws OxalisAs4Exception {
-        Timestamp ts;
         byte[] signature = SOAPHeaderParser.getSignature(header);
         try {
-
-            ts = timestampProvider.generate(signature, Direction.IN);
-
+            return timestampProvider.generate(signature, Direction.IN);
         } catch (TimestampException e) {
-
             throw new OxalisAs4Exception("Error generating timestamp", e);
         }
-        return ts;
     }
 
     private Path persistPayload(InputStream inputStream, As4PayloadHeader as4PayloadHeader, TransmissionIdentifier ti) throws OxalisAs4Exception {
-
-        Path payloadPath;
         try {
-
             // Persist content
-            payloadPath = persisterHandler.persist(ti, as4PayloadHeader,
-                    new UnclosableInputStream(inputStream));
+            Path payloadPath = persisterHandler.persist(ti, as4PayloadHeader, new UnclosableInputStream(inputStream));
 
             // Exhaust InputStream
             ByteStreams.exhaust(inputStream);
+            return payloadPath;
         } catch (IOException e) {
             launderZipException(as4PayloadHeader.getCid(), e);
             throw new OxalisAs4Exception("Error processing payload input stream", e);
         }
-        return payloadPath;
     }
 
     private void validateAttachmentHeader(Header attachmentHeader) throws OxalisAs4Exception {
@@ -520,53 +453,11 @@ public class As4InboundHandler {
         }
     }
 
-    private Header parseAttachmentHeader(InputStream is) throws OxalisAs4Exception {
-        Header header;
-
-        try {
-            header = headerParser.parse(is);
-        } catch (OxalisContentException e) {
-            throw new OxalisAs4Exception("Could not extract SBDH from payload", e);
-        }
-
-        return header;
-    }
-
-    private PeekingInputStream getAttachmentStream(SOAPMessage request) throws OxalisAs4Exception {
-
-        Iterator<AttachmentPart> attachments = CastUtils.cast(request.getAttachments());
-        // Should only be one attachment?
-        if (!attachments.hasNext()) {
-            throw new OxalisAs4Exception("No attachment present");
-        }
-
-        InputStream attachmentStream;
-        try {
-            AttachmentPart attachmentPart = attachments.next();
-
-            attachmentStream = attachmentPart.getDataHandler().getInputStream();
-
-        } catch (IOException | SOAPException e) {
-            throw new OxalisAs4Exception("Could not get attachment input stream", e);
-        }
-
-        PeekingInputStream peekingInputStream;
-        try {
-            peekingInputStream = new PeekingInputStream(new GZIPInputStream(attachmentStream));
-        } catch (IOException e) {
-            throw new OxalisAs4Exception("Could not obtain attachment inputStream", e);
-        }
-        return peekingInputStream;
-    }
-
     private SOAPHeader getSoapHeader(SOAPMessage request) throws OxalisAs4Exception {
-        SOAPHeader header;
         try {
-            header = request.getSOAPHeader();
+            return request.getSOAPHeader();
         } catch (SOAPException e) {
             throw new OxalisAs4Exception("Could not get SOAP header", e);
         }
-        return header;
     }
-
 }

@@ -27,13 +27,13 @@ public class As4Provider implements Provider<SOAPMessage> {
 
     @Override
     public SOAPMessage invoke(SOAPMessage request) {
-        MessageContext ctx = context.getMessageContext();
-        HttpServletRequest httpReq = (HttpServletRequest) ctx.get(AbstractHTTPDestination.HTTP_REQUEST);
-        HttpServletResponse httpRes = (HttpServletResponse) ctx.get(AbstractHTTPDestination.HTTP_RESPONSE);
+        MessageContext messageContext = context.getMessageContext();
+        HttpServletRequest httpReq = (HttpServletRequest) messageContext.get(AbstractHTTPDestination.HTTP_REQUEST);
+        HttpServletResponse httpRes = (HttpServletResponse) messageContext.get(AbstractHTTPDestination.HTTP_RESPONSE);
         httpRes.setStatus(HttpServletResponse.SC_OK);
 
         try {
-            return handler.handle(request);
+            return handler.handle(request, messageContext);
         } catch (OxalisAs4Exception e) {
             httpRes.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             throw new RuntimeException(e);
