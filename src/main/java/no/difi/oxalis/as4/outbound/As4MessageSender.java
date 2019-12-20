@@ -105,12 +105,11 @@ public class As4MessageSender {
     public Collection<Attachment> prepareAttachments(TransmissionRequest request) throws OxalisAs4TransmissionException {
         Map<String, List<String>> headers = new HashMap<>();
         headers.put("Content-ID", Collections.singletonList(messageIdGenerator.generate()));
-//        headers.put("CompressionType", Collections.singletonList("application/gzip"));
+        headers.put("CompressionType", Collections.singletonList("application/gzip"));
         headers.put("MimeType", Collections.singletonList("application/xml"));
 
         try {
-//            Attachment attachment = AttachmentUtil.createAttachment(compressionUtil.getCompressedStream(request.getPayload()), headers);
-            Attachment attachment = AttachmentUtil.createAttachment(request.getPayload(), headers);
+            Attachment attachment = AttachmentUtil.createAttachment(compressionUtil.getCompressedStream(request.getPayload()), headers);
             return new ArrayList<>(Collections.singletonList(attachment));
         } catch (IOException e) {
             throw new OxalisAs4TransmissionException("Unable to compress payload", e);
