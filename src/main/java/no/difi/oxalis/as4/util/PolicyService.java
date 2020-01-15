@@ -13,10 +13,10 @@ import java.io.InputStream;
 
 public class PolicyService {
 
-    private final String policyName;
+    private final String policyClasspath;
 
-    public PolicyService(String policyName) {
-        this.policyName = policyName;
+    public PolicyService(String policyClasspath) {
+        this.policyClasspath = policyClasspath;
     }
 
     public Policy getPolicy() throws OxalisAs4TransmissionException {
@@ -27,7 +27,7 @@ public class PolicyService {
 
     public Policy getPolicy(Bus bus) throws OxalisAs4TransmissionException {
         try {
-            InputStream policyStream = PolicyService.class.getResourceAsStream(policyName);
+            InputStream policyStream = PolicyService.class.getResourceAsStream(policyClasspath);
             PolicyBuilder builder = bus.getExtension(PolicyBuilder.class);
             return builder.getPolicy(policyStream);
         } catch (SAXException | ParserConfigurationException | IOException e) {

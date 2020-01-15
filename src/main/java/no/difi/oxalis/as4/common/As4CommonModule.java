@@ -30,12 +30,13 @@ import no.difi.oxalis.api.settings.Settings;
 import no.difi.oxalis.as4.api.MessageIdGenerator;
 import no.difi.oxalis.as4.config.As4Conf;
 import no.difi.oxalis.as4.config.TrustStoreSettings;
-import no.difi.oxalis.as4.inbound.InboundMerlinProvider;
 import no.difi.oxalis.as4.util.As4MessageFactory;
 import no.difi.oxalis.as4.util.PolicyService;
 import no.difi.oxalis.commons.guice.ImplLoader;
 import no.difi.oxalis.commons.guice.OxalisModule;
 import no.difi.oxalis.commons.settings.SettingsBuilder;
+
+import static no.difi.oxalis.as4.common.AS4Constants.CEF_CONNECTIVITY;
 
 @Slf4j
 public class As4CommonModule extends OxalisModule {
@@ -51,7 +52,13 @@ public class As4CommonModule extends OxalisModule {
     @Provides
     @Singleton
     public PolicyService policyService(Settings<As4Conf> settings) {
-        return new PolicyService("/" + settings.getString(As4Conf.POLICY));
+        return new PolicyService(getPolicyClasspath(settings));
+    }
+
+    private String getPolicyClasspath(Settings<As4Conf> settings) {
+        return CEF_CONNECTIVITY.equalsIgnoreCase(settings.getString(As4Conf.TYPE))
+                ? "/eDeliveryAS4Policy.xml"
+                : "/eDeliveryAS4Policy_BST.xml";
     }
 
     @Provides
