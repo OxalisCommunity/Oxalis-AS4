@@ -3,6 +3,7 @@ package no.difi.oxalis.outbound.transmission;
 import no.difi.oxalis.api.outbound.TransmissionRequest;
 import no.difi.oxalis.as4.api.MessageIdGenerator;
 import no.difi.oxalis.as4.lang.OxalisAs4TransmissionException;
+import no.difi.oxalis.as4.outbound.DefaultActionProvider;
 import no.difi.oxalis.as4.outbound.MessagingProvider;
 import no.difi.oxalis.as4.util.PeppolConfiguration;
 import org.apache.cxf.message.Attachment;
@@ -19,8 +20,8 @@ public class MessagingProviderFacade {
         messagingProvider = new MessagingProvider(
                 senderCert,
                 messageIdGenerator,
-                peppolConfiguration
-        );
+                peppolConfiguration,
+                new DefaultActionProvider());
     }
 
     public Messaging createMessagingHeader(TransmissionRequest request, Collection<Attachment> attachments) throws OxalisAs4TransmissionException {

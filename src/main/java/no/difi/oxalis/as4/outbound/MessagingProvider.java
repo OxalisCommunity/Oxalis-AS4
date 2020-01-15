@@ -4,7 +4,6 @@ import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import no.difi.oxalis.api.outbound.TransmissionRequest;
 import no.difi.oxalis.as4.api.MessageIdGenerator;
-import no.difi.oxalis.as4.lang.OxalisAs4TransmissionException;
 import no.difi.oxalis.as4.util.PeppolConfiguration;
 import no.difi.oxalis.commons.security.CertificateUtils;
 import no.difi.vefa.peppol.common.model.ProcessIdentifier;
@@ -24,7 +23,6 @@ import java.util.stream.Collectors;
 import static no.difi.oxalis.as4.util.Constants.TEST_ACTION;
 import static no.difi.oxalis.as4.util.Constants.TEST_SERVICE;
 import static no.difi.oxalis.as4.util.GeneralUtils.iteratorToStreamOfUnknownSize;
-import static no.difi.oxalis.as4.util.TransmissionRequestUtil.translateDocumentTypeToAction;
 import static no.difi.oxalis.as4.util.TransmissionRequestUtil.translateParticipantIdentifierToRecipient;
 
 public class MessagingProvider {
@@ -32,12 +30,14 @@ public class MessagingProvider {
     private final X509Certificate certificate;
     private final MessageIdGenerator messageIdGenerator;
     private final PeppolConfiguration defaultOutboundConfiguration;
+    private final ActionProvider actionProvider;
 
     @Inject
-    public MessagingProvider(X509Certificate certificate, MessageIdGenerator messageIdGenerator, PeppolConfiguration defaultOutboundConfiguration) {
+    public MessagingProvider(X509Certificate certificate, MessageIdGenerator messageIdGenerator, PeppolConfiguration defaultOutboundConfiguration, ActionProvider actionProvider) {
         this.certificate = certificate;
         this.messageIdGenerator = messageIdGenerator;
         this.defaultOutboundConfiguration = defaultOutboundConfiguration;
+        this.actionProvider = actionProvider;
     }
 
     public Messaging createMessagingHeader(TransmissionRequest request, Collection<Attachment> attachments) {
@@ -48,12 +48,12 @@ public class MessagingProvider {
 
     public UserMessage getUserMessage(TransmissionRequest request, Collection<Attachment> attachments) {
         return UserMessage.builder()
-                    .withMessageInfo(createMessageInfo(request))
-                    .withPartyInfo(createPartyInfo(request))
-                    .withCollaborationInfo(createCollaborationInfo(request))
-                    .withMessageProperties(createMessageProperties(request))
-                    .withPayloadInfo(createPayloadInfo(request, attachments))
-                    .build();
+                .withMessageInfo(createMessageInfo(request))
+                .withPartyInfo(createPartyInfo(request))
+                .withCollaborationInfo(createCollaborationInfo(request))
+                .withMessageProperties(createMessageProperties(request))
+                .withPayloadInfo(createPayloadInfo(request, attachments))
+                .build();
     }
 
     private PayloadInfo createPayloadInfo(TransmissionRequest request, Collection<Attachment> attachments) {
@@ -154,10 +154,9 @@ public class MessagingProvider {
     }
 
     private CollaborationInfo createCollaborationInfo(TransmissionRequest request) {
+        String action = actionProvider.getAction(request.getHeader().getDocumentType());
 
-        String action = translateDocumentTypeToAction(request.getHeader().getDocumentType());
         ProcessIdentifier process = request.getHeader().getProcess();
-
 
         CollaborationInfo.Builder<Void> cib = CollaborationInfo.builder()
                 .withConversationId(getConversationId(request))
@@ -183,7 +182,6 @@ public class MessagingProvider {
                     .build()
             );
         }
-
 
         return cib.build();
     }
@@ -236,6 +234,4 @@ public class MessagingProvider {
     private String newId() {
         return messageIdGenerator.generate();
     }
-
-
 }

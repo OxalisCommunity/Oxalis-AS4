@@ -39,5 +39,9 @@ public enum As4Conf {
 
     @Path("oxalis.as4.type")
     @DefaultValue("peppol")
-    TYPE
+    TYPE,
+
+    @Path("oxalis.as4.policy")
+    @DefaultValue("eDeliveryAS4Policy_BST.xml")
+    POLICY
 }

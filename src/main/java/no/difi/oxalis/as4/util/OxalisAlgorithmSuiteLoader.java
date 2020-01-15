@@ -43,7 +43,7 @@ public class OxalisAlgorithmSuiteLoader implements AlgorithmSuiteLoader {
         return new OxalisAlgorithmSuite(version, nestedPolicy);
     }
 
-    private void register(final Bus bus) {
+    public void register(final Bus bus) {
         final AssertionBuilderRegistry reg = bus.getExtension(AssertionBuilderRegistry.class);
         if (reg != null) {
             final Map<QName, Assertion> assertions = new HashMap<>();

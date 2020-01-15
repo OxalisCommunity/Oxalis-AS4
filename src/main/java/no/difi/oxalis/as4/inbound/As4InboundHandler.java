@@ -61,14 +61,16 @@ public class As4InboundHandler {
     private final TimestampProvider timestampProvider;
     private final HeaderParser headerParser;
     private final As4MessageFactory as4MessageFactory;
+    private final PolicyService policyService;
 
     @Inject
-    public As4InboundHandler(TransmissionVerifier transmissionVerifier, PersisterHandler persisterHandler, TimestampProvider timestampProvider, HeaderParser headerParser, As4MessageFactory as4MessageFactory) {
+    public As4InboundHandler(TransmissionVerifier transmissionVerifier, PersisterHandler persisterHandler, TimestampProvider timestampProvider, HeaderParser headerParser, As4MessageFactory as4MessageFactory, PolicyService policyService) {
         this.transmissionVerifier = transmissionVerifier;
         this.persisterHandler = persisterHandler;
         this.timestampProvider = timestampProvider;
         this.headerParser = headerParser;
         this.as4MessageFactory = as4MessageFactory;
+        this.policyService = policyService;
     }
 
     public SOAPMessage handle(SOAPMessage request, MessageContext messageContext) throws OxalisAs4Exception {
@@ -118,7 +120,7 @@ public class As4InboundHandler {
             String firstAttachmentId = envelopeHeader.getPayloadCIDs().get(0);
             Digest firstAttachmentDigest = Digest.of(DigestMethod.SHA256, SOAPHeaderParser.getAttachmentDigest(firstAttachmentId, soapHeader));
 
-            X509Certificate senderCertificate = SOAPHeaderParser.getSenderCertificate(soapHeader);
+            X509Certificate senderCertificate = getSenderCertificate(soapHeader);
 
             As4InboundMetadata as4InboundMetadata = new As4InboundMetadata(
                     messageId,
@@ -141,7 +143,7 @@ public class As4InboundHandler {
         // Send response
         Policy policy = null;
         try {
-            policy = PolicyUtil.getPolicy();
+            policy = policyService.getPolicy();
         } catch (OxalisAs4TransmissionException e) {
             throw new OxalisAs4Exception("Could not get policy", e, AS4ErrorCode.EBMS_0202);
         }
@@ -154,6 +156,14 @@ public class As4InboundHandler {
         }
 
         return response;
+    }
+
+    private X509Certificate getSenderCertificate(SOAPHeader soapHeader) {
+        try {
+            return SOAPHeaderParser.getSenderCertificate(soapHeader);
+        } catch (OxalisAs4Exception e) {
+            return null;
+        }
     }
 
     private boolean isPingMessage(UserMessage userMessage) {

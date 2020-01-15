@@ -10,7 +10,7 @@
                     <sp:InitiatorToken>
                         <wsp:Policy>
                             <sp:X509Token
-                             sp:IncludeToken="http://docs.oasis-open.org/ws-sx/ws-securitypolicy/200702/IncludeToken/Always">
+                             sp:IncludeToken="http://docs.oasis-open.org/ws-sx/ws-securitypolicy/200702/IncludeToken/Never">
                                 <wsp:Policy>
                                     <sp:WssX509V3Token10/>
                                 </wsp:Policy>
@@ -20,7 +20,7 @@
                     <sp:RecipientToken>
                         <wsp:Policy>
                             <sp:X509Token
-                                    sp:IncludeToken="http://docs.oasis-open.org/ws-sx/ws-securitypolicy/200702/IncludeToken/Always">
+                                    sp:IncludeToken="http://docs.oasis-open.org/ws-sx/ws-securitypolicy/200702/IncludeToken/Never">
                                 <wsp:Policy>
                                     <sp:WssX509V3Token10/>
                                 </wsp:Policy>
@@ -42,6 +42,9 @@
                 </wsp:Policy>
             </sp:AsymmetricBinding>
             <sp:SignedParts>
+                <sp:Header
+                        Namespace="http://docs.oasis-open.org/ebxml-msg/ns/v3.0/mf/2010/04/"
+                        Name="MessageFragment"/>
                 <sp:Header
                         Namespace="http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/"
                         Name="Messaging"/>

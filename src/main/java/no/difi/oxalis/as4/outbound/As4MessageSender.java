@@ -6,11 +6,10 @@ import no.difi.oxalis.api.outbound.TransmissionRequest;
 import no.difi.oxalis.api.outbound.TransmissionResponse;
 import no.difi.oxalis.api.settings.Settings;
 import no.difi.oxalis.as4.api.MessageIdGenerator;
-import no.difi.oxalis.as4.common.MerlinProvider;
 import no.difi.oxalis.as4.lang.OxalisAs4TransmissionException;
 import no.difi.oxalis.as4.util.CompressionUtil;
 import no.difi.oxalis.as4.util.Constants;
-import no.difi.oxalis.as4.util.PolicyUtil;
+import no.difi.oxalis.as4.util.PolicyService;
 import no.difi.oxalis.commons.http.HttpConf;
 import no.difi.oxalis.commons.security.KeyStoreConf;
 import org.apache.cxf.attachment.AttachmentUtil;
@@ -65,7 +64,10 @@ public class As4MessageSender {
     private TransmissionResponseConverter transmissionResponseConverter;
 
     @Inject
-    private MerlinProvider merlinProvider;
+    private OutboundMerlinProvider outboundMerlinProvider;
+
+    @Inject
+    private PolicyService policyService;
 
     public TransmissionResponse send(TransmissionRequest request) throws OxalisAs4TransmissionException {
         Dispatch<SOAPMessage> dispatch = createDispatch(request);
@@ -95,7 +97,7 @@ public class As4MessageSender {
     }
 
     private void configureSecurity(TransmissionRequest request, Dispatch<SOAPMessage> dispatch) {
-        Merlin merlin = merlinProvider.getMerlib();
+        Merlin merlin = outboundMerlinProvider.getMerlin();
         dispatch.getRequestContext().put(SIGNATURE_CRYPTO, merlin);
         dispatch.getRequestContext().put(SIGNATURE_PASSWORD, settings.getString(KeyStoreConf.KEY_PASSWORD));
         dispatch.getRequestContext().put(SIGNATURE_USERNAME, settings.getString(KeyStoreConf.KEY_ALIAS));
@@ -124,6 +126,9 @@ public class As4MessageSender {
         configureSecurity(request, dispatch);
 
         final Client client = ((DispatchImpl<SOAPMessage>) dispatch).getClient();
+
+//        client.getInInterceptors().add(getLoggingBeforeSecurityInInterceptor());
+
         final HTTPConduit httpConduit = (HTTPConduit) client.getConduit();
         final HTTPClientPolicy httpClientPolicy = httpConduit.getClient();
         httpClientPolicy.setConnectionTimeout(httpConfSettings.getInt(HttpConf.TIMEOUT_CONNECT));
@@ -132,8 +137,15 @@ public class As4MessageSender {
         return dispatch;
     }
 
+    private LoggingBeforeSecurityInInterceptor getLoggingBeforeSecurityInInterceptor() {
+        LoggingBeforeSecurityInInterceptor interceptor = new LoggingBeforeSecurityInInterceptor();
+        interceptor.setPrettyLogging(true);
+        interceptor.setLogMultipart(true);
+        return interceptor;
+    }
+
     private Service getService(TransmissionRequest request) throws OxalisAs4TransmissionException {
-        Service service = Service.create(SERVICE_NAME, new LoggingFeature(), new WSPolicyFeature(PolicyUtil.getPolicy()));
+        Service service = Service.create(SERVICE_NAME, new LoggingFeature(), new WSPolicyFeature(policyService.getPolicy()));
         service.addPort(PORT_NAME, SOAPBinding.SOAP12HTTP_BINDING, request.getEndpoint().getAddress().toString());
         return service;
     }

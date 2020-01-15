@@ -1,12 +1,13 @@
 package no.difi.oxalis.as4.inbound;
 
+import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import no.difi.oxalis.as4.lang.OxalisAs4Exception;
 import no.difi.oxalis.as4.util.Constants;
 import no.difi.oxalis.as4.util.Marshalling;
 import no.difi.oxalis.as4.util.MessageId;
-import no.difi.oxalis.as4.util.PolicyUtil;
+import no.difi.oxalis.as4.util.PolicyService;
 import org.apache.cxf.binding.soap.SoapMessage;
 import org.apache.cxf.binding.soap.interceptor.AbstractSoapInterceptor;
 import org.apache.cxf.headers.Header;
@@ -34,9 +35,12 @@ import java.util.stream.Stream;
 public class As4Interceptor extends AbstractSoapInterceptor {
 
     private final JAXBContext jaxbContext = Marshalling.getInstance();
+    private final PolicyService policyService;
 
-    public As4Interceptor() {
+    @Inject
+    public As4Interceptor(PolicyService policyService) {
         super(Phase.PRE_PROTOCOL);
+        this.policyService = policyService;
         addBefore(OxalisAS4WsInInterceptor.class.getName());
         addBefore(PolicyBasedWSS4JInInterceptor.class.getName());
     }
@@ -46,7 +50,7 @@ public class As4Interceptor extends AbstractSoapInterceptor {
         storeMessageIdInContext(message);
 
         try {
-            Policy policy = PolicyUtil.getPolicy();
+            Policy policy = policyService.getPolicy();
             message.put(AssertionInfoMap.class.getName(), new AssertionInfoMap(policy));
         } catch (Exception e) {
             throw new Fault(e);

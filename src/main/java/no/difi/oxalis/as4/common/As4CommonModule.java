@@ -25,27 +25,33 @@ package no.difi.oxalis.as4.common;
 import com.google.inject.Injector;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
-import no.difi.oxalis.api.header.HeaderParser;
+import lombok.extern.slf4j.Slf4j;
 import no.difi.oxalis.api.settings.Settings;
 import no.difi.oxalis.as4.api.MessageIdGenerator;
 import no.difi.oxalis.as4.config.As4Conf;
-import no.difi.oxalis.as4.inbound.As4Interceptor;
+import no.difi.oxalis.as4.config.TrustStoreSettings;
+import no.difi.oxalis.as4.inbound.InboundMerlinProvider;
 import no.difi.oxalis.as4.util.As4MessageFactory;
-import no.difi.oxalis.as4.util.PolicyUtil;
+import no.difi.oxalis.as4.util.PolicyService;
 import no.difi.oxalis.commons.guice.ImplLoader;
 import no.difi.oxalis.commons.guice.OxalisModule;
+import no.difi.oxalis.commons.settings.SettingsBuilder;
 
+@Slf4j
 public class As4CommonModule extends OxalisModule {
 
     @Override
     protected void configure() {
         bindTyped(MessageIdGenerator.class, DefaultMessageIdGenerator.class);
-//        bindTyped(HeaderParser.class, DummyHeaderParser.class);
         bind(As4MessageFactory.class);
-//        bind(As4FaultInHandler.class);
-        bind(As4Interceptor.class);
-        bind(MerlinProvider.class);
+        SettingsBuilder.with(binder(), TrustStoreSettings.class);
         bindSettings(As4Conf.class);
+    }
+
+    @Provides
+    @Singleton
+    public PolicyService policyService(Settings<As4Conf> settings) {
+        return new PolicyService("/" + settings.getString(As4Conf.POLICY));
     }
 
     @Provides

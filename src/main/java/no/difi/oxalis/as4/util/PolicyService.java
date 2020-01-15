@@ -1,7 +1,5 @@
 package no.difi.oxalis.as4.util;
 
-import lombok.experimental.UtilityClass;
-import no.difi.oxalis.api.lang.OxalisTransmissionException;
 import no.difi.oxalis.as4.lang.OxalisAs4TransmissionException;
 import org.apache.cxf.Bus;
 import org.apache.cxf.BusFactory;
@@ -13,19 +11,23 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.io.InputStream;
 
-@UtilityClass
-public class PolicyUtil {
+public class PolicyService {
 
-    public static Policy getPolicy() throws OxalisAs4TransmissionException {
+    private final String policyName;
+
+    public PolicyService(String policyName) {
+        this.policyName = policyName;
+    }
+
+    public Policy getPolicy() throws OxalisAs4TransmissionException {
         Bus bus = BusFactory.getDefaultBus();
         new OxalisAlgorithmSuiteLoader(bus);
         return getPolicy(bus);
     }
 
-    public static Policy getPolicy(Bus bus) throws OxalisAs4TransmissionException {
+    public Policy getPolicy(Bus bus) throws OxalisAs4TransmissionException {
         try {
-            InputStream policyStream = PolicyUtil.class.getResourceAsStream("/policy.xml");
-
+            InputStream policyStream = PolicyService.class.getResourceAsStream(policyName);
             PolicyBuilder builder = bus.getExtension(PolicyBuilder.class);
             return builder.getPolicy(policyStream);
         } catch (SAXException | ParserConfigurationException | IOException e) {

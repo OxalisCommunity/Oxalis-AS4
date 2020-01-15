@@ -1,9 +1,8 @@
 package no.difi.oxalis.as4.inbound;
 
 import com.google.inject.Inject;
-import no.difi.oxalis.as4.lang.OxalisAs4Exception;
 import no.difi.oxalis.as4.lang.OxalisAs4TransmissionException;
-import no.difi.oxalis.as4.util.PolicyUtil;
+import no.difi.oxalis.as4.util.PolicyService;
 import org.apache.cxf.Bus;
 import org.apache.cxf.binding.soap.SoapMessage;
 import org.apache.cxf.binding.soap.SoapVersion;
@@ -17,10 +16,7 @@ import org.apache.cxf.jaxws.EndpointImpl;
 import org.apache.cxf.jaxws.handler.soap.SOAPHandlerFaultInInterceptor;
 import org.apache.cxf.message.Message;
 import org.apache.cxf.transport.MultipleEndpointObserver;
-import org.apache.cxf.ws.policy.PolicyConstants;
 import org.apache.cxf.ws.policy.WSPolicyFeature;
-import org.apache.cxf.ws.security.wss4j.PolicyBasedWSS4JInInterceptor;
-import org.apache.cxf.ws.security.wss4j.PolicyBasedWSS4JOutInterceptor;
 import org.apache.cxf.wsdl.interceptors.AbstractEndpointSelectionInterceptor;
 
 import javax.xml.ws.Endpoint;
@@ -40,11 +36,16 @@ public class As4EndpointsPublisherImpl implements As4EndpointsPublisher {
     @Inject
     private As4Interceptor oxalisAs4Interceptor;
 
+    @Inject
+    private PolicyService policyService;
+
     @Override
     public EndpointImpl publish(Bus bus) {
         EndpointImpl endpoint = null;
         try {
-            endpoint = (EndpointImpl) Endpoint.publish("/", as4Provider, new WSPolicyFeature(PolicyUtil.getPolicy(bus)));
+            endpoint = (EndpointImpl) Endpoint.publish("/", as4Provider,
+                    new LoggingFeature(),
+                    new WSPolicyFeature(policyService.getPolicy(bus)));
         } catch (OxalisAs4TransmissionException e) {
             throw new RuntimeException("Failed!", e);
         }
@@ -55,7 +56,6 @@ public class As4EndpointsPublisherImpl implements As4EndpointsPublisher {
 
         endpoint.getBinding().setHandlerChain(Arrays.asList(as4FaultInHandler, new MessagingHandler()));
         endpoint.getInInterceptors().add(oxalisAs4Interceptor);
-        endpoint.getFeatures().add(new LoggingFeature());
 
         MultipleEndpointObserver newMO = new MultipleEndpointObserver(bus) {
             @Override

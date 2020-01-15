@@ -27,7 +27,7 @@ We have added an example deployment XML file for tomcat 8+. Ensure that your fil
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- For a default Tomcat setup, name this file 'oxalis.xml' and place it in the following directory -->
 <!-- $CATALINA_BASE/conf/Catalina/localhost/ -->
-<!-- this will expose the as4 endpoint on http://localhoist:8080/oxalis/as4 -->
+<!-- this will expose the as4 endpoint on http://localhost:8080/oxalis/as4 -->
 
 
 <!-- The Context element represents our application. -->
