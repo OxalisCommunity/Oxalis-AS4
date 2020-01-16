@@ -11,14 +11,16 @@ Example oxalis.conf
 ```
 oxalis.keystore {
         # Relative to OXALIS_HOME
-        path = keystore.jks
-        password = changeit
-        key.alias = selfsigned
-        key.password = changeit
+        path = ceftestpartyXXgwkeystore.jks
+        password = XXXX
+        key.alias = ceftestpartyXXgw
+        key.password = XXXX
 }
 
-security.truststore.ap = truststore.jks
-security.truststore.password = changeit
+oxalis.truststore {
+    path = ceftestpartyXXgwtruststore.jks
+    password = XXXX
+}
 
 lookup.locator.hostname="acc.edelivery.tech.ec.europa.eu/edelivery-sml/"
 
@@ -37,12 +39,12 @@ Example payload.xml
         <Sender>
             <!-- This Sender section describes the PEPPOL Sender -->
             <!-- It corresponds to an OriginalSender in AS4 -->
-          <Identifier>urn:oasis:names:tc:ebcore:partyid-type:unregistered:C1</Identifier>
+          <Identifier>urn:oasis:names:tc:ebcore:partyid-type:unregistered:ceftestpartyXXgw</Identifier>
       </Sender>
       <Receiver>
            <!-- This Sender section describes the PEPPOL Receiver -->
            <!-- It corresponds to an FinalRecipient in AS4 -->
-           <Identifier>urn:oasis:names:tc:ebcore:partyid-type:unregistered:C4</Identifier>
+           <Identifier>urn:oasis:names:tc:ebcore:partyid-type:unregistered:cefsupportgw</Identifier>
         </Receiver>
         <DocumentIdentification>
             <!-- This DocumentIdentification section describes the content of the payload -->
@@ -50,9 +52,9 @@ Example payload.xml
 
             <Standard>NONE</Standard>
             <TypeVersion>1.0</TypeVersion>
-            <InstanceIdentifier>555bcb4c-940b-4694-9b90-d9b0ae1e937b</InstanceIdentifier>
+            <InstanceIdentifier>d8b5b55f-508d-438a-8363-2e5e0d7820fc</InstanceIdentifier>
             <Type>CEF Connectivity test</Type>
-            <CreationDateAndTime>2019-10-30T11:20:05.304+02:00</CreationDateAndTime>
+            <CreationDateAndTime>2020-01-15T11:45:00.000+02:00</CreationDateAndTime>
         </DocumentIdentification>
         <BusinessScope>
             <Scope>
@@ -73,7 +75,7 @@ Example payload.xml
                 <!-- This Identifier describes the PEPPOL 'Process Schema' and corresponds to a Service.Type in AS4 (PMode[].BusinessInfo.Service.type) -->
                 <Identifier>e-delivery</Identifier>
                 <!-- This InstanceIdentifier describes the PEPPOL 'Process Value' and corresponds to an Service in AS4 (PMode[1].BusinessInfo.Service) -->
-                <InstanceIdentifier>http://ec.europa.eu/edelivery/services/connectivity-service</InstanceIdentifier>
+                <InstanceIdentifier>http://ec.europa.eu/e-delivery/services/connectivity-service</InstanceIdentifier>
             </Scope>
         </BusinessScope>
     </StandardBusinessDocumentHeader>
@@ -81,7 +83,12 @@ Example payload.xml
 </StandardBusinessDocument>
 ```
 
+Example of sending to CEF-connectivity standalone URL using oxalis-standalone
+```bash
+java -classpath "standalone/*;as4/*" eu.sendregning.oxalis.Main -cert ./cefsupportgw.cer -f payload.xml --protocol peppol-transport-as4-v2_0 -u "<replace with the URL in the email you received from CEF-EDELIVERY-SUPPORT>"
+```
 
+The cefsupportgw.cer can be exported from the truststore JKS. On Windows we recommend using Keystore Explorer for an easy export.
 
 <details>
   <summary>More info regarding Oxalis-Standalone and CEF-Connectivity testing</summary>
