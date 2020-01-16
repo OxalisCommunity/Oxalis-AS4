@@ -21,10 +21,7 @@ import no.difi.oxalis.commons.header.SbdhHeaderParser;
 import no.difi.oxalis.commons.io.PeekingInputStream;
 import no.difi.oxalis.commons.io.UnclosableInputStream;
 import no.difi.vefa.peppol.common.code.DigestMethod;
-import no.difi.vefa.peppol.common.model.Digest;
-import no.difi.vefa.peppol.common.model.Header;
-import no.difi.vefa.peppol.common.model.ParticipantIdentifier;
-import no.difi.vefa.peppol.common.model.TransportProfile;
+import no.difi.vefa.peppol.common.model.*;
 import no.difi.vefa.peppol.sbdh.SbdReader;
 import no.difi.vefa.peppol.sbdh.lang.SbdhException;
 import org.apache.cxf.attachment.AttachmentUtil;
@@ -362,9 +359,11 @@ public class As4InboundHandler {
                         throw new OxalisAs4Exception("Could not extract SBDH from payload");
                     }
                 } else {
-                    sbdh = new Header();
-                    //TODO: populate based on userMessage
-                    sbdh = sbdh.sender(ParticipantIdentifier.of(userMessage.getPartyInfo().getFrom().getPartyId().get(0).getValue()));
+                    sbdh = new Header()
+                            .sender(ParticipantIdentifier.of(userMessage.getPartyInfo().getFrom().getPartyId().get(0).getValue()))
+                            .receiver(ParticipantIdentifier.of(userMessage.getPartyInfo().getTo().getPartyId().get(0).getValue()))
+                            .documentType(DocumentTypeIdentifier.of(userMessage.getCollaborationInfo().getService().getValue(),  Scheme.of(userMessage.getCollaborationInfo().getService().getType())))
+                            .identifier(InstanceIdentifier.of(userMessage.getCollaborationInfo().getAction()));
                 }
 
                 // Get an "unexpected eof in prolog"
