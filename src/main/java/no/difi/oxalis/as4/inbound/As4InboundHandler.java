@@ -5,6 +5,7 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import no.difi.oxalis.api.header.HeaderParser;
+import no.difi.oxalis.api.inbound.InboundService;
 import no.difi.oxalis.api.lang.TimestampException;
 import no.difi.oxalis.api.lang.VerifierException;
 import no.difi.oxalis.api.model.Direction;
@@ -62,15 +63,17 @@ public class As4InboundHandler {
     private final HeaderParser headerParser;
     private final As4MessageFactory as4MessageFactory;
     private final PolicyService policyService;
+    private final InboundService inboundService;
 
     @Inject
-    public As4InboundHandler(TransmissionVerifier transmissionVerifier, PersisterHandler persisterHandler, TimestampProvider timestampProvider, HeaderParser headerParser, As4MessageFactory as4MessageFactory, PolicyService policyService) {
+    public As4InboundHandler(TransmissionVerifier transmissionVerifier, PersisterHandler persisterHandler, TimestampProvider timestampProvider, HeaderParser headerParser, As4MessageFactory as4MessageFactory, PolicyService policyService, InboundService inboundService) {
         this.transmissionVerifier = transmissionVerifier;
         this.persisterHandler = persisterHandler;
         this.timestampProvider = timestampProvider;
         this.headerParser = headerParser;
         this.as4MessageFactory = as4MessageFactory;
         this.policyService = policyService;
+        this.inboundService = inboundService;
     }
 
     public SOAPMessage handle(SOAPMessage request, MessageContext messageContext) throws OxalisAs4Exception {
@@ -138,6 +141,9 @@ public class As4InboundHandler {
             } catch (IOException e) {
                 throw new OxalisAs4Exception("Error persisting AS4 metadata", e, AS4ErrorCode.EBMS_0202);
             }
+
+            // Persist statistics
+            inboundService.complete(as4InboundMetadata);
         }
 
         // Send response

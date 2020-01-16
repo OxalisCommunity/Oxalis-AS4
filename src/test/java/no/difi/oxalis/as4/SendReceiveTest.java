@@ -8,6 +8,8 @@ import com.google.inject.name.Names;
 import com.google.inject.util.Modules;
 import lombok.SneakyThrows;
 import lombok.Value;
+import no.difi.oxalis.api.inbound.InboundMetadata;
+import no.difi.oxalis.api.inbound.InboundService;
 import no.difi.oxalis.api.model.TransmissionIdentifier;
 import no.difi.oxalis.api.outbound.MessageSender;
 import no.difi.oxalis.api.outbound.TransmissionRequest;
@@ -41,6 +43,7 @@ import java.util.*;
 public class SendReceiveTest extends AbstractJettyServerTest {
 
     private TemporaryFilePersister temporaryFilePersister = new TemporaryFilePersister();
+    private TemporaryInboundService temporaryInboundService = new TemporaryInboundService();
 
     private byte[] firstPayload;
     private byte[] secondPayload;
@@ -74,6 +77,7 @@ public class SendReceiveTest extends AbstractJettyServerTest {
                         bind(ReceiptPersister.class).toInstance((m, p) -> {
                         });
                         bind(PayloadPersister.class).toInstance(temporaryFilePersister);
+                        bind(InboundService.class).toInstance(temporaryInboundService);
                         bind(MessageIdGenerator.class).toInstance(new DefaultMessageIdGenerator("test.com"));
                     }
                 })
@@ -254,5 +258,11 @@ public class SendReceiveTest extends AbstractJettyServerTest {
             private final Path path;
             private final Header header;
         }
+    }
+
+    static class TemporaryInboundService implements InboundService {
+		@Override
+		public void complete(InboundMetadata inboundMetadata) {
+		}
     }
 }
