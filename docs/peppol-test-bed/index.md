@@ -18,7 +18,7 @@ eventually also be controlled by the OpenPEPPOL Operating Office.
 
 ## Setting up an Oxalis-AS4 Access Point
 
-Please follow one of the outbound installation procedures found [here](../installation/index.md).
+Please follow one of the inbound installation procedures found [here](../installation/index.md).
 
 The Oxalis configuration file (oxalis.xml) for your AP should look something like this:
 
