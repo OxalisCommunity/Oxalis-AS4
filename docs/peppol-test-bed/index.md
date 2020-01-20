@@ -4,7 +4,7 @@ This document intends to help with the setup of Oxalis AS4 for testing with the 
 
 ## Prerequisites and configuration
 
-The following prerequisites must before starting this tutorial:
+The following prerequisites must be fulfilled before starting this tutorial:
 
 * You need a PEPPOL test certificate and truststore.
 
