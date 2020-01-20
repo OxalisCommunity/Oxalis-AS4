@@ -83,7 +83,7 @@ You will see a startup screen with the following box:
 
 To enroll for a test suite, please click on the ![alt text](../img/peppol_testbed2.PNG "Enroll for a test suite.") button.
 
-You should choose the AS4 profile and the URL to your AS4 Access Point. For the Receiving Participant you can specify scheme NO:ORG (0192) and participant identifier to 810418052.
+You should choose the AS4 profile and the URL to your AS4 Access Point. For the Receiving Participant you can specify scheme NO:ORG (0192) and participant identifier 810418052.
 
 ![alt text](../img/peppol_testbed3.PNG "Enrollment form.")
 
@@ -119,7 +119,7 @@ oxalis.truststore {
 }
 ```
 
-The file that your AP received from the Test bed should look like this:
+The file that your AP received from the Test bed should look similar to this:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -282,8 +282,8 @@ The file that your AP received from the Test bed should look like this:
 </StandardBusinessDocument>
 ```
 
-Before you can send it back to the testbed, you have to swap the <Sender> and <Receiver> in the StandardBusinessDocumentHeader.
-In addition the same thing has to be done in the <Invoice> payload. Just search for the parts looking like this:
+Before you can send it back to the testbed, you have to swap the Sender and Receiver in the StandardBusinessDocumentHeader.
+In addition the same thing has to be done in the Invoice payload. Just search for the parts looking like this:
 
 ```xml
 <cbc:EndpointID schemeID="NO:ORG">810418052</cbc:EndpointID>
@@ -484,7 +484,7 @@ Just press the "play"-button and your AP will receive a new file that you are to
 
 ## Inbound - Testing AP sends large file back to Testbed
 
-As in the first case, swap the <Sender> and <Receiver> and EndpointId and PartyIdentification.
+As in the first case, swap the Sender and <Receiver> and EndpointId and PartyIdentification.
 In addition you need to change the CompanyID under the PartyLegalEntity:
 
 ![alt text](../img/peppol_testbed7.PNG "Altering the file")
