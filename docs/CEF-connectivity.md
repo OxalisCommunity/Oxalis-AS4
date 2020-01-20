@@ -97,9 +97,9 @@ Oxalis-Standalone is a commandline wrapper around Oxalis-Outbound that facilitat
 
 The base functionallity of Standalone is to send files that is in the form of a Standard Bussines Document (SBD). SBD files starts with a Standard Bussines Ducument Header (SBDH) that describes the message, sender, and reciever and some more. Standalone reads this information and uses it to perform the transmission. 
 
-The standalone component also has the ability to override these settings, this is mostly in place to facilitate testing of your own innbound instalation.
+The standalone component also has the ability to override these settings, this is mostly in place to facilitate testing of your own inbound innstalation.
 
-One of the values that is extracted and parsed is the DocumentType (This corresponds to an Action in AS4 terms). This value has to be in the following form to be accespted: <em>TextAndNumbers::TextAndNumbers##TextAndNumbers::TextAndNumbers</em>. This is the main hurdle to using Standalone to perform CEF-Connectivity test. To work around this issue, we have added a feature that stripps the parts of the action taht does not conform to the conenctivity test.
+One of the values that is extracted and parsed is the DocumentType (This corresponds to an Action in AS4 terms). This value has to be in the following form to be accepted: <em>TextAndNumbers::TextAndNumbers##TextAndNumbers::TextAndNumbers</em>. This is the main hurdle to using Standalone to perform CEF-Connectivity test. To work around this issue, we have added a feature that strips the parts of the action that does not conform to the connectivity test.
 
 DocumentTypes on the form of `connectivity::cef##connectivity::submitMessage` will be converted to `submitMessage` by stripping avay the unwanted prefix. This only works for this prefix.
 
@@ -177,7 +177,7 @@ DocumentTypes on the form of `connectivity::cef##connectivity::submitMessage` wi
   </dd>
   
   <dt>InputStream</dt>
-  <dd>The payload to be sendt. What goes here is delivered to the recipient</dd>
+  <dd>The payload to be sent. What goes here is delivered to the recipient</dd>
 </dl>
 
 The TransmissionRequest describes the tramsmission that is to be sent.
