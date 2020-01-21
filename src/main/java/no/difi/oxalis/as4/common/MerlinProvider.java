@@ -1,13 +1,11 @@
-package no.difi.oxalis.as4.inbound;
+package no.difi.oxalis.as4.common;
 
 import com.google.inject.Inject;
-import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import lombok.extern.slf4j.Slf4j;
 import no.difi.oxalis.api.lang.OxalisLoadingException;
-import no.difi.oxalis.api.settings.Settings;
-import no.difi.oxalis.as4.config.TrustStoreSettings;
+import no.difi.vefa.peppol.mode.Mode;
 import org.apache.wss4j.common.crypto.Merlin;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
@@ -24,7 +22,10 @@ import java.util.Optional;
 
 @Slf4j
 @Singleton
-public class InboundMerlinProvider {
+public class MerlinProvider {
+
+    @Inject
+    private Mode mode;
 
     @Inject
     @Named("conf")
@@ -32,9 +33,6 @@ public class InboundMerlinProvider {
 
     @Inject
     private KeyStore keyStore;
-
-    @Inject
-    private Settings<TrustStoreSettings> trustStoreSettings;
 
     @Inject(optional = true)
     @Named("truststore-ap")
@@ -49,7 +47,7 @@ public class InboundMerlinProvider {
     }
 
     private KeyStore getTrustStore() {
-        Optional<KeyStore> trustStoreExtension = loadTrustStoreExtension(trustStoreSettings, confFolder);
+        Optional<KeyStore> trustStoreExtension = loadTrustStoreApFromConf(mode, confFolder);
 
         if (trustStoreAp != null) {
             trustStoreExtension.ifPresent(p ->
@@ -60,7 +58,7 @@ public class InboundMerlinProvider {
         }
 
         return trustStoreExtension
-                .orElseThrow(() -> new OxalisLoadingException("Expected a truststore. Please specify the property oxalis.truststore.path"));
+                .orElseThrow(() -> new OxalisLoadingException("Expected a truststore. Please specify the property security.truststore.ap"));
     }
 
     private void extendKeyStore(KeyStore trustStoreAp, KeyStore trustStoreExtension) {
@@ -78,21 +76,23 @@ public class InboundMerlinProvider {
         }
     }
 
-    private Optional<KeyStore> loadTrustStoreExtension(Settings<TrustStoreSettings> settings, Path confFolder) {
-        Path path = settings.getPath(TrustStoreSettings.PATH, confFolder);
+    private Optional<KeyStore> loadTrustStoreApFromConf(Mode mode, Path confFolder) {
+        String truststoreAp = mode.getString("security.truststore.ap");
 
-        if (path.endsWith("None")) {
+        if (truststoreAp == null) {
             return Optional.empty();
         }
 
+        Path path = confFolder.resolve(truststoreAp);
+
         try {
             KeyStore keystore = KeyStore.getInstance("JKS");
+            if (!path.toFile().exists()) return Optional.empty();
 
-            if (!path.toFile().exists())
-                throw new OxalisLoadingException(String.format("Unable to find extension keystore at '%s'.", path));
+            log.info("Loading TRUSTSTORE: {}", path);
 
             try (InputStream inputStream = Files.newInputStream(path)) {
-                keystore.load(inputStream, settings.getString(TrustStoreSettings.PASSWORD).toCharArray());
+                keystore.load(inputStream, mode.getString("security.truststore.password").toCharArray());
             }
             return Optional.of(keystore);
         } catch (KeyStoreException | NoSuchAlgorithmException | CertificateException e) {

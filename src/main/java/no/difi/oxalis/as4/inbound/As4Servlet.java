@@ -4,6 +4,7 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import no.difi.oxalis.api.settings.Settings;
+import no.difi.oxalis.as4.common.MerlinProvider;
 import no.difi.oxalis.as4.util.OxalisAlgorithmSuiteLoader;
 import no.difi.oxalis.commons.security.KeyStoreConf;
 import org.apache.cxf.ext.logging.LoggingFeature;
@@ -32,7 +33,7 @@ public class As4Servlet extends CXFNonSpringServlet {
     private As4EndpointsPublisher endpointsPublisher;
 
     @Inject
-    private InboundMerlinProvider inboundMerlinProvider;
+    private MerlinProvider merlinProvider;
 
     @Override
     protected void loadBus(ServletConfig servletConfig) {
@@ -41,7 +42,7 @@ public class As4Servlet extends CXFNonSpringServlet {
 
         EndpointImpl endpointImpl = endpointsPublisher.publish(getBus());
 
-        Merlin merlin = inboundMerlinProvider.getMerlin();
+        Merlin merlin = merlinProvider.getMerlin();
 
         endpointImpl.getProperties().put(SIGNATURE_CRYPTO, merlin);
         endpointImpl.getProperties().put(SIGNATURE_PASSWORD, settings.getString(KeyStoreConf.KEY_PASSWORD));

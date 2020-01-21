@@ -6,6 +6,7 @@ import no.difi.oxalis.api.outbound.TransmissionRequest;
 import no.difi.oxalis.api.outbound.TransmissionResponse;
 import no.difi.oxalis.api.settings.Settings;
 import no.difi.oxalis.as4.api.MessageIdGenerator;
+import no.difi.oxalis.as4.common.MerlinProvider;
 import no.difi.oxalis.as4.lang.OxalisAs4TransmissionException;
 import no.difi.oxalis.as4.util.CompressionUtil;
 import no.difi.oxalis.as4.util.Constants;
@@ -64,7 +65,7 @@ public class As4MessageSender {
     private TransmissionResponseConverter transmissionResponseConverter;
 
     @Inject
-    private OutboundMerlinProvider outboundMerlinProvider;
+    private MerlinProvider merlinProvider;
 
     @Inject
     private PolicyService policyService;
@@ -97,7 +98,7 @@ public class As4MessageSender {
     }
 
     private void configureSecurity(TransmissionRequest request, Dispatch<SOAPMessage> dispatch) {
-        Merlin merlin = outboundMerlinProvider.getMerlin();
+        Merlin merlin = merlinProvider.getMerlin();
         dispatch.getRequestContext().put(SIGNATURE_CRYPTO, merlin);
         dispatch.getRequestContext().put(SIGNATURE_PASSWORD, settings.getString(KeyStoreConf.KEY_PASSWORD));
         dispatch.getRequestContext().put(SIGNATURE_USERNAME, settings.getString(KeyStoreConf.KEY_ALIAS));

@@ -112,11 +112,6 @@ oxalis.keystore {
      key.alias = ap
      key.password = xxx
 }
-
-oxalis.truststore {
-	path=peppol_trust_g2.jks
-	password = xxx
-}
 ```
 
 The file that your AP received from the Test bed should look similar to this:
@@ -469,7 +464,10 @@ Now your are ready to send the file to the testbed. To do that, you first need t
 Then you send the file using the oxalis-standalone like this:
 
 ```bash
-java -DOXALIS_HOME=/c/dev/peppoltest/.oxalis -classpath "standalone/*;as4/*" eu.sendregning.oxalis.Main -f the_altered_file.xml
+java -DOXALIS_HOME=/c/dev/peppoltest/.oxalis \
+ -classpath "standalone/*;as4/*" \
+ eu.sendregning.oxalis.Main \
+ -f the_altered_file.xml
 ```
 
 If successful you should see this is the test bed:

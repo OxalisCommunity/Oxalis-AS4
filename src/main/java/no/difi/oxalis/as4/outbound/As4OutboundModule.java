@@ -6,7 +6,6 @@ import lombok.extern.slf4j.Slf4j;
 import no.difi.oxalis.api.outbound.MessageSender;
 import no.difi.oxalis.api.settings.Settings;
 import no.difi.oxalis.as4.config.As4Conf;
-import no.difi.oxalis.as4.inbound.InboundMerlinProvider;
 import no.difi.oxalis.as4.util.CompressionUtil;
 import no.difi.oxalis.as4.util.OxalisAlgorithmSuiteLoader;
 import no.difi.oxalis.as4.util.PeppolConfiguration;
@@ -43,7 +42,6 @@ public class As4OutboundModule extends AbstractModule {
         bind(As4MessageSender.class);
 
         bind(TransmissionResponseConverter.class);
-        bind(OutboundMerlinProvider.class);
     }
 
     @Provides

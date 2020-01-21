@@ -30,12 +30,10 @@ import no.difi.oxalis.api.header.HeaderParser;
 import no.difi.oxalis.api.settings.Settings;
 import no.difi.oxalis.as4.api.MessageIdGenerator;
 import no.difi.oxalis.as4.config.As4Conf;
-import no.difi.oxalis.as4.config.TrustStoreSettings;
 import no.difi.oxalis.as4.util.As4MessageFactory;
 import no.difi.oxalis.as4.util.PolicyService;
 import no.difi.oxalis.commons.guice.ImplLoader;
 import no.difi.oxalis.commons.guice.OxalisModule;
-import no.difi.oxalis.commons.settings.SettingsBuilder;
 
 import static no.difi.oxalis.as4.common.AS4Constants.CEF_CONNECTIVITY;
 
@@ -47,8 +45,8 @@ public class As4CommonModule extends OxalisModule {
         bindTyped(MessageIdGenerator.class, DefaultMessageIdGenerator.class);
         bindTyped(HeaderParser.class, DummyHeaderParser.class);
         bind(As4MessageFactory.class);
-        SettingsBuilder.with(binder(), TrustStoreSettings.class);
         bindSettings(As4Conf.class);
+        bind(MerlinProvider.class);
     }
 
     @Provides

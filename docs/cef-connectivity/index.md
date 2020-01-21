@@ -45,10 +45,8 @@ oxalis.keystore {
      key.password = xxx
 }
 
-oxalis.truststore {
-    path = ceftestpartyXXgwtruststore.jks
-    password = xxx
-}
+security.truststore.ap=ceftestpartyXXgwtruststore.jks
+security.truststore.password=XXXX
 
 # Changes pmode and a few other things to adapt to the connectivity test
 oxalis.as4.type=cef-connectivity
@@ -70,10 +68,10 @@ oxalis.logging.config=logback.xml
 First you should test that your AP works as expected by using [oxalis-standalone](../installation/standalone.md).
 
 ```bash
-java -DOXALIS_HOME=/c/dev/cef/.oxalis 
+java -DOXALIS_HOME=/c/dev/cef/.oxalis \
   -classpath "standalone/*;as4/*" \
   eu.sendregning.oxalis.Main \
-  -cert ./ceftestpartyXXgw.crt \ 
+  -cert ./ceftestpartyXXgw.crt \
   -f payload.xml \
   --protocol peppol-transport-as4-v2_0 \
   -u "<URL of your AP>"
@@ -87,16 +85,14 @@ The oxalis.xml in OXALIS_HOME of the oxalis-standalone outbound should be simila
 ```xml
 oxalis.keystore {
      # Relative to OXALIS_HOME
-     path=ceftestparty93gwkeystore.jks
-     password = test123
-     key.alias = ceftestparty93gw
-     key.password = test123
+     path=ceftestpartyXXgwkeystore.jks
+     password = XXXX
+     key.alias = ceftestpartyXXgw
+     key.password = XXXX
 }
 
-oxalis.truststore {
-    path = ceftestparty93gwtruststore.jks
-    password = test123
-}
+security.truststore.ap=ceftestpartyXXgwtruststore.jks
+security.truststore.password=XXXX
 
 lookup.locator.hostname="acc.edelivery.tech.ec.europa.eu/edelivery-sml/"
 
@@ -110,8 +106,8 @@ Example of sending to CEF-connectivity standalone URL using oxalis-standalone
 ```bash
 java -DOXALIS_HOME=/c/dev/cef/.oxalis \
   -classpath "standalone/*;as4/*" \
-  eu.sendregning.oxalis.Main \ 
-  -cert ./cefsupportgw.cer \ 
+  eu.sendregning.oxalis.Main \
+  -cert ./cefsupportgw.cer \
   -f payload.xml \
   --protocol peppol-transport-as4-v2_0 \
   -u "<replace with the URL in the email you received from CEF-EDELIVERY-SUPPORT>"

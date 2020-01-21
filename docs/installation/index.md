@@ -8,7 +8,7 @@ We will be basing this installation guide on Oxalis _4.0.2_. Specifically _Oxali
 * [Oxalis Inbound (Tomcat 8+)](tomcat.md)
 * [Oxalis Inbound (Docker)](https://hub.docker.com/r/digdir/oxalis-as4)
 
-# Outbound
+## Outbound
 
 * [Oxalis Outbound (Standalone)](standalone.md)
 

@@ -17,10 +17,8 @@ oxalis.keystore {
         key.password = XXXX
 }
 
-oxalis.truststore {
-    path = ceftestpartyXXgwtruststore.jks
-    password = XXXX
-}
+security.truststore.ap=ceftestpartyXXgwtruststore.jks
+security.truststore.password=XXXX
 
 lookup.locator.hostname="acc.edelivery.tech.ec.europa.eu/edelivery-sml/"
 

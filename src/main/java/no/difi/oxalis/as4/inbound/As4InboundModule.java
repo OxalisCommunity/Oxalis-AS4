@@ -4,6 +4,7 @@ import com.google.inject.Key;
 import com.google.inject.name.Names;
 import com.google.inject.servlet.ServletModule;
 import lombok.extern.slf4j.Slf4j;
+import no.difi.oxalis.as4.common.MerlinProvider;
 import org.apache.cxf.wsdl.interceptors.AbstractEndpointSelectionInterceptor;
 
 import javax.servlet.http.HttpServlet;
@@ -22,7 +23,6 @@ public class As4InboundModule extends ServletModule {
         bind(As4Provider.class);
         bind(As4EndpointsPublisher.class).to(As4EndpointsPublisherImpl.class);
         bind(As4InboundHandler.class);
-        bind(InboundMerlinProvider.class);
 
         serve("/as4*").with(Key.get(HttpServlet.class, Names.named("oxalis-as4")));
     }

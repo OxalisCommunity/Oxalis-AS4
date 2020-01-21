@@ -1,7 +1,5 @@
 package no.difi.oxalis.as4.inbound;
 
-import no.difi.oxalis.api.settings.Settings;
-import no.difi.oxalis.as4.config.TrustStoreSettings;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -12,13 +10,7 @@ import org.testng.annotations.BeforeTest;
 import java.nio.file.Path;
 import java.security.KeyStore;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.testng.Assert.assertEquals;
-
 public class As4ServletTest {
-
-    @Mock
-    private Settings<TrustStoreSettings> trustStoreSettings;
 
     @Mock
     private Path confFolder;
@@ -29,25 +21,25 @@ public class As4ServletTest {
     private As4Servlet servlet = new As4Servlet();
 
 
-    private KeyStore generateEmptyKeyStore(){
+    private KeyStore generateEmptyKeyStore() {
         try {
             KeyStore ks = KeyStore.getInstance("jks");
             ks.load(null, null);
 
             return ks;
-        }catch (Exception e){
+        } catch (Exception e) {
             return null;
         }
     }
 
     @BeforeTest
-    public void beforeTest(){
+    public void beforeTest() {
         MockitoAnnotations.initMocks(this);
     }
 
 
     @BeforeMethod
-    public void beforeMethod (){
+    public void beforeMethod() {
         trustStore = generateEmptyKeyStore();
         Whitebox.setInternalState(servlet, "trustStore", trustStore);
     }
