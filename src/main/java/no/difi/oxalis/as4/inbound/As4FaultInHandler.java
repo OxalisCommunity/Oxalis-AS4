@@ -56,14 +56,9 @@ public class As4FaultInHandler implements SOAPHandler<SOAPMessageContext> {
                 .map(MessageId::getValue)
                 .orElse(null);
 
-        if (messageId == null) {
-            log.info("No messageId found!");
-        }
-
         Exception exception = (Exception) context.get(Exception.class.getName());
 
         if (exception == null) {
-            log.info("No exception found!");
             return true;
         }
 

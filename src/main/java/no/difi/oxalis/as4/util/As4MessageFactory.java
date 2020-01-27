@@ -67,7 +67,6 @@ public class As4MessageFactory {
                 .withReceipt(Receipt.builder().withAny(nri).build())
                 .build();
 
-
         return marshalSignalMessage(signalMessage);
     }
 

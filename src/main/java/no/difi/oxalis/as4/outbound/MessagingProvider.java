@@ -80,6 +80,15 @@ public class MessagingProvider {
                                     .build()
                     );
                 }
+
+                if(null != as4TransmissionRequest.getCompressionType()) {
+                    partProperties.addProperty(
+                            Property.builder()
+                                    .withName("CompressionType")
+                                    .withValue(as4TransmissionRequest.getCompressionType())
+                                    .build()
+                    );
+                }
             }
 
             PartInfo partInfo = PartInfo.builder()

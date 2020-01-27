@@ -19,5 +19,7 @@ public interface As4TransmissionRequest extends TransmissionRequest {
 
     Charset getPayloadCharset();
 
+    String getCompressionType();
+
     boolean isPing();
 }
