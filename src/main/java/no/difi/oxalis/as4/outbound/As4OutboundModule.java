@@ -18,6 +18,7 @@ import java.security.Security;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import static no.difi.oxalis.as4.common.AS4Constants.CEF_CONFORMANCE;
 import static no.difi.oxalis.as4.common.AS4Constants.CEF_CONNECTIVITY;
 
 @Slf4j
@@ -55,8 +56,9 @@ public class As4OutboundModule extends AbstractModule {
     @Provides
     @Singleton
     public PeppolConfiguration getPeppolOutboundConfiguration(Settings<As4Conf> settings) {
+        String type = settings.getString(As4Conf.TYPE);
 
-        if (CEF_CONNECTIVITY.equalsIgnoreCase(settings.getString(As4Conf.TYPE))) {
+        if (CEF_CONNECTIVITY.equalsIgnoreCase(type)) {
             return new PeppolConfiguration() {
 
                 @Override
@@ -77,7 +79,8 @@ public class As4OutboundModule extends AbstractModule {
     @Provides
     @Singleton
     public ActionProvider getActionProvider(Settings<As4Conf> settings) {
-        if (CEF_CONNECTIVITY.equalsIgnoreCase(settings.getString(As4Conf.TYPE))) {
+        String type = settings.getString(As4Conf.TYPE);
+        if (CEF_CONNECTIVITY.equalsIgnoreCase(type)) {
             return p -> {
                 String action = TransmissionRequestUtil.translateDocumentTypeToAction(p);
 
@@ -86,6 +89,14 @@ public class As4OutboundModule extends AbstractModule {
                 }
 
                 return action;
+            };
+        } else if (CEF_CONFORMANCE.equalsIgnoreCase(type)) {
+            return p -> {
+                if ("http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/test".equals(p.getIdentifier())) {
+                    return "http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/test";
+                }
+
+                return TransmissionRequestUtil.translateDocumentTypeToAction(p);
             };
         }
 

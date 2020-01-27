@@ -4,9 +4,9 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import no.difi.oxalis.as4.api.MessageIdGenerator;
 import no.difi.oxalis.as4.inbound.ProsessingContext;
+import no.difi.oxalis.as4.lang.AS4Error;
 import no.difi.oxalis.as4.lang.OxalisAs4Exception;
 import org.apache.cxf.interceptor.Fault;
-import org.apache.cxf.ws.policy.PolicyConstants;
 import org.oasis_open.docs.ebxml_bp.ebbp_signals_2.MessagePartNRInformation;
 import org.oasis_open.docs.ebxml_bp.ebbp_signals_2.NonRepudiationInformation;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.Error;
@@ -72,29 +72,29 @@ public class As4MessageFactory {
     }
 
 
-    public SOAPMessage createErrorMessage(MessageId messageId, OxalisAs4Exception oxalisException) {
+    public SOAPMessage createErrorMessage(String messageId, AS4Error as4Error) {
         try {
 
             XMLGregorianCalendar currentDate = XMLUtil.dateToXMLGeorgianCalendar(new Date());
 
 
             MessageInfo messageInfo = MessageInfo.builder()
-                    .withRefToMessageId(messageId.getValue())
+                    .withRefToMessageId(messageId)
                     .withTimestamp(currentDate)
                     .withMessageId(messageIdGenerator.generate())
                     .build();
 
             Error error = Error.builder()
-                    .withRefToMessageInError(messageId.getValue())
+                    .withRefToMessageInError(messageId)
 
-                    .withErrorCode(oxalisException.getErrorCode().toString())
-                    .withErrorDetail(getErrorDetail(oxalisException))
-                    .withShortDescription(oxalisException.getErrorCode().getShortDescription())
+                    .withErrorCode(as4Error.getErrorCode().toString())
+                    .withErrorDetail(getErrorDetail(as4Error))
+                    .withShortDescription(as4Error.getErrorCode().getShortDescription())
                     //                .withDescription()
 
-                    .withOrigin(oxalisException.getErrorCode().getOrigin().toString())
-                    .withCategory(oxalisException.getErrorCode().getCatgory().toString())
-                    .withSeverity(oxalisException.getSeverity().toString())
+                    .withOrigin(as4Error.getErrorCode().getOrigin().toString())
+                    .withCategory(as4Error.getErrorCode().getCatgory().toString())
+                    .withSeverity(as4Error.getSeverity().toString())
 
                     .build();
 
@@ -111,12 +111,12 @@ public class As4MessageFactory {
         }
     }
 
-    private String getErrorDetail(OxalisAs4Exception oxalisException) {
+    private String getErrorDetail(AS4Error as4Error) {
         StringBuilder sb = new StringBuilder();
 
-        sb.append(oxalisException.getMessage());
+        sb.append(as4Error.getMessage());
 
-        Throwable throwable = oxalisException;
+        Throwable throwable = as4Error.getException();
 
         while (throwable.getCause() != null) {
             throwable = throwable.getCause();
@@ -142,10 +142,7 @@ public class As4MessageFactory {
 
             jaxbContext.createMarshaller().marshal(userMessageJAXBElement, messagingHeader);
 
-//            message.setProperty(PolicyConstants.POLICY_OVERRIDE, PolicyUtil.getPolicy());
-
             return message;
-
         } catch (Exception e) {
             throw new OxalisAs4Exception("Unable to marshal SignalMessage", e, AS4ErrorCode.EBMS_0004);
         }

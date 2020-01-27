@@ -7,27 +7,17 @@ import java.util.Map;
 
 public interface As4TransmissionRequest extends TransmissionRequest {
 
-    default String getRefToMessageId() { return  null; }
+    String getRefToMessageId();
 
-    default String getMessageId() {
-        return null;
-    }
+    String getMessageId();
 
-    default String getConversationId() {
-        return null;
-    }
+    String getConversationId();
 
-    default Map<String, String> getMessageProperties() {
-        return null;
-    }
+    Map<String, String> getMessageProperties();
 
-    default String getPayloadHref() {
-        return null;
-    }
+    String getPayloadHref();
 
-    default Charset getPayloadCharset() { return null; }
+    Charset getPayloadCharset();
 
-    default boolean isPing(){
-        return false;
-    }
+    boolean isPing();
 }

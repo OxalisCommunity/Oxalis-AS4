@@ -3,8 +3,9 @@ package no.difi.oxalis.as4.inbound;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
-class AS4MessageContextKey {
+public class AS4MessageContextKey {
 
-    static final String FIRST_PAYLOAD_PATH = "no.difi.oxalis.as4.first.payload.path";
-    static final String FIRST_PAYLOAD_HEADER = "no.difi.oxalis.as4.first.payload.header";
+    public static final String FIRST_PAYLOAD_PATH = "no.difi.oxalis.as4.first.payload.path";
+    public static final String FIRST_PAYLOAD_HEADER = "no.difi.oxalis.as4.first.payload.header";
+    public static final String ENVELOPE_HEADER = "no.difi.oxalis.as4.envelope.header";
 }

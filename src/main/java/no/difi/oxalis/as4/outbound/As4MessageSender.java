@@ -7,6 +7,7 @@ import no.difi.oxalis.api.outbound.TransmissionResponse;
 import no.difi.oxalis.api.settings.Settings;
 import no.difi.oxalis.as4.api.MessageIdGenerator;
 import no.difi.oxalis.as4.common.MerlinProvider;
+import no.difi.oxalis.as4.config.As4Conf;
 import no.difi.oxalis.as4.lang.OxalisAs4TransmissionException;
 import no.difi.oxalis.as4.util.CompressionUtil;
 import no.difi.oxalis.as4.util.Constants;
@@ -38,6 +39,7 @@ import javax.xml.ws.soap.SOAPBinding;
 import java.io.IOException;
 import java.util.*;
 
+import static no.difi.oxalis.as4.common.AS4Constants.CEF_CONFORMANCE;
 import static org.apache.cxf.rt.security.SecurityConstants.*;
 
 @Slf4j
@@ -54,6 +56,9 @@ public class As4MessageSender {
 
     @Inject
     private Settings<KeyStoreConf> settings;
+
+    @Inject
+    private Settings<As4Conf> as4settings;
 
     @Inject
     private CompressionUtil compressionUtil;
@@ -79,9 +84,12 @@ public class As4MessageSender {
         SoapHeader header = getSoapHeader(messaging);
         dispatch.getRequestContext().put(Header.HEADER_LIST, new ArrayList<>(Collections.singletonList(header)));
 
-        SOAPMessage response = dispatch.invoke(null);
-
-        return transmissionResponseConverter.convert(request, response);
+        try {
+            SOAPMessage response = dispatch.invoke(null);
+            return transmissionResponseConverter.convert(request, response);
+        } catch (Exception e) {
+            throw new OxalisAs4TransmissionException("Failed to send message", e);
+        }
     }
 
     private SoapHeader getSoapHeader(Messaging messaging) throws OxalisAs4TransmissionException {
@@ -107,7 +115,8 @@ public class As4MessageSender {
 
     public Collection<Attachment> prepareAttachments(TransmissionRequest request) throws OxalisAs4TransmissionException {
         Map<String, List<String>> headers = new HashMap<>();
-        headers.put("Content-ID", Collections.singletonList(messageIdGenerator.generate()));
+
+        headers.put("Content-ID", Collections.singletonList(getContentID(request)));
         headers.put("CompressionType", Collections.singletonList("application/gzip"));
         headers.put("MimeType", Collections.singletonList("application/xml"));
 
@@ -119,6 +128,15 @@ public class As4MessageSender {
         }
     }
 
+    private String getContentID(TransmissionRequest request) {
+        if (request instanceof As4TransmissionRequest) {
+            As4TransmissionRequest as4request = (As4TransmissionRequest) request;
+            return as4request.getPayloadHref();
+        }
+
+        return messageIdGenerator.generate();
+    }
+
     private Dispatch<SOAPMessage> createDispatch(TransmissionRequest request) throws OxalisAs4TransmissionException {
         Dispatch<SOAPMessage> dispatch = getService(request)
                 .createDispatch(PORT_NAME, SOAPMessage.class, Service.Mode.MESSAGE);
@@ -128,7 +146,9 @@ public class As4MessageSender {
 
         final Client client = ((DispatchImpl<SOAPMessage>) dispatch).getClient();
 
-//        client.getInInterceptors().add(getLoggingBeforeSecurityInInterceptor());
+        if (CEF_CONFORMANCE.equalsIgnoreCase(as4settings.getString(As4Conf.TYPE))) {
+            client.getInInterceptors().add(getLoggingBeforeSecurityInInterceptor());
+        }
 
         final HTTPConduit httpConduit = (HTTPConduit) client.getConduit();
         final HTTPClientPolicy httpClientPolicy = httpConduit.getClient();
@@ -146,7 +166,7 @@ public class As4MessageSender {
     }
 
     private Service getService(TransmissionRequest request) throws OxalisAs4TransmissionException {
-        Service service = Service.create(SERVICE_NAME, new LoggingFeature(), new WSPolicyFeature(policyService.getPolicy()));
+        Service service = Service.create(SERVICE_NAME, new LoggingFeature(), new WSPolicyFeature(policyService.getPolicy(request)));
         service.addPort(PORT_NAME, SOAPBinding.SOAP12HTTP_BINDING, request.getEndpoint().getAddress().toString());
         return service;
     }

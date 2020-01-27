@@ -38,12 +38,22 @@ public class MerlinProvider {
     @Named("truststore-ap")
     private KeyStore trustStoreAp;
 
+    private KeyStore cachedTrustStore;
+
     public Merlin getMerlin() {
         Merlin merlin = new Merlin();
         merlin.setCryptoProvider(BouncyCastleProvider.PROVIDER_NAME);
         merlin.setKeyStore(keyStore);
-        merlin.setTrustStore(getTrustStore());
+        merlin.setTrustStore(getCachedTrustStore());
         return merlin;
+    }
+
+    private KeyStore getCachedTrustStore() {
+        if (cachedTrustStore == null) {
+            cachedTrustStore = getTrustStore();
+        }
+
+        return cachedTrustStore;
     }
 
     private KeyStore getTrustStore() {

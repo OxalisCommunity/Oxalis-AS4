@@ -56,7 +56,6 @@ public class SendReceiveTest extends AbstractJettyServerTest {
 
         this.firstPayload = buffer.toByteArray();
 
-
         is = getClass().getResourceAsStream("/simple-sbd.xml");
         buffer = new ByteArrayOutputStream();
 

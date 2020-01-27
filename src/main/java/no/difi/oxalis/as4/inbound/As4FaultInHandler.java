@@ -5,31 +5,27 @@ import com.google.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import no.difi.oxalis.api.model.TransmissionIdentifier;
 import no.difi.oxalis.api.persist.PersisterHandler;
+import no.difi.oxalis.as4.lang.AS4Error;
 import no.difi.oxalis.as4.lang.OxalisAs4Exception;
 import no.difi.oxalis.as4.util.AS4ErrorCode;
 import no.difi.oxalis.as4.util.As4MessageFactory;
 import no.difi.oxalis.as4.util.MessageId;
-import org.apache.cxf.message.Attachment;
+import org.apache.cxf.interceptor.Fault;
 import org.apache.cxf.message.Exchange;
 import org.apache.cxf.message.Message;
 import org.apache.cxf.phase.PhaseInterceptorChain;
 import org.apache.wss4j.common.ext.WSSecurityException;
 
-import javax.activation.DataHandler;
 import javax.xml.namespace.QName;
 import javax.xml.soap.SOAPMessage;
+import javax.xml.ws.WebServiceException;
 import javax.xml.ws.handler.MessageContext;
 import javax.xml.ws.handler.soap.SOAPHandler;
 import javax.xml.ws.handler.soap.SOAPMessageContext;
-import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Path;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Stream;
-import java.util.zip.GZIPInputStream;
 
 @Slf4j
 @Singleton
@@ -56,55 +52,69 @@ public class As4FaultInHandler implements SOAPHandler<SOAPMessageContext> {
 
     @Override
     public boolean handleFault(SOAPMessageContext context) {
-        String conversationId = (String) context.get("oxalis.as4.conversationId");
-        MessageId messageId = (MessageId) context.get(MessageId.MESSAGE_ID);
+        String messageId = Optional.ofNullable((MessageId) context.get(MessageId.MESSAGE_ID))
+                .map(MessageId::getValue)
+                .orElse(null);
 
-        Optional.ofNullable(context.get(Exception.class.getName()))
-                .map(Exception.class::cast)
-                .map(Exception::getCause)
-                .map(As4FaultInHandler::launderException)
-                .filter(OxalisAs4Exception.class::isInstance)
-                .map(OxalisAs4Exception.class::cast)
-                .flatMap(as4Exception -> Optional.ofNullable(messageId)
-                        .map(id -> toErrorMessage(as4Exception, id, context)))
-                .ifPresent(errorMessage -> {
-                    context.setMessage(errorMessage);
-                    log.debug("Converted default Fault into EBMS error message");
-                    log.info("\n\n********************\nMessageId: " + messageId.getValue() + "\nConversationId: " + conversationId + "\n********************");
-                });
+        if (messageId == null) {
+            log.info("No messageId found!");
+        }
+
+        Exception exception = (Exception) context.get(Exception.class.getName());
+
+        if (exception == null) {
+            log.info("No exception found!");
+            return true;
+        }
+
+        log.info("handleFault for Exception", exception);
+
+        AS4Error as4Error = toAS4Error(exception);
+
+        handleAS4Error(context, messageId, as4Error);
 
         return true;
     }
 
-    private SOAPMessage toErrorMessage(OxalisAs4Exception as4Exception, MessageId id, SOAPMessageContext context) {
+    protected void handleAS4Error(SOAPMessageContext context, String messageId, AS4Error as4Error) {
+        SOAPMessage errorMessage = as4MessageFactory.createErrorMessage(messageId, as4Error);
+        context.setMessage(errorMessage);
+
         Path firstPayloadPath = (Path) context.get(AS4MessageContextKey.FIRST_PAYLOAD_PATH);
         As4PayloadHeader firstPayloadHeader = (As4PayloadHeader) context.get(AS4MessageContextKey.FIRST_PAYLOAD_HEADER);
 
-        if (firstPayloadPath != null) {
+        if (messageId != null && firstPayloadPath != null) {
             try {
-                persisterHandler.persist(TransmissionIdentifier.of(id.getValue()), firstPayloadHeader, firstPayloadPath, as4Exception);
+                persisterHandler.persist(TransmissionIdentifier.of(messageId), firstPayloadHeader, firstPayloadPath, as4Error.getException());
             } catch (Exception e) {
                 log.error("Unable to persist exception", e);
             }
         }
-
-        return as4MessageFactory.createErrorMessage(id, as4Exception);
     }
-
 
     @Override
     public void close(MessageContext context) {
         // Intentionally left empty
     }
 
-    public static Throwable launderException(Throwable t) {
+    public static AS4Error toAS4Error(Throwable t) {
         // Is there a better way of getting the inMessage using JAX-WS?
         Optional<Message> faultMessage = Optional.ofNullable(PhaseInterceptorChain.getCurrentMessage());
         Optional<Message> inMessage = faultMessage
                 .map(Message::getExchange)
                 .map(Exchange::getInMessage);
 
-        if (t instanceof WSSecurityException) {
+        if (t instanceof Fault) {
+            Fault fault = (Fault) t;
+            t = fault.getCause();
+        }
+
+        if (t instanceof WebServiceException) {
+            WebServiceException webServiceException = (WebServiceException) t;
+            t = webServiceException.getCause();
+        }
+
+        if (t instanceof WSSecurityException && inMessage.isPresent()) {
 
             boolean isCompressionError = (boolean) inMessage.get().getOrDefault("oxalis.as4.compressionErrorDetected", false);
             if (isCompressionError) {
@@ -113,50 +123,13 @@ public class As4FaultInHandler implements SOAPHandler<SOAPMessageContext> {
                         "Content cannot be compressed after signature/encryption", AS4ErrorCode.EBMS_0303);
             }
 
+            return new OxalisAs4Exception(t.getMessage(), t, AS4ErrorCode.EBMS_0009, AS4ErrorCode.Severity.ERROR);
         }
 
-        if (t.getCause() instanceof OxalisAs4Exception) {
-            t = t.getCause();
+        if (t instanceof AS4Error) {
+            return (AS4Error) t;
         }
 
-        return t;
-    }
-
-    public static boolean attachmentsIsCompressed(Collection<Attachment> attachments) {
-
-        return Optional.of(attachments)
-                .map(Collection::stream).orElseGet(Stream::empty)
-                .map(Attachment::getDataHandler)
-                .map(Optional::of)
-                .anyMatch(As4FaultInHandler::isInputStreamZipped);
-    }
-
-    public static boolean isInputStreamZipped(Optional<DataHandler> dataHandler) {
-
-        try {
-
-            if (dataHandler.isPresent()) {
-                return canExtractZipEntry(dataHandler.get().getInputStream());
-            } else {
-                return false;
-            }
-
-        } catch (IOException e) {
-            return false;
-        }
-    }
-
-    private static boolean canExtractZipEntry(InputStream is) {
-        try {
-
-            byte[] testExtraction = new byte[20];
-            GZIPInputStream zis = new GZIPInputStream(is);
-            zis.read(testExtraction);
-
-        } catch (IOException e) {
-            return false;
-        }
-
-        return true;
+        return new OxalisAs4Exception(t.getMessage(), t, AS4ErrorCode.EBMS_0004, AS4ErrorCode.Severity.ERROR);
     }
 }

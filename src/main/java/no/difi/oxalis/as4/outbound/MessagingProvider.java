@@ -153,7 +153,7 @@ public class MessagingProvider {
                 ).build();
     }
 
-    private CollaborationInfo createCollaborationInfo(TransmissionRequest request) {
+    public CollaborationInfo createCollaborationInfo(TransmissionRequest request) {
         String action = actionProvider.getAction(request.getHeader().getDocumentType());
 
         ProcessIdentifier process = request.getHeader().getProcess();
@@ -167,14 +167,12 @@ public class MessagingProvider {
                         .build()
                 );
 
-
         if (request instanceof As4TransmissionRequest && ((As4TransmissionRequest) request).isPing()) {
             cib = cib.withAction(TEST_ACTION)
                     .withService(Service.builder()
                             .withValue(TEST_SERVICE)
                             .build());
         }
-
 
         if (defaultOutboundConfiguration.getAgreementRef() != null) {
             cib = cib.withAgreementRef(AgreementRef.builder()

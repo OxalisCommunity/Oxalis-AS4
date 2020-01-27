@@ -9,4 +9,6 @@ public interface AS4Error {
     AS4ErrorCode.Severity getSeverity();
 
     String getMessage();
+
+    Exception getException();
 }

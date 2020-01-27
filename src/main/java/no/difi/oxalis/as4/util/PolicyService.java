@@ -1,11 +1,15 @@
 package no.difi.oxalis.as4.util;
 
 import lombok.extern.slf4j.Slf4j;
+import no.difi.oxalis.api.outbound.TransmissionRequest;
 import no.difi.oxalis.as4.lang.OxalisAs4TransmissionException;
+import no.difi.oxalis.as4.outbound.ActionProvider;
+import no.difi.vefa.peppol.common.model.ProcessIdentifier;
 import org.apache.cxf.Bus;
 import org.apache.cxf.BusFactory;
 import org.apache.cxf.ws.policy.PolicyBuilder;
 import org.apache.neethi.Policy;
+import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.CollaborationInfo;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -15,11 +19,10 @@ import java.io.InputStream;
 @Slf4j
 public class PolicyService {
 
-    private final String policyClasspath;
+    private final ActionProvider actionProvider;
 
-    public PolicyService(String policyClasspath) {
-        this.policyClasspath = policyClasspath;
-        log.info("Policy classpath: {}", policyClasspath);
+    public PolicyService(ActionProvider actionProvider) {
+        this.actionProvider = actionProvider;
     }
 
     public Policy getPolicy() throws OxalisAs4TransmissionException {
@@ -29,7 +32,35 @@ public class PolicyService {
     }
 
     public Policy getPolicy(Bus bus) throws OxalisAs4TransmissionException {
+        return getPolicy(getDefaultPolicy(), bus);
+    }
+
+    public Policy getPolicy(TransmissionRequest request) throws OxalisAs4TransmissionException {
+        Bus bus = BusFactory.getDefaultBus();
+        new OxalisAlgorithmSuiteLoader(bus);
+        return getPolicy(request, bus);
+    }
+
+    public Policy getPolicy(TransmissionRequest request, Bus bus) throws OxalisAs4TransmissionException {
+        String action = actionProvider.getAction(request.getHeader().getDocumentType());
+        ProcessIdentifier process = request.getHeader().getProcess();
+        String service = process.getIdentifier();
+        return getPolicy(getPolicyClasspath(action, service), bus);
+    }
+
+    public Policy getPolicy(CollaborationInfo collaborationInfo) throws OxalisAs4TransmissionException {
+        Bus bus = BusFactory.getDefaultBus();
+        new OxalisAlgorithmSuiteLoader(bus);
+        return getPolicy(collaborationInfo, bus);
+    }
+
+    public Policy getPolicy(CollaborationInfo collaborationInfo, Bus bus) throws OxalisAs4TransmissionException {
+        return getPolicy(getPolicyClasspath(collaborationInfo.getAction(), collaborationInfo.getService().getValue()), bus);
+    }
+
+    private Policy getPolicy(String policyClasspath, Bus bus) throws OxalisAs4TransmissionException {
         try {
+            log.debug("Policy classpath: {}", policyClasspath);
             InputStream policyStream = getClass().getResourceAsStream(policyClasspath);
             PolicyBuilder builder = bus.getExtension(PolicyBuilder.class);
             return builder.getPolicy(policyStream);
@@ -37,4 +68,13 @@ public class PolicyService {
             throw new OxalisAs4TransmissionException("Failed to get WS Policy", e);
         }
     }
+
+    protected String getPolicyClasspath(String action, String service) {
+        return getDefaultPolicy();
+    }
+
+    protected String getDefaultPolicy() {
+        return "/eDeliveryAS4Policy_BST.xml";
+    }
 }
+

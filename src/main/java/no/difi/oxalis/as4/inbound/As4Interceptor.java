@@ -47,46 +47,55 @@ public class As4Interceptor extends AbstractSoapInterceptor {
 
     @Override
     public void handleMessage(SoapMessage message) throws Fault {
-        storeMessageIdInContext(message);
+        Messaging messaging = getMessaging(message);
+
+        storeMessageIdInContext(message, messaging);
+
+        Optional<UserMessage> userMessage = Optional.ofNullable(messaging)
+                .map(Messaging::getUserMessage)
+                .map(Collection::stream).orElseGet(Stream::empty)
+                .findFirst();
 
         try {
-            Policy policy = policyService.getPolicy();
+            Policy policy = userMessage.isPresent()
+                    ? policyService.getPolicy(userMessage.get().getCollaborationInfo())
+                    : policyService.getPolicy();
             message.put(AssertionInfoMap.class.getName(), new AssertionInfoMap(policy));
         } catch (Exception e) {
             throw new Fault(e);
         }
     }
 
-    private void storeMessageIdInContext(Message message) throws Fault {
-
+    private Messaging getMessaging(Message message) {
         SoapMessage soapMessage = (SoapMessage) message;
         Header header = soapMessage.getHeader(Constants.MESSAGING_QNAME);
 
         try {
             Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
-            Messaging messaging = unmarshaller.unmarshal((Node) header.getObject(), Messaging.class).getValue();
-
-            String messageId = Optional.ofNullable(messaging)
-                    .map(Messaging::getUserMessage)
-                    .map(Collection::stream).orElseGet(Stream::empty)
-                    .map(UserMessage::getMessageInfo)
-                    .map(MessageInfo::getMessageId)
-                    .findFirst()
-                    .orElseThrow(() -> new Fault(new OxalisAs4Exception("MessageID is missing from UserMessage")));
-
-            message.put(MessageId.MESSAGE_ID, new MessageId(messageId));
-
-            Optional.ofNullable(messaging)
-                    .map(Messaging::getUserMessage)
-                    .map(Collection::stream).orElseGet(Stream::empty)
-                    .map(UserMessage::getCollaborationInfo)
-                    .map(CollaborationInfo::getConversationId)
-                    .findFirst()
-                    .ifPresent(conversationId -> message.put("oxalis.as4.conversationId", conversationId));
-
+            return unmarshaller.unmarshal((Node) header.getObject(), Messaging.class).getValue();
         } catch (JAXBException e) {
             throw new Fault(e);
         }
+    }
+
+    private void storeMessageIdInContext(Message message, Messaging messaging) throws Fault {
+        String messageId = Optional.ofNullable(messaging)
+                .map(Messaging::getUserMessage)
+                .map(Collection::stream).orElseGet(Stream::empty)
+                .map(UserMessage::getMessageInfo)
+                .map(MessageInfo::getMessageId)
+                .findFirst()
+                .orElseThrow(() -> new Fault(new OxalisAs4Exception("MessageID is missing from UserMessage")));
+
+        message.put(MessageId.MESSAGE_ID, new MessageId(messageId));
+
+        Optional.ofNullable(messaging)
+                .map(Messaging::getUserMessage)
+                .map(Collection::stream).orElseGet(Stream::empty)
+                .map(UserMessage::getCollaborationInfo)
+                .map(CollaborationInfo::getConversationId)
+                .findFirst()
+                .ifPresent(conversationId -> message.put("oxalis.as4.conversationId", conversationId));
     }
 
 

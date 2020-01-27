@@ -46,4 +46,9 @@ public class OxalisAs4Exception extends OxalisException implements AS4Error {
     public AS4ErrorCode.Severity getSeverity() {
         return severity;
     }
+
+    @Override
+    public Exception getException() {
+        return this;
+    }
 }

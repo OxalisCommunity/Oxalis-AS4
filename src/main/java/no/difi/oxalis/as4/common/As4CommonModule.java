@@ -30,12 +30,14 @@ import no.difi.oxalis.api.header.HeaderParser;
 import no.difi.oxalis.api.settings.Settings;
 import no.difi.oxalis.as4.api.MessageIdGenerator;
 import no.difi.oxalis.as4.config.As4Conf;
+import no.difi.oxalis.as4.outbound.ActionProvider;
 import no.difi.oxalis.as4.util.As4MessageFactory;
 import no.difi.oxalis.as4.util.PolicyService;
 import no.difi.oxalis.commons.guice.ImplLoader;
 import no.difi.oxalis.commons.guice.OxalisModule;
+import no.difi.vefa.peppol.mode.Mode;
 
-import static no.difi.oxalis.as4.common.AS4Constants.CEF_CONNECTIVITY;
+import static no.difi.oxalis.as4.common.AS4Constants.*;
 
 @Slf4j
 public class As4CommonModule extends OxalisModule {
@@ -51,19 +53,49 @@ public class As4CommonModule extends OxalisModule {
 
     @Provides
     @Singleton
-    public PolicyService policyService(Settings<As4Conf> settings) {
-        return new PolicyService(getPolicyClasspath(settings));
-    }
-
-    private String getPolicyClasspath(Settings<As4Conf> settings) {
-        return CEF_CONNECTIVITY.equalsIgnoreCase(settings.getString(As4Conf.TYPE))
-                ? "/eDeliveryAS4Policy.xml"
-                : "/eDeliveryAS4Policy_BST.xml";
+    public MessageIdGenerator getMessageIdGenerator(Injector injector, Settings<As4Conf> settings) {
+        return ImplLoader.get(injector, MessageIdGenerator.class, settings, As4Conf.MSGID_GENERATOR);
     }
 
     @Provides
     @Singleton
-    public MessageIdGenerator getMessageIdGenerator(Injector injector, Settings<As4Conf> settings) {
-        return ImplLoader.get(injector, MessageIdGenerator.class, settings, As4Conf.MSGID_GENERATOR);
+    public PolicyService getPolicyService(Mode mode, Settings<As4Conf> settings, ActionProvider actionProvider) {
+        String type = settings.getString(As4Conf.TYPE);
+
+        if (Mode.PRODUCTION.equals(mode.getIdentifier()) && !PEPPOL.equals(type)) {
+            throw new IllegalStateException("oxalis.as4.type has to be peppol in PRODUCTION!");
+        }
+
+        if (CEF_CONNECTIVITY.equalsIgnoreCase(type)) {
+            return new PolicyService(actionProvider) {
+                @Override
+                protected String getDefaultPolicy() {
+                    return "/eDeliveryAS4Policy.xml";
+                }
+            };
+        } else if (CEF_CONFORMANCE.equalsIgnoreCase(type)) {
+            return new PolicyService(actionProvider) {
+
+                @Override
+                protected String getPolicyClasspath(String action, String service) {
+                    log.debug("Service = {}, Action = {}", service, action);
+
+                    if ("SRV_ONEWAY_SIGNONLY".equals(service)
+                            && "busdox-docid-qns::ACT_ONEWAY_SIGNONLY".equals(action)) {
+                        return "/signOnly.xml";
+                    }
+
+                    return getDefaultPolicy();
+                }
+
+
+                @Override
+                protected String getDefaultPolicy() {
+                    return "/eDeliveryAS4Policy.xml";
+                }
+            };
+        }
+
+        return new PolicyService(actionProvider);
     }
 }

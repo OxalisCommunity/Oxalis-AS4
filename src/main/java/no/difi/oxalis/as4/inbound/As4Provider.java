@@ -6,7 +6,6 @@ import no.difi.oxalis.as4.lang.OxalisAs4Exception;
 import org.apache.cxf.transport.http.AbstractHTTPDestination;
 
 import javax.annotation.Resource;
-import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.soap.SOAPMessage;
 import javax.xml.ws.*;
@@ -28,7 +27,6 @@ public class As4Provider implements Provider<SOAPMessage> {
     @Override
     public SOAPMessage invoke(SOAPMessage request) {
         MessageContext messageContext = context.getMessageContext();
-        HttpServletRequest httpReq = (HttpServletRequest) messageContext.get(AbstractHTTPDestination.HTTP_REQUEST);
         HttpServletResponse httpRes = (HttpServletResponse) messageContext.get(AbstractHTTPDestination.HTTP_RESPONSE);
         httpRes.setStatus(HttpServletResponse.SC_OK);
 
@@ -36,7 +34,7 @@ public class As4Provider implements Provider<SOAPMessage> {
             return handler.handle(request, messageContext);
         } catch (OxalisAs4Exception e) {
             httpRes.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            throw new RuntimeException(e);
+            throw new WebServiceException(e);
         }
     }
 }

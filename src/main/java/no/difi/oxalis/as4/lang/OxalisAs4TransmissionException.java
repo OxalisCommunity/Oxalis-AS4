@@ -41,4 +41,9 @@ public class OxalisAs4TransmissionException extends OxalisTransmissionException 
     public AS4ErrorCode.Severity getSeverity() {
         return severity;
     }
+
+    @Override
+    public Exception getException() {
+        return this;
+    }
 }

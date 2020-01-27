@@ -82,6 +82,7 @@ public class As4InboundHandler {
         UserMessage userMessage = SOAPHeaderParser.getUserMessage(soapHeader);
 
         As4EnvelopeHeader envelopeHeader = parseAs4EnvelopeHeader(userMessage);
+        messageContext.put(AS4MessageContextKey.ENVELOPE_HEADER, envelopeHeader);
 
         TransmissionIdentifier messageId = TransmissionIdentifier.of(envelopeHeader.getMessageId());
 
@@ -146,7 +147,7 @@ public class As4InboundHandler {
         // Send response
         Policy policy = null;
         try {
-            policy = policyService.getPolicy();
+            policy = policyService.getPolicy(userMessage.getCollaborationInfo());
         } catch (OxalisAs4TransmissionException e) {
             throw new OxalisAs4Exception("Could not get policy", e, AS4ErrorCode.EBMS_0202);
         }
@@ -333,6 +334,14 @@ public class As4InboundHandler {
                     try {
                         is = new GZIPInputStream(is);
                     } catch (IOException e) {
+                        log.info("PartInfo headers: {}", partInfoHeaders.values().stream()
+                                .map(p -> p.getName() + "=" + p.getValue())
+                                .collect(Collectors.joining(", ", "{", "}")));
+
+                        log.info("MIME headers: {}", mimeHeaders.values().stream()
+                                .map(p -> p.getName() + "=" + p.getValue())
+                                .collect(Collectors.joining(", ", "{", "}")));
+
                         throw new OxalisAs4Exception(
                                 "Unable to initiate decompression of payload with Content-ID: " + contentId,
                                 e,
@@ -406,10 +415,10 @@ public class As4InboundHandler {
             }
         }
 
-        if (mimeHeaders.containsKey(COMPRESSION_TYPE) &&
-                "application/gzip".equals(mimeHeaders.get(COMPRESSION_TYPE).getValue())) {
-            return true;
-        }
+//        if (mimeHeaders.containsKey(COMPRESSION_TYPE) &&
+//                "application/gzip".equals(mimeHeaders.get(COMPRESSION_TYPE).getValue())) {
+//            return true;
+//        }
 
         return false;
     }

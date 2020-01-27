@@ -1,8 +1,6 @@
 package no.difi.oxalis.as4.inbound;
 
 import com.google.inject.Inject;
-import no.difi.oxalis.as4.lang.OxalisAs4TransmissionException;
-import no.difi.oxalis.as4.util.PolicyService;
 import org.apache.cxf.Bus;
 import org.apache.cxf.binding.soap.SoapMessage;
 import org.apache.cxf.binding.soap.SoapVersion;
@@ -13,6 +11,7 @@ import org.apache.cxf.ext.logging.LoggingFeature;
 import org.apache.cxf.interceptor.AttachmentInInterceptor;
 import org.apache.cxf.interceptor.StaxInInterceptor;
 import org.apache.cxf.jaxws.EndpointImpl;
+import org.apache.cxf.jaxws.handler.SetCodeValueFaultOutInterceptor;
 import org.apache.cxf.jaxws.handler.soap.SOAPHandlerFaultInInterceptor;
 import org.apache.cxf.message.Message;
 import org.apache.cxf.transport.MultipleEndpointObserver;
@@ -37,18 +36,15 @@ public class As4EndpointsPublisherImpl implements As4EndpointsPublisher {
     private As4Interceptor oxalisAs4Interceptor;
 
     @Inject
-    private PolicyService policyService;
+    private SetPolicyInterceptor setPolicyInterceptor;
 
     @Override
     public EndpointImpl publish(Bus bus) {
         EndpointImpl endpoint = null;
-        try {
-            endpoint = (EndpointImpl) Endpoint.publish("/", as4Provider,
-                    new LoggingFeature(),
-                    new WSPolicyFeature(policyService.getPolicy(bus)));
-        } catch (OxalisAs4TransmissionException e) {
-            throw new RuntimeException("Failed!", e);
-        }
+
+        endpoint = (EndpointImpl) Endpoint.publish("/", as4Provider,
+                new LoggingFeature(),
+                new WSPolicyFeature());
 
         endpoint.getServer().getEndpoint().put("allow-multiplex-endpoint", Boolean.TRUE);
         endpoint.getServer().getEndpoint()
@@ -56,6 +52,11 @@ public class As4EndpointsPublisherImpl implements As4EndpointsPublisher {
 
         endpoint.getBinding().setHandlerChain(Arrays.asList(as4FaultInHandler, new MessagingHandler()));
         endpoint.getInInterceptors().add(oxalisAs4Interceptor);
+        endpoint.getInInterceptors().add(setPolicyInterceptor);
+        endpoint.getOutInterceptors().add(setPolicyInterceptor);
+        endpoint.getInFaultInterceptors().add(setPolicyInterceptor);
+        endpoint.getOutFaultInterceptors().add(setPolicyInterceptor);
+        endpoint.getOutFaultInterceptors().add(new SetCodeValueFaultOutInterceptor());
 
         MultipleEndpointObserver newMO = new MultipleEndpointObserver(bus) {
             @Override
