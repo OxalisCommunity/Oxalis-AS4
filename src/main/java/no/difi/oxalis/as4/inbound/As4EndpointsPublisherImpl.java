@@ -35,13 +35,14 @@ public class As4EndpointsPublisherImpl implements As4EndpointsPublisher {
     private As4Interceptor oxalisAs4Interceptor;
 
     @Inject
-    private SetPolicyInterceptor setPolicyInterceptor;
+    private SetPolicyOutInterceptor setPolicyInInterceptor;
+
+    @Inject
+    private SetPolicyOutInterceptor setPolicyOutInterceptor;
 
     @Override
     public EndpointImpl publish(Bus bus) {
-        EndpointImpl endpoint = null;
-
-        endpoint = (EndpointImpl) Endpoint.publish("/", as4Provider,
+        EndpointImpl endpoint = (EndpointImpl) Endpoint.publish("/", as4Provider,
                 new LoggingFeature(),
                 new WSPolicyFeature());
 
@@ -51,11 +52,10 @@ public class As4EndpointsPublisherImpl implements As4EndpointsPublisher {
 
         endpoint.getBinding().setHandlerChain(Arrays.asList(as4FaultInHandler, new MessagingHandler()));
         endpoint.getInInterceptors().add(oxalisAs4Interceptor);
-        endpoint.getInInterceptors().add(setPolicyInterceptor);
-        endpoint.getOutInterceptors().add(setPolicyInterceptor);
-        endpoint.getInFaultInterceptors().add(setPolicyInterceptor);
-        endpoint.getOutFaultInterceptors().add(setPolicyInterceptor);
-//        endpoint.getOutFaultInterceptors().add(new SetCodeValueFaultOutInterceptor());
+        endpoint.getInInterceptors().add(setPolicyInInterceptor);
+        endpoint.getOutInterceptors().add(setPolicyOutInterceptor);
+        endpoint.getInFaultInterceptors().add(setPolicyInInterceptor);
+        endpoint.getOutFaultInterceptors().add(setPolicyOutInterceptor);
 
         MultipleEndpointObserver newMO = new MultipleEndpointObserver(bus) {
             @Override

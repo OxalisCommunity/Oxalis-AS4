@@ -12,23 +12,14 @@ import java.util.*;
 public class As4InboundMetadata implements InboundMetadata {
 
     private final TransmissionIdentifier transmissionIdentifier;
-
     private final String conversationId;
-
     private final Header header;
-
     private final Date timestamp;
-
     private final TransportProfile transportProfile;
-
     private final Digest digest;
-
     private final Receipt primaryReceipt;
-
     private final List<Receipt> receipts;
-
     private final X509Certificate certificate;
-
     private final As4EnvelopeHeader as4EnvelopeHeader;
 
 
