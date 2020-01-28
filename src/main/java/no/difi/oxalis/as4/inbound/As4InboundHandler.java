@@ -140,6 +140,8 @@ public class As4InboundHandler {
                 throw new OxalisAs4Exception("Error persisting AS4 metadata", e, AS4ErrorCode.EBMS_0202);
             }
 
+            messageContext.put(AS4MessageContextKey.PERSISTED, true);
+
             // Persist statistics
             inboundService.complete(as4InboundMetadata);
         }

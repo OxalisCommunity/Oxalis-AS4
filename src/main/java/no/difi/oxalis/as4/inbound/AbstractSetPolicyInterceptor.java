@@ -1,7 +1,5 @@
 package no.difi.oxalis.as4.inbound;
 
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import no.difi.oxalis.as4.util.Constants;
 import no.difi.oxalis.as4.util.Marshalling;
@@ -11,7 +9,6 @@ import org.apache.cxf.binding.soap.interceptor.AbstractSoapInterceptor;
 import org.apache.cxf.headers.Header;
 import org.apache.cxf.interceptor.Fault;
 import org.apache.cxf.message.Message;
-import org.apache.cxf.phase.Phase;
 import org.apache.cxf.ws.policy.PolicyConstants;
 import org.apache.cxf.ws.policy.PolicyInInterceptor;
 import org.apache.neethi.Policy;
@@ -27,17 +24,14 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 @Slf4j
-@Singleton
-public class SetPolicyInterceptor extends AbstractSoapInterceptor {
+abstract class AbstractSetPolicyInterceptor extends AbstractSoapInterceptor {
 
     private final JAXBContext jaxbContext = Marshalling.getInstance();
     private final PolicyService policyService;
 
-    @Inject
-    public SetPolicyInterceptor(PolicyService policyService) {
-        super(Phase.SETUP);
+    public AbstractSetPolicyInterceptor(String phase, PolicyService policyService) {
+        super(phase);
         this.policyService = policyService;
-        addBefore(PolicyInInterceptor.class.getName());
     }
 
     @Override
@@ -61,7 +55,7 @@ public class SetPolicyInterceptor extends AbstractSoapInterceptor {
         SoapMessage soapMessage = (SoapMessage) message;
         Header header = soapMessage.getHeader(Constants.MESSAGING_QNAME);
 
-        if(header == null) {
+        if (header == null) {
             return Optional.empty();
         }
 

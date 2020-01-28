@@ -1,5 +1,6 @@
 package no.difi.oxalis.as4.util;
 
+import lombok.experimental.UtilityClass;
 import no.difi.commons.sbdh.jaxb.StandardBusinessDocument;
 import org.oasis_open.docs.ebxml_bp.ebbp_signals_2.NonRepudiationInformation;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.Messaging;
@@ -9,6 +10,7 @@ import org.xmlsoap.schemas.soap.envelope.Envelope;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 
+@UtilityClass
 public class Marshalling {
 
     public static JAXBContext getInstance() {
@@ -25,7 +27,7 @@ public class Marshalling {
                     NonRepudiationInformation.class,
                     Messaging.class
             );
-        }catch (JAXBException e){
+        } catch (JAXBException e) {
             throw new RuntimeException("Unable to create marshaller for AS4 documents", e);
         }
     }
