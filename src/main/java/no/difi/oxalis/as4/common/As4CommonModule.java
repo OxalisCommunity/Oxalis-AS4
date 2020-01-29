@@ -31,8 +31,10 @@ import no.difi.oxalis.api.settings.Settings;
 import no.difi.oxalis.as4.api.MessageIdGenerator;
 import no.difi.oxalis.as4.config.As4Conf;
 import no.difi.oxalis.as4.outbound.ActionProvider;
+import no.difi.oxalis.as4.outbound.DefaultActionProvider;
 import no.difi.oxalis.as4.util.As4MessageFactory;
 import no.difi.oxalis.as4.util.PolicyService;
+import no.difi.oxalis.as4.util.TransmissionRequestUtil;
 import no.difi.oxalis.commons.guice.ImplLoader;
 import no.difi.oxalis.commons.guice.OxalisModule;
 import no.difi.vefa.peppol.mode.Mode;
@@ -97,5 +99,32 @@ public class As4CommonModule extends OxalisModule {
         }
 
         return new PolicyService(actionProvider);
+    }
+
+    @Provides
+    @Singleton
+    public ActionProvider getActionProvider(Settings<As4Conf> settings) {
+        String type = settings.getString(As4Conf.TYPE);
+        if (CEF_CONNECTIVITY.equalsIgnoreCase(type)) {
+            return p -> {
+                String action = TransmissionRequestUtil.translateDocumentTypeToAction(p);
+
+                if (action.startsWith("connectivity::cef##connectivity::")) {
+                    return action.replaceFirst("connectivity::cef##connectivity::", "");
+                }
+
+                return action;
+            };
+        } else if (CEF_CONFORMANCE.equalsIgnoreCase(type)) {
+            return p -> {
+                if ("http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/test".equals(p.getIdentifier())) {
+                    return "http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/test";
+                }
+
+                return TransmissionRequestUtil.translateDocumentTypeToAction(p);
+            };
+        }
+
+        return new DefaultActionProvider();
     }
 }
