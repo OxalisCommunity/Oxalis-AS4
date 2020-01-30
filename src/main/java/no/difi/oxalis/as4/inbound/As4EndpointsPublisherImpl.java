@@ -35,7 +35,7 @@ public class As4EndpointsPublisherImpl implements As4EndpointsPublisher {
     private As4Interceptor oxalisAs4Interceptor;
 
     @Inject
-    private SetPolicyOutInterceptor setPolicyInInterceptor;
+    private SetPolicyInInterceptor setPolicyInInterceptor;
 
     @Inject
     private SetPolicyOutInterceptor setPolicyOutInterceptor;
