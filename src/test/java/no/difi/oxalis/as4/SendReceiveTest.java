@@ -67,7 +67,6 @@ public class SendReceiveTest extends AbstractJettyServerTest {
     @Override
     public Injector getInjector() {
         return Guice.createInjector(
-//                new As4OutboundModule(),
                 new As4InboundModule(),
                 Modules.override(new GuiceModuleLoader()).with(new AbstractModule() {
                     @Override
