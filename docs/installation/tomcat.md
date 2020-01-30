@@ -14,7 +14,7 @@ Also create a folder named home inside the oxalis folder and place the oxalis.co
 
 Then you should have something looking like this like this:
 
-![alt text](./img/tomcat_oxalis_folder.PNG "Oxalis folder")
+![Oxalis folder](../img/tomcat_oxalis_folder.PNG "Oxalis folder")
 
 For general instructions on how to install and use Oxalis, please refer to [oxalis installation guide](https://github.com/difi/oxalis/blob/master/doc/installation.md).
 
@@ -22,7 +22,7 @@ For general instructions on how to install and use Oxalis, please refer to [oxal
 
 First you need to [download](https://tomcat.apache.org/download-90.cgi) Tomcat and unzip the files to a directory.
 
-![alt text](./img/tomcat_folder.PNG "Tomcat folder")
+![Tomcat folder](../img/tomcat_folder.PNG "Tomcat folder")
 
 Then you should set the CATALINA_BASE environment variable to the chosen installation folder.
 
