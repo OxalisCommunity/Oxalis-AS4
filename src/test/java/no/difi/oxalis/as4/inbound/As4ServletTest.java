@@ -37,36 +37,9 @@ public class As4ServletTest {
         MockitoAnnotations.initMocks(this);
     }
 
-
     @BeforeMethod
     public void beforeMethod() {
         trustStore = generateEmptyKeyStore();
         Whitebox.setInternalState(servlet, "trustStore", trustStore);
     }
-
-//
-//    @Test
-//    public void extendTrustStore_validLocation() throws Exception{
-//
-//        Path path = new File(getClass().getClassLoader()
-//                .getResource("oxalis_home/peppol_trust_g2.jks").getFile()).toPath();
-//
-//        when(trustStoreSettings.getPath(any(TrustStore.class), any(Path.class))).thenReturn(path);
-//        when(trustStoreSettings.getString(any(TrustStore.class))).thenReturn("changeit");
-//
-//        assertEquals(trustStore.size(), 0, "precondition: trustStore empty");
-//        servlet.extendTrustStore();
-//        assertEquals(trustStore.size(), 4, "trustStore expanded with 4 entries");
-//
-//    }
-//
-//    @Test
-//    public void extendTrustStore_noneLocation() throws Exception{
-//        Path path = Paths.get("None");
-//        when(trustStoreSettings.getPath(any(TrustStore.class), any(Path.class))).thenReturn(path);
-//
-//        assertEquals(trustStore.size(), 0, "precondition: trustStore empty");
-//        servlet.extendTrustStore();
-//        assertEquals(trustStore.size(), 0, "trustStore remains empty");
-//    }
 }
