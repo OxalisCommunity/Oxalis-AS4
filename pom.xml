@@ -20,7 +20,8 @@
   ~ permissions and limitations under the Licence.
   -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
 
@@ -36,7 +37,7 @@
     <packaging>jar</packaging>
 
     <name>Oxalis :: AS4</name>
-    <description>Library holding classes and stuff pertaining to AS4</description>
+    <description>Extension adding AS4 support to Oxalis</description>
     <url>https://github.com/difi/Oxalis-AS4</url>
 
     <issueManagement>
@@ -63,6 +64,19 @@
             <organizationUrl>https://www.digdir.no/</organizationUrl>
         </developer>
     </developers>
+
+    <licenses>
+        <license>
+            <name>GNU Lesser General Public License (LGPL), Version 3.0</name>
+            <url>http://www.gnu.org/licenses/lgpl-3.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+        <license>
+            <name>European Union Public Licence (EUPL v.1.1)</name>
+            <url>https://joinup.ec.europa.eu/community/eupl/og_page/european-union-public-licence-eupl-v11</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
 
     <scm>
         <connection>scm:git:git@github.com:difi/Oxalis-AS4.git</connection>
@@ -488,28 +502,9 @@
         </plugins>
     </build>
 
-    <licenses>
-        <license>
-            <name>GNU Lesser General Public License (LGPL), Version 3.0</name>
-            <url>http://www.gnu.org/licenses/lgpl-3.0.txt</url>
-            <distribution>repo</distribution>
-        </license>
-        <license>
-            <name>European Union Public Licence (EUPL v.1.1)</name>
-            <url>https://joinup.ec.europa.eu/community/eupl/og_page/european-union-public-licence-eupl-v11</url>
-            <distribution>repo</distribution>
-        </license>
-    </licenses>
-
     <profiles>
         <profile>
-            <id>release-sign-artifacts</id>
-            <activation>
-                <property>
-                    <name>performRelease</name>
-                    <value>true</value>
-                </property>
-            </activation>
+            <id>release</id>
             <build>
                 <plugins>
                     <plugin>
