@@ -76,14 +76,20 @@ public class As4MessageSender {
     private PolicyService policyService;
 
     public TransmissionResponse send(TransmissionRequest request) throws OxalisAs4TransmissionException {
-        Dispatch<SOAPMessage> dispatch = createDispatch(request);
-        Collection<Attachment> attachments = prepareAttachments(request);
-        dispatch.getRequestContext().put(Message.ATTACHMENTS, attachments);
+        try (DispatchImpl<SOAPMessage> dispatch = createDispatch(request)) {
+            Collection<Attachment> attachments = prepareAttachments(request);
+            dispatch.getRequestContext().put(Message.ATTACHMENTS, attachments);
 
-        Messaging messaging = messagingProvider.createMessagingHeader(request, attachments);
-        SoapHeader header = getSoapHeader(messaging);
-        dispatch.getRequestContext().put(Header.HEADER_LIST, new ArrayList<>(Collections.singletonList(header)));
+            Messaging messaging = messagingProvider.createMessagingHeader(request, attachments);
+            SoapHeader header = getSoapHeader(messaging);
+            dispatch.getRequestContext().put(Header.HEADER_LIST, new ArrayList<>(Collections.singletonList(header)));
+            return invoke(request, dispatch);
+        } catch (IOException e) {
+            throw new OxalisAs4TransmissionException("Failed to send message", e);
+        }
+    }
 
+    private TransmissionResponse invoke(TransmissionRequest request, DispatchImpl<SOAPMessage> dispatch) throws OxalisAs4TransmissionException {
         try {
             SOAPMessage response = dispatch.invoke(null);
             return transmissionResponseConverter.convert(request, response);
@@ -137,14 +143,14 @@ public class As4MessageSender {
         return messageIdGenerator.generate();
     }
 
-    private Dispatch<SOAPMessage> createDispatch(TransmissionRequest request) throws OxalisAs4TransmissionException {
-        Dispatch<SOAPMessage> dispatch = getService(request)
+    private DispatchImpl<SOAPMessage> createDispatch(TransmissionRequest request) throws OxalisAs4TransmissionException {
+        DispatchImpl<SOAPMessage> dispatch = (DispatchImpl<SOAPMessage>) getService(request)
                 .createDispatch(PORT_NAME, SOAPMessage.class, Service.Mode.MESSAGE);
         dispatch.getRequestContext().put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, request.getEndpoint().getAddress().toString());
 
         configureSecurity(request, dispatch);
 
-        final Client client = ((DispatchImpl<SOAPMessage>) dispatch).getClient();
+        final Client client = dispatch.getClient();
 
         if (CEF_CONFORMANCE.equalsIgnoreCase(as4settings.getString(As4Conf.TYPE))) {
             client.getInInterceptors().add(getLoggingBeforeSecurityInInterceptor());
