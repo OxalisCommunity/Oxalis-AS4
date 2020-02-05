@@ -41,6 +41,7 @@ import java.util.*;
 
 import static no.difi.oxalis.as4.common.AS4Constants.CEF_CONFORMANCE;
 import static org.apache.cxf.rt.security.SecurityConstants.*;
+import static org.apache.cxf.ws.security.SecurityConstants.USE_ATTACHMENT_ENCRYPTION_CONTENT_ONLY_TRANSFORM;
 
 @Slf4j
 public class As4MessageSender {
@@ -117,6 +118,7 @@ public class As4MessageSender {
         dispatch.getRequestContext().put(SIGNATURE_PASSWORD, settings.getString(KeyStoreConf.KEY_PASSWORD));
         dispatch.getRequestContext().put(SIGNATURE_USERNAME, settings.getString(KeyStoreConf.KEY_ALIAS));
         dispatch.getRequestContext().put(ENCRYPT_CERT, request.getEndpoint().getCertificate());
+        dispatch.getRequestContext().put(USE_ATTACHMENT_ENCRYPTION_CONTENT_ONLY_TRANSFORM, true);
     }
 
     public Collection<Attachment> prepareAttachments(TransmissionRequest request) throws OxalisAs4TransmissionException {
