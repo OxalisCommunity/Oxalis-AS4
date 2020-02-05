@@ -10,7 +10,6 @@ import org.apache.cxf.headers.Header;
 import org.apache.cxf.interceptor.Fault;
 import org.apache.cxf.message.Message;
 import org.apache.cxf.ws.policy.PolicyConstants;
-import org.apache.cxf.ws.policy.PolicyInInterceptor;
 import org.apache.neethi.Policy;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.Messaging;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.UserMessage;
@@ -22,6 +21,8 @@ import javax.xml.bind.Unmarshaller;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.stream.Stream;
+
+import static org.apache.cxf.ws.security.SecurityConstants.USE_ATTACHMENT_ENCRYPTION_CONTENT_ONLY_TRANSFORM;
 
 @Slf4j
 abstract class AbstractSetPolicyInterceptor extends AbstractSoapInterceptor {
@@ -36,6 +37,8 @@ abstract class AbstractSetPolicyInterceptor extends AbstractSoapInterceptor {
 
     @Override
     public void handleMessage(SoapMessage message) throws Fault {
+        message.put(USE_ATTACHMENT_ENCRYPTION_CONTENT_ONLY_TRANSFORM, true);
+
         Optional<UserMessage> userMessage = getMessaging(message)
                 .map(Messaging::getUserMessage)
                 .map(Collection::stream).orElseGet(Stream::empty)
