@@ -162,6 +162,8 @@ public class As4MessageSender {
         final HTTPClientPolicy httpClientPolicy = httpConduit.getClient();
         httpClientPolicy.setConnectionTimeout(httpConfSettings.getInt(HttpConf.TIMEOUT_CONNECT));
         httpClientPolicy.setReceiveTimeout(httpConfSettings.getInt(HttpConf.TIMEOUT_READ));
+        httpClientPolicy.setAllowChunking(true);
+        httpClientPolicy.setChunkLength(8192);
 
         return dispatch;
     }
