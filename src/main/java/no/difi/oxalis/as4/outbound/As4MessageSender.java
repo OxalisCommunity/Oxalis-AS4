@@ -49,32 +49,30 @@ public class As4MessageSender {
     public static final QName SERVICE_NAME = new QName("oxalis.difi.no/", "outbound-service");
     public static final QName PORT_NAME = new QName("oxalis.difi.no/", "port");
 
-    @Inject
-    private MessagingProvider messagingProvider;
+    private final MessagingProvider messagingProvider;
+    private final MessageIdGenerator messageIdGenerator;
+    private final Settings<KeyStoreConf> settings;
+    private final Settings<As4Conf> as4settings;
+    private final CompressionUtil compressionUtil;
+    private final Settings<HttpConf> httpConfSettings;
+    private final TransmissionResponseConverter transmissionResponseConverter;
+    private final MerlinProvider merlinProvider;
+    private final PolicyService policyService;
+    private final String browserType;
 
     @Inject
-    private MessageIdGenerator messageIdGenerator;
-
-    @Inject
-    private Settings<KeyStoreConf> settings;
-
-    @Inject
-    private Settings<As4Conf> as4settings;
-
-    @Inject
-    private CompressionUtil compressionUtil;
-
-    @Inject
-    private Settings<HttpConf> httpConfSettings;
-
-    @Inject
-    private TransmissionResponseConverter transmissionResponseConverter;
-
-    @Inject
-    private MerlinProvider merlinProvider;
-
-    @Inject
-    private PolicyService policyService;
+    public As4MessageSender(MessagingProvider messagingProvider, MessageIdGenerator messageIdGenerator, Settings<KeyStoreConf> settings, Settings<As4Conf> as4settings, CompressionUtil compressionUtil, Settings<HttpConf> httpConfSettings, TransmissionResponseConverter transmissionResponseConverter, MerlinProvider merlinProvider, PolicyService policyService, BrowserTypeProvider browserTypeProvider) {
+        this.messagingProvider = messagingProvider;
+        this.messageIdGenerator = messageIdGenerator;
+        this.settings = settings;
+        this.as4settings = as4settings;
+        this.compressionUtil = compressionUtil;
+        this.httpConfSettings = httpConfSettings;
+        this.transmissionResponseConverter = transmissionResponseConverter;
+        this.merlinProvider = merlinProvider;
+        this.policyService = policyService;
+        this.browserType = browserTypeProvider.getBrowserType();
+    }
 
     public TransmissionResponse send(TransmissionRequest request) throws OxalisAs4TransmissionException {
         try (DispatchImpl<SOAPMessage> dispatch = createDispatch(request)) {
@@ -162,6 +160,9 @@ public class As4MessageSender {
         final HTTPClientPolicy httpClientPolicy = httpConduit.getClient();
         httpClientPolicy.setConnectionTimeout(httpConfSettings.getInt(HttpConf.TIMEOUT_CONNECT));
         httpClientPolicy.setReceiveTimeout(httpConfSettings.getInt(HttpConf.TIMEOUT_READ));
+        httpClientPolicy.setAllowChunking(true);
+        httpClientPolicy.setChunkLength(8192);
+        httpClientPolicy.setBrowserType(browserType);
 
         return dispatch;
     }

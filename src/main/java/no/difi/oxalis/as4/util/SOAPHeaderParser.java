@@ -79,7 +79,8 @@ public class SOAPHeaderParser {
         if (bstNodes != null) {
             for (int i = 0; i < bstNodes.getLength(); i++) {
                 Element bstElem = (Element) bstNodes.item(i);
-                if (bstElem.getAttribute("wsu:Id").equals(refUri)) {
+
+                if (bstElem.getAttributeNS("http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd", "Id").equals(refUri)) {
                     try {
                         String pem = bstElem.getTextContent().replaceAll("[\r\n]+", "");
                         byte[] buf = Base64.getDecoder().decode(pem);
