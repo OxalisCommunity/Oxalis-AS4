@@ -45,14 +45,6 @@ public class As4OutboundModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public Bus getBus() {
-        Bus bus = BusFactory.getDefaultBus(true);
-        new OxalisAlgorithmSuiteLoader(bus);
-        return bus;
-    }
-
-    @Provides
-    @Singleton
     public PeppolConfiguration getPeppolOutboundConfiguration(Settings<As4Conf> settings) {
         String type = settings.getString(As4Conf.TYPE);
 

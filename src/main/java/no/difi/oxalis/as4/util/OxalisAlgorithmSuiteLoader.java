@@ -33,8 +33,11 @@ public class OxalisAlgorithmSuiteLoader implements AlgorithmSuiteLoader {
 
 
     public OxalisAlgorithmSuiteLoader(final Bus bus) {
-        bus.setExtension(this, AlgorithmSuiteLoader.class);
-        register(bus);
+        AlgorithmSuiteLoader algorithmSuiteLoader = bus.getExtension(AlgorithmSuiteLoader.class);
+        if (!(algorithmSuiteLoader instanceof OxalisAlgorithmSuiteLoader)) {
+            bus.setExtension(this, AlgorithmSuiteLoader.class);
+            register(bus);
+        }
     }
 
 
@@ -43,7 +46,7 @@ public class OxalisAlgorithmSuiteLoader implements AlgorithmSuiteLoader {
         return new OxalisAlgorithmSuite(version, nestedPolicy);
     }
 
-    public void register(final Bus bus) {
+    private void register(final Bus bus) {
         final AssertionBuilderRegistry reg = bus.getExtension(AssertionBuilderRegistry.class);
         if (reg != null) {
             final Map<QName, Assertion> assertions = new HashMap<>();
