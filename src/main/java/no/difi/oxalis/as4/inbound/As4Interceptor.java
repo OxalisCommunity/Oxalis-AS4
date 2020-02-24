@@ -16,6 +16,7 @@ import org.apache.cxf.message.Message;
 import org.apache.cxf.phase.Phase;
 import org.apache.cxf.ws.policy.AssertionInfoMap;
 import org.apache.cxf.ws.security.wss4j.PolicyBasedWSS4JInInterceptor;
+import org.apache.cxf.ws.security.wss4j.PolicyBasedWSS4JStaxInInterceptor;
 import org.apache.neethi.Policy;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.CollaborationInfo;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.MessageInfo;
@@ -41,8 +42,7 @@ public class As4Interceptor extends AbstractSoapInterceptor {
     public As4Interceptor(PolicyService policyService) {
         super(Phase.PRE_PROTOCOL);
         this.policyService = policyService;
-        addBefore(OxalisAS4WsInInterceptor.class.getName());
-        addBefore(PolicyBasedWSS4JInInterceptor.class.getName());
+        addBefore(PolicyBasedWSS4JStaxInInterceptor.class.getName());
     }
 
     @Override

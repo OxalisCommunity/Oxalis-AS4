@@ -133,11 +133,6 @@
         </dependency>
         <dependency>
             <groupId>no.difi.vefa</groupId>
-            <artifactId>peppol-security</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>no.difi.vefa</groupId>
             <artifactId>peppol-mode</artifactId>
             <scope>provided</scope>
         </dependency>
@@ -302,6 +297,12 @@
             <groupId>org.apache.neethi</groupId>
             <artifactId>neethi</artifactId>
             <version>${neethi.version}</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>woodstox-core-asl</artifactId>
+                    <groupId>org.codehaus.woodstox</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -313,7 +314,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.8</version>
+            <version>1.18.12</version>
             <scope>provided</scope>
         </dependency>
 

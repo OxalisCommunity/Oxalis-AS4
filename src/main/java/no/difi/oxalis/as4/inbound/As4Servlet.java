@@ -21,6 +21,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 import static org.apache.cxf.rt.security.SecurityConstants.*;
+import static org.apache.cxf.ws.security.SecurityConstants.ENABLE_STREAMING_SECURITY;
 
 @Slf4j
 @Singleton
