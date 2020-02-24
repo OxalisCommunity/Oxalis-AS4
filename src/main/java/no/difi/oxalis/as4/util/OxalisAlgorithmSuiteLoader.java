@@ -1,5 +1,6 @@
 package no.difi.oxalis.as4.util;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.cxf.Bus;
 import org.apache.cxf.ws.policy.AssertionBuilderRegistry;
 import org.apache.cxf.ws.policy.builder.primitive.PrimitiveAssertion;
@@ -18,12 +19,14 @@ import org.w3c.dom.Element;
 import javax.xml.namespace.QName;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 
 import static org.apache.wss4j.common.WSS4JConstants.MGF_SHA256;
 
 
 // Based on from CEF e-delivery Domibus
 // https://ec.europa.eu/cefdigital/code/projects/EDELIVERY/repos/domibus/browse/Domibus-MSH/src/main/java/eu/domibus/ebms3/security/custom/DomibusAlgorithmSuiteLoader.java
+@Slf4j
 public class OxalisAlgorithmSuiteLoader implements AlgorithmSuiteLoader {
 
     public static final String OXALIS_ALGORITHM_NAMESPACE = "http://oxalis.difi.no/custom/security-policy";
@@ -31,15 +34,25 @@ public class OxalisAlgorithmSuiteLoader implements AlgorithmSuiteLoader {
     public static final String BASIC_128_GCM_SHA_256 = "Basic128GCMSha256";
     public static final String BASIC_128_GCM_SHA_256_MGF_SHA_256 = "Basic128GCMSha256MgfSha256";
 
+    private final CountDownLatch conditionLatch = new CountDownLatch(1);
 
     public OxalisAlgorithmSuiteLoader(final Bus bus) {
         AlgorithmSuiteLoader algorithmSuiteLoader = bus.getExtension(AlgorithmSuiteLoader.class);
-        if (!(algorithmSuiteLoader instanceof OxalisAlgorithmSuiteLoader)) {
+
+        if (algorithmSuiteLoader instanceof OxalisAlgorithmSuiteLoader) {
+            OxalisAlgorithmSuiteLoader oxalisAlgorithmSuiteLoader = (OxalisAlgorithmSuiteLoader) algorithmSuiteLoader;
+            try {
+                oxalisAlgorithmSuiteLoader.conditionLatch.await();
+            } catch (InterruptedException e) {
+                log.error("InterruptedException: ", e);
+                Thread.currentThread().interrupt();
+            }
+        } else {
             bus.setExtension(this, AlgorithmSuiteLoader.class);
             register(bus);
+            conditionLatch.countDown();
         }
     }
-
 
     public AlgorithmSuite getAlgorithmSuite(final Bus bus, final SPConstants.SPVersion version, final Policy nestedPolicy) {
         register(bus);
