@@ -26,8 +26,7 @@ public class PolicyService {
     }
 
     public Policy getPolicy() throws OxalisAs4TransmissionException {
-        Bus bus = BusFactory.getDefaultBus();
-        new OxalisAlgorithmSuiteLoader(bus);
+        Bus bus = BusFactory.getThreadDefaultBus();
         return getPolicy(bus);
     }
 
@@ -36,8 +35,7 @@ public class PolicyService {
     }
 
     public Policy getPolicy(TransmissionRequest request) throws OxalisAs4TransmissionException {
-        Bus bus = BusFactory.getDefaultBus();
-        new OxalisAlgorithmSuiteLoader(bus);
+        Bus bus = BusFactory.getThreadDefaultBus();
         return getPolicy(request, bus);
     }
 
@@ -49,8 +47,7 @@ public class PolicyService {
     }
 
     public Policy getPolicy(CollaborationInfo collaborationInfo) throws OxalisAs4TransmissionException {
-        Bus bus = BusFactory.getDefaultBus();
-        new OxalisAlgorithmSuiteLoader(bus);
+        Bus bus = BusFactory.getThreadDefaultBus();
         return getPolicy(collaborationInfo, bus);
     }
 
