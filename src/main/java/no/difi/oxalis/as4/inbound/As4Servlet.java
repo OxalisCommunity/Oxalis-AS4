@@ -7,6 +7,8 @@ import no.difi.oxalis.api.settings.Settings;
 import no.difi.oxalis.as4.common.MerlinProvider;
 import no.difi.oxalis.as4.util.OxalisAlgorithmSuiteLoader;
 import no.difi.oxalis.commons.security.KeyStoreConf;
+import org.apache.cxf.Bus;
+import org.apache.cxf.BusFactory;
 import org.apache.cxf.ext.logging.LoggingFeature;
 import org.apache.cxf.jaxws.EndpointImpl;
 import org.apache.cxf.transport.servlet.CXFNonSpringServlet;
@@ -37,8 +39,7 @@ public class As4Servlet extends CXFNonSpringServlet {
 
     @Override
     protected void loadBus(ServletConfig servletConfig) {
-        super.loadBus(servletConfig);
-        new OxalisAlgorithmSuiteLoader(bus);
+        this.bus = BusFactory.getThreadDefaultBus();
 
         EndpointImpl endpointImpl = endpointsPublisher.publish(getBus());
 

@@ -1,5 +1,6 @@
 package no.difi.oxalis.as4.util;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.cxf.Bus;
 import org.apache.cxf.ws.policy.AssertionBuilderRegistry;
 import org.apache.cxf.ws.policy.builder.primitive.PrimitiveAssertion;
@@ -18,12 +19,14 @@ import org.w3c.dom.Element;
 import javax.xml.namespace.QName;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static org.apache.wss4j.common.WSS4JConstants.MGF_SHA256;
 
 
 // Based on from CEF e-delivery Domibus
 // https://ec.europa.eu/cefdigital/code/projects/EDELIVERY/repos/domibus/browse/Domibus-MSH/src/main/java/eu/domibus/ebms3/security/custom/DomibusAlgorithmSuiteLoader.java
+@Slf4j
 public class OxalisAlgorithmSuiteLoader implements AlgorithmSuiteLoader {
 
     public static final String OXALIS_ALGORITHM_NAMESPACE = "http://oxalis.difi.no/custom/security-policy";
@@ -31,19 +34,29 @@ public class OxalisAlgorithmSuiteLoader implements AlgorithmSuiteLoader {
     public static final String BASIC_128_GCM_SHA_256 = "Basic128GCMSha256";
     public static final String BASIC_128_GCM_SHA_256_MGF_SHA_256 = "Basic128GCMSha256MgfSha256";
 
+    private static final Map<String, Bus> BUS_MAP = new ConcurrentHashMap<>();
 
     public OxalisAlgorithmSuiteLoader(final Bus bus) {
-        bus.setExtension(this, AlgorithmSuiteLoader.class);
-        register(bus);
+        BUS_MAP.computeIfAbsent(bus.getId(), id -> {
+            AlgorithmSuiteLoader algorithmSuiteLoader = bus.getExtension(AlgorithmSuiteLoader.class);
+
+            if (algorithmSuiteLoader instanceof OxalisAlgorithmSuiteLoader) {
+                log.info("Cached OxalisAlgorithmSuite on bus {}", bus.getId());
+            } else {
+                log.info("Registering OxalisAlgorithmSuite on bus {}", bus.getId());
+                bus.setExtension(this, AlgorithmSuiteLoader.class);
+                register(bus);
+            }
+
+            return bus;
+        });
     }
 
-
     public AlgorithmSuite getAlgorithmSuite(final Bus bus, final SPConstants.SPVersion version, final Policy nestedPolicy) {
-        register(bus);
         return new OxalisAlgorithmSuite(version, nestedPolicy);
     }
 
-    public void register(final Bus bus) {
+    private void register(final Bus bus) {
         final AssertionBuilderRegistry reg = bus.getExtension(AssertionBuilderRegistry.class);
         if (reg != null) {
             final Map<QName, Assertion> assertions = new HashMap<>();

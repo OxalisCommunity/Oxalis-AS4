@@ -35,6 +35,7 @@ import org.w3.xmldsig.ReferenceType;
 
 import javax.xml.soap.*;
 import javax.xml.ws.handler.MessageContext;
+import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -334,7 +335,7 @@ public class As4InboundHandler {
 
                 if (isAttachmentCompressed(partInfoHeaders, mimeHeaders)) {
                     try {
-                        is = new GZIPInputStream(is);
+                        is = new GZIPInputStream(new BufferedInputStream(is), 8192);
                     } catch (IOException e) {
                         log.info("PartInfo headers: {}", partInfoHeaders.values().stream()
                                 .map(p -> p.getName() + "=" + p.getValue())
@@ -353,27 +354,18 @@ public class As4InboundHandler {
                     }
                 }
 
+                BufferedInputStream bis = new BufferedInputStream(is, 65536);
+
                 Header sbdh;
                 if (headerParser instanceof SbdhHeaderParser) {
-
-                    try {
-                        PeekingInputStream pis = new PeekingInputStream(is);
-
-                        try (SbdReader sbdReader = SbdReader.newInstance(pis)) {
-
-                            sbdh = sbdReader.getHeader();
-                            is = pis.newInputStream();
-
-                        }
-                    } catch (SbdhException | IOException e) {
-                        launderZipException(contentId, e);
-                        throw new OxalisAs4Exception("Could not extract SBDH from payload");
-                    }
+                    bis.mark(65536);
+                    sbdh = readHeader(contentId, bis);
+                    bis.reset();
                 } else {
                     sbdh = new Header()
                             .sender(ParticipantIdentifier.of(userMessage.getPartyInfo().getFrom().getPartyId().get(0).getValue()))
                             .receiver(ParticipantIdentifier.of(userMessage.getPartyInfo().getTo().getPartyId().get(0).getValue()))
-                            .documentType(DocumentTypeIdentifier.of(userMessage.getCollaborationInfo().getService().getValue(),  Scheme.of(userMessage.getCollaborationInfo().getService().getType())))
+                            .documentType(DocumentTypeIdentifier.of(userMessage.getCollaborationInfo().getService().getValue(), Scheme.of(userMessage.getCollaborationInfo().getService().getType())))
                             .identifier(InstanceIdentifier.of(userMessage.getCollaborationInfo().getAction()));
                 }
 
@@ -381,7 +373,7 @@ public class As4InboundHandler {
                 As4PayloadHeader header = new As4PayloadHeader(sbdh, partInfoHeaders.values(), contentId, userMessage.getMessageInfo().getMessageId());
 
                 // Extract "fresh" InputStream
-                payloads.put(is, header);
+                payloads.put(bis, header);
 
             } catch (IOException e) {
                 throw new OxalisAs4Exception("Could not get attachment input stream", e);
@@ -389,6 +381,15 @@ public class As4InboundHandler {
         }
 
         return payloads;
+    }
+
+    private Header readHeader(String contentId, InputStream is) throws OxalisAs4Exception {
+        try (SbdReader sbdReader = SbdReader.newInstance(is)) {
+            return sbdReader.getHeader();
+        } catch (SbdhException | IOException e) {
+            launderZipException(contentId, e);
+            throw new OxalisAs4Exception("Could not extract SBDH from payload");
+        }
     }
 
     private void launderZipException(String contentId, Exception e) throws OxalisAs4Exception {
@@ -458,12 +459,13 @@ public class As4InboundHandler {
     }
 
     private Path persistPayload(InputStream inputStream, As4PayloadHeader as4PayloadHeader, TransmissionIdentifier ti) throws OxalisAs4Exception {
-        try {
+        try (InputStream is = inputStream) {
             // Persist content
-            Path payloadPath = persisterHandler.persist(ti, as4PayloadHeader, new UnclosableInputStream(inputStream));
+            Path payloadPath = persisterHandler.persist(ti, as4PayloadHeader, new UnclosableInputStream(is));
 
             // Exhaust InputStream
-            ByteStreams.exhaust(inputStream);
+            ByteStreams.exhaust(is);
+            inputStream.close();
             return payloadPath;
         } catch (IOException e) {
             launderZipException(as4PayloadHeader.getCid(), e);
