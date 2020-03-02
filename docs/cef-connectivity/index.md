@@ -34,7 +34,7 @@ You will also receive some other files, that you can ignore.
 
 Please follow the [installation instructions](../installation/index.md) to install the Access Point.
 
-The oxalis.xml configuration of the AP should look like this:
+The oxalis.conf configuration of the AP should look like this:
 
 ```properties
 oxalis.keystore {
@@ -80,7 +80,7 @@ java -DOXALIS_HOME=/c/dev/cef/.oxalis \
 The ./ceftestpartyXXgw.crt certificate can be extracted from the truststore using a tool like Keystore Explorer.
 Look further down for information about the content of the payload.xml.
 
-The oxalis.xml in OXALIS_HOME of the oxalis-standalone outbound should be similar to this:
+The oxalis.conf in OXALIS_HOME of the oxalis-standalone outbound should be similar to this:
 
 ```xml
 oxalis.keystore {

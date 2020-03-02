@@ -20,7 +20,7 @@ eventually also be controlled by the OpenPEPPOL Operating Office.
 
 Please follow one of the inbound installation procedures found [here](../installation/index.md).
 
-The Oxalis configuration file (oxalis.xml) for your AP should look something like this:
+The Oxalis configuration file (oxalis.conf) for your AP should look something like this:
 
 ```properties
 oxalis.keystore {
