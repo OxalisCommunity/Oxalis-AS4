@@ -41,6 +41,11 @@ import no.difi.oxalis.commons.guice.OxalisModule;
 import no.difi.vefa.peppol.mode.Mode;
 import org.apache.cxf.Bus;
 import org.apache.cxf.BusFactory;
+import org.apache.wss4j.dom.engine.WSSConfig;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+
+import java.security.Provider;
+import java.security.Security;
 
 import static no.difi.oxalis.as4.common.AS4Constants.*;
 
@@ -58,6 +63,15 @@ public class As4CommonModule extends OxalisModule {
         Bus bus = BusFactory.newInstance().createBus();
         new OxalisAlgorithmSuiteLoader(bus);
         BusFactory.setThreadDefaultBus(bus);
+
+        WSSConfig.init();
+
+        // Make sure that BouncyCastle is the preferred security provider
+        final Provider[] providers = Security.getProviders();
+        if (providers != null && providers.length > 0)
+            Security.removeProvider(BouncyCastleProvider.PROVIDER_NAME);
+        log.debug("Registering BouncyCastle as preferred Java security provider");
+        Security.insertProviderAt(new BouncyCastleProvider(), 1);
     }
 
     @Provides
