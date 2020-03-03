@@ -1,6 +1,7 @@
 package no.difi.oxalis.as4.util;
 
 import com.google.common.collect.Lists;
+import lombok.experimental.UtilityClass;
 import no.difi.oxalis.as4.lang.OxalisAs4Exception;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.Messaging;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.UserMessage;
@@ -22,6 +23,7 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 
+@UtilityClass
 public class SOAPHeaderParser {
 
     private static final String NS_ALL = "*";
