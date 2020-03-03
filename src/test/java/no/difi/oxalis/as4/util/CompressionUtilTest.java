@@ -6,26 +6,30 @@ import org.testng.annotations.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.nio.charset.Charset;
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.Random;
 import java.util.zip.GZIPInputStream;
 
 public class CompressionUtilTest {
-    static final String DATA = "Lorem ipsum dolor sit amet";
+    @Test
+    public void simple() throws Exception {
+        byte[] before = "Lorem ipsum dolor sit amet".getBytes();
+        InputStream sourceStream = new ByteArrayInputStream(before);
+        InputStream compressedStream = new CompressionUtil().getCompressedStream(sourceStream);
+        try (GZIPInputStream decompressedStream = new GZIPInputStream(compressedStream)) {
+            byte[] after = IOUtils.toByteArray(decompressedStream);
+            Assert.assertEquals(before, after);
+        }
+    }
 
     @Test
-    public void simple() throws Exception{
-        InputStream sourceStream = new ByteArrayInputStream(DATA.getBytes());
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-
-        InputStream compressedStream = new CompressionUtil(executor).getCompressedStream(sourceStream);
-
-        GZIPInputStream decompressedStream = new GZIPInputStream(compressedStream);
-        List<String> lines = IOUtils.readLines(decompressedStream, Charset.defaultCharset());
-
-        Assert.assertEquals(1, lines.size());
-        Assert.assertEquals(DATA, lines.get(0));
+    public void cachedInTempFile() throws Exception {
+        byte[] before = new byte[1024 * 1024];
+        new Random().nextBytes(before);
+        InputStream sourceStream = new ByteArrayInputStream(before);
+        InputStream compressedStream = new CompressionUtil().getCompressedStream(sourceStream);
+        try (GZIPInputStream decompressedStream = new GZIPInputStream(compressedStream)) {
+            byte[] after = IOUtils.toByteArray(decompressedStream);
+            Assert.assertEquals(before, after);
+        }
     }
 }
