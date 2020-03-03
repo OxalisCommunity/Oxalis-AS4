@@ -2,11 +2,11 @@
 
 ## Oxalis
 
-First you should download the [oxalis-war-4.1.0.war](https://github.com/difi/oxalis/releases/download/oxalis-4.1.0/oxalis-war-4.1.0.war) file
+First you should download the [oxalis-war-4.1.2.war](https://github.com/difi/oxalis/releases/download/oxalis-4.1.2/oxalis-war-4.1.2.war) file
 from this [page](https://github.com/difi/oxalis/releases) and
 put it a directory of your choice. We recommend naming the folder oxalis.
 
-Then you should download the [Oxalis-AS4 distribution](https://github.com/difi/Oxalis-AS4/releases/download/4.1.2/oxalis-as4-4.1.2-dist.zip)
+Then you should download the [Oxalis-AS4 distribution](https://github.com/difi/Oxalis-AS4/releases/download/4.1.7/oxalis-as4-4.1.7-dist.zip)
 from this [page](https://github.com/difi/Oxalis-AS4/releases) and unzip
 the files to a new folder of your choice. We recommend creating a folder named as4 inside the folder containing the WAR file.
 
@@ -54,7 +54,7 @@ Inside this localhost folder - create a file named oxalis.xml containing:
 <!-- The Context element represents our application. -->
 <!-- The 'docBase' attribute will define the main application to be run. -->
 <!-- For more information see https://tomcat.apache.org/tomcat-8.5-doc/config/context.html -->
-<Context docBase="C:\dev\oxalis\oxalis-war-4.1.0.war"  >
+<Context docBase="C:\dev\oxalis\oxalis-war-4.1.2.war"  >
     
    <!-- Optionally define the OXALIS_HOME environment variable  -->
    <Environment name="OXALIS_HOME" value="C:\dev\oxalis\home" type="java.lang.String" override="false" />
