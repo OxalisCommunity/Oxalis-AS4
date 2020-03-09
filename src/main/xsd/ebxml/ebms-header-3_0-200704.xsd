@@ -164,6 +164,7 @@
 		<xsd:simpleContent>
 			<xsd:extension base="tns:non-empty-string">
 				<xsd:attribute name="name" type="tns:non-empty-string" use="required"/>
+				<xsd:attribute name="type" type="tns:non-empty-string" use="optional"/>
 			</xsd:extension>
 		</xsd:simpleContent>
 	</xsd:complexType>

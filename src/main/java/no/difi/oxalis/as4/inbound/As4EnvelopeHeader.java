@@ -1,11 +1,10 @@
 package no.difi.oxalis.as4.inbound;
 
 import lombok.Data;
+import no.difi.oxalis.as4.common.As4MessageProperties;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Data
 public class As4EnvelopeHeader {
@@ -22,7 +21,7 @@ public class As4EnvelopeHeader {
     private String service;
     private String action;
 
-    private Map<String, String> messageProperties = new HashMap<>();
+    private As4MessageProperties messageProperties = new As4MessageProperties();
 
     private List<String> payloadCIDs = new ArrayList<>();
 }
