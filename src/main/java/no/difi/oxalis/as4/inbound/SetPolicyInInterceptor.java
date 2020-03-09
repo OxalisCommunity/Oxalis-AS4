@@ -6,7 +6,6 @@ import lombok.extern.slf4j.Slf4j;
 import no.difi.oxalis.as4.util.PolicyService;
 import org.apache.cxf.phase.Phase;
 import org.apache.cxf.ws.policy.PolicyInInterceptor;
-import org.apache.cxf.ws.policy.PolicyOutInterceptor;
 
 @Slf4j
 @Singleton

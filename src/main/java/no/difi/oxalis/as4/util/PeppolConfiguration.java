@@ -2,16 +2,18 @@ package no.difi.oxalis.as4.util;
 
 import lombok.Getter;
 import no.difi.oxalis.api.tag.Tag;
-import org.apache.wss4j.dom.handler.WSHandlerConstants;
 
 import java.util.Arrays;
 import java.util.List;
+
+import static org.apache.wss4j.dom.handler.WSHandlerConstants.ENCRYPT;
+import static org.apache.wss4j.dom.handler.WSHandlerConstants.SIGNATURE;
 
 @Getter
 public class PeppolConfiguration implements Tag {
     public static final String IDENTIFIER = "AS4.OUTBOUND.PEPPOL";
 
-    private List<String> actions = Arrays.asList(WSHandlerConstants.SIGNATURE, WSHandlerConstants.ENCRYPT);
+    private List<String> actions = Arrays.asList(SIGNATURE, ENCRYPT);
 
     private String partyIDType = "urn:fdc:peppol.eu:2017:identifiers:ap";
     private String agreementRef = "urn:fdc:peppol.eu:2017:agreements:tia:ap_provider";

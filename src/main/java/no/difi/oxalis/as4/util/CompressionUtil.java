@@ -1,21 +1,14 @@
 package no.difi.oxalis.as4.util;
 
-import com.google.inject.Inject;
-import org.apache.commons.io.IOUtils;
+import org.apache.cxf.helpers.IOUtils;
+import org.apache.cxf.io.CacheSizeExceededException;
+import org.apache.cxf.io.CachedOutputStream;
 
-import javax.inject.Named;
-import java.io.*;
-import java.util.concurrent.ExecutorService;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.zip.GZIPOutputStream;
 
-// https://stackoverflow.com/a/24673254
 public class CompressionUtil {
-    private final ExecutorService pool;
-
-    @Inject
-    public CompressionUtil(@Named("compression-pool") ExecutorService executorService) {
-        this.pool = executorService;
-    }
 
     /**
      * Gets Compressed Stream for given input Stream
@@ -30,27 +23,16 @@ public class CompressionUtil {
             throw new IllegalArgumentException("Source Stream cannot be NULL");
         }
 
-        final PipedInputStream resultStream = new PipedInputStream();
-        final PipedOutputStream intermediateStream = new PipedOutputStream(resultStream);
-        final OutputStream zipperOutStream = new GZIPOutputStream(intermediateStream);
+        CachedOutputStream cache = new CachedOutputStream();
 
-        Runnable copyTask = () -> {
-            try {
-                IOUtils.copy(sourceStream, zipperOutStream);
-                zipperOutStream.flush();
-            } catch (IOException e) {
-                IOUtils.closeQuietly(resultStream);  // close it on error case only
-                throw new RuntimeException(e);
-            } finally {
-                // close source stream and intermediate streams
-                IOUtils.closeQuietly(sourceStream);
-                IOUtils.closeQuietly(zipperOutStream);
-                IOUtils.closeQuietly(intermediateStream);
-            }
-        };
-
-        pool.submit(copyTask);
-
-        return resultStream;
+        try (GZIPOutputStream gzipOutputStream = new GZIPOutputStream(cache)) {
+            IOUtils.copyAndCloseInput(sourceStream, gzipOutputStream);
+            gzipOutputStream.flush();
+            gzipOutputStream.finish();
+            return cache.getInputStream();
+        } catch (CacheSizeExceededException | IOException cee) {
+            sourceStream.close();
+            throw cee;
+        }
     }
 }

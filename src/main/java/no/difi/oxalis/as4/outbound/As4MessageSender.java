@@ -1,6 +1,7 @@
 package no.difi.oxalis.as4.outbound;
 
 import com.google.inject.Inject;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.difi.oxalis.api.outbound.TransmissionRequest;
 import no.difi.oxalis.api.outbound.TransmissionResponse;
@@ -37,6 +38,7 @@ import javax.xml.ws.Dispatch;
 import javax.xml.ws.Service;
 import javax.xml.ws.soap.SOAPBinding;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
 
 import static no.difi.oxalis.as4.common.AS4Constants.CEF_CONFORMANCE;
@@ -75,8 +77,10 @@ public class As4MessageSender {
     }
 
     public TransmissionResponse send(TransmissionRequest request) throws OxalisAs4TransmissionException {
+        AttachmentHolder attachmentHolder = null;
         try (DispatchImpl<SOAPMessage> dispatch = createDispatch(request)) {
-            Collection<Attachment> attachments = prepareAttachments(request);
+            attachmentHolder = prepareAttachment(request);
+            ArrayList<Attachment> attachments = new ArrayList<>(Collections.singletonList(attachmentHolder.attachment));
             dispatch.getRequestContext().put(Message.ATTACHMENTS, attachments);
 
             Messaging messaging = messagingProvider.createMessagingHeader(request, attachments);
@@ -85,6 +89,14 @@ public class As4MessageSender {
             return invoke(request, dispatch);
         } catch (IOException e) {
             throw new OxalisAs4TransmissionException("Failed to send message", e);
+        } finally {
+            if (attachmentHolder != null) {
+                try {
+                    attachmentHolder.inputStream.close();
+                } catch (IOException e) {
+                    log.error("Couldn't close attachment input stream", e);
+                }
+            }
         }
     }
 
@@ -119,7 +131,7 @@ public class As4MessageSender {
         dispatch.getRequestContext().put(USE_ATTACHMENT_ENCRYPTION_CONTENT_ONLY_TRANSFORM, true);
     }
 
-    public Collection<Attachment> prepareAttachments(TransmissionRequest request) throws OxalisAs4TransmissionException {
+    public AttachmentHolder prepareAttachment(TransmissionRequest request) throws OxalisAs4TransmissionException {
         Map<String, List<String>> headers = new HashMap<>();
 
         headers.put("Content-ID", Collections.singletonList(getContentID(request)));
@@ -127,8 +139,10 @@ public class As4MessageSender {
         headers.put("MimeType", Collections.singletonList("application/xml"));
 
         try {
-            Attachment attachment = AttachmentUtil.createAttachment(compressionUtil.getCompressedStream(request.getPayload()), headers);
-            return new ArrayList<>(Collections.singletonList(attachment));
+            InputStream compressedStream = compressionUtil.getCompressedStream(request.getPayload());
+            Attachment attachment = AttachmentUtil.createAttachment(compressedStream, headers);
+
+            return new AttachmentHolder(compressedStream, attachment);
         } catch (IOException e) {
             throw new OxalisAs4TransmissionException("Unable to compress payload", e);
         }
@@ -178,5 +192,11 @@ public class As4MessageSender {
         Service service = Service.create(SERVICE_NAME, new LoggingFeature(), new WSPolicyFeature(policyService.getPolicy(request)));
         service.addPort(PORT_NAME, SOAPBinding.SOAP12HTTP_BINDING, request.getEndpoint().getAddress().toString());
         return service;
+    }
+
+    @RequiredArgsConstructor
+    private static class AttachmentHolder {
+        private final InputStream inputStream;
+        private final Attachment attachment;
     }
 }
