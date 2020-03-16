@@ -6,7 +6,7 @@ First you should download the [oxalis-war-4.1.2.war](https://github.com/difi/oxa
 from this [page](https://github.com/difi/oxalis/releases) and
 put it a directory of your choice. We recommend naming the folder oxalis.
 
-Then you should download the [Oxalis-AS4 distribution](https://github.com/difi/Oxalis-AS4/releases/download/4.1.8/oxalis-as4-4.1.8-dist.zip)
+Then you should download the [Oxalis-AS4 distribution](https://github.com/difi/Oxalis-AS4/releases/download/4.1.9/oxalis-as4-4.1.9-dist.zip)
 from this [page](https://github.com/difi/Oxalis-AS4/releases) and unzip
 the files to a new folder of your choice. We recommend creating a folder named as4 inside the folder containing the WAR file.
 
