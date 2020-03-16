@@ -4,7 +4,9 @@ import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import no.difi.oxalis.api.outbound.TransmissionRequest;
 import no.difi.oxalis.as4.api.MessageIdGenerator;
+import no.difi.oxalis.as4.common.As4MessageProperties;
 import no.difi.oxalis.as4.util.PeppolConfiguration;
+import no.difi.oxalis.as4.util.TransmissionRequestUtil;
 import no.difi.oxalis.commons.security.CertificateUtils;
 import no.difi.vefa.peppol.common.model.ProcessIdentifier;
 import org.apache.cxf.attachment.AttachmentUtil;
@@ -17,13 +19,15 @@ import javax.xml.datatype.XMLGregorianCalendar;
 import java.security.cert.X509Certificate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.GregorianCalendar;
+import java.util.Spliterator;
 import java.util.stream.Collectors;
 
 import static no.difi.oxalis.as4.util.Constants.TEST_ACTION;
 import static no.difi.oxalis.as4.util.Constants.TEST_SERVICE;
 import static no.difi.oxalis.as4.util.GeneralUtils.iteratorToStreamOfUnknownSize;
-import static no.difi.oxalis.as4.util.TransmissionRequestUtil.translateParticipantIdentifierToRecipient;
 
 public class MessagingProvider {
 
@@ -81,7 +85,7 @@ public class MessagingProvider {
                     );
                 }
 
-                if(null != as4TransmissionRequest.getCompressionType()) {
+                if (null != as4TransmissionRequest.getCompressionType()) {
                     partProperties.addProperty(
                             Property.builder()
                                     .withName("CompressionType")
@@ -105,30 +109,28 @@ public class MessagingProvider {
 
 
     private MessageProperties createMessageProperties(TransmissionRequest request) {
-        Map<String, String> properties = new HashMap<>();
+        As4MessageProperties properties = new As4MessageProperties();
 
         if (request instanceof As4TransmissionRequest) {
             As4TransmissionRequest as4TransmissionRequest = (As4TransmissionRequest) request;
             if (as4TransmissionRequest.getMessageProperties() != null) {
-                properties.putAll(as4TransmissionRequest.getMessageProperties());
+                properties.addAll(as4TransmissionRequest.getMessageProperties());
             }
         }
 
-        String originalSender = translateParticipantIdentifierToRecipient(request.getHeader().getSender());
-        String finalRecipient = translateParticipantIdentifierToRecipient(request.getHeader().getReceiver());
-
-        if (!properties.containsKey("originalSender")) {
-            properties.put("originalSender", originalSender);
+        if (properties.isMissing("originalSender")) {
+            properties.add(TransmissionRequestUtil.toAs4MessageProperty("originalSender", request.getHeader().getSender()));
         }
 
-        if (!properties.containsKey("finalRecipient")) {
-            properties.put("finalRecipient", finalRecipient);
+        if (properties.isMissing("finalRecipient")) {
+            properties.add(TransmissionRequestUtil.toAs4MessageProperty("finalRecipient", request.getHeader().getReceiver()));
         }
 
         return MessageProperties.builder()
-                .withProperty(properties.entrySet().stream()
+                .withProperty(properties.stream()
                         .map(p -> Property.builder()
-                                .withName(p.getKey())
+                                .withName(p.getName())
+                                .withType(p.getType())
                                 .withValue(p.getValue())
                                 .build())
                         .collect(Collectors.toList())

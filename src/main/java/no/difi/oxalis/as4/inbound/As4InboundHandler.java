@@ -16,9 +16,10 @@ import no.difi.oxalis.api.timestamp.TimestampProvider;
 import no.difi.oxalis.api.transmission.TransmissionVerifier;
 import no.difi.oxalis.as4.lang.OxalisAs4Exception;
 import no.difi.oxalis.as4.lang.OxalisAs4TransmissionException;
+import no.difi.oxalis.as4.common.As4MessageProperties;
+import no.difi.oxalis.as4.common.As4MessageProperty;
 import no.difi.oxalis.as4.util.*;
 import no.difi.oxalis.commons.header.SbdhHeaderParser;
-import no.difi.oxalis.commons.io.PeekingInputStream;
 import no.difi.oxalis.commons.io.UnclosableInputStream;
 import no.difi.vefa.peppol.common.code.DigestMethod;
 import no.difi.vefa.peppol.common.model.*;
@@ -442,7 +443,10 @@ public class As4InboundHandler {
         as4EnvelopeHeader.setAction(userMessage.getCollaborationInfo().getAction());
         as4EnvelopeHeader.setService(userMessage.getCollaborationInfo().getService().getValue());
 
-        as4EnvelopeHeader.setMessageProperties(userMessage.getMessageProperties().getProperty().stream().collect(Collectors.toMap(Property::getName, Property::getValue)));
+        as4EnvelopeHeader.setMessageProperties(userMessage.getMessageProperties().getProperty()
+                .stream()
+                .map(p -> new As4MessageProperty(p.getName(), p.getType(), p.getValue()))
+                .collect(Collectors.toCollection(As4MessageProperties::new)));
 
         as4EnvelopeHeader.setPayloadCIDs(userMessage.getPayloadInfo().getPartInfo().stream().map(PartInfo::getHref).collect(Collectors.toList()));
 

@@ -1,9 +1,9 @@
 package no.difi.oxalis.as4.outbound;
 
 import no.difi.oxalis.api.outbound.TransmissionRequest;
+import no.difi.oxalis.as4.common.As4MessageProperties;
 
 import java.nio.charset.Charset;
-import java.util.Map;
 
 public interface As4TransmissionRequest extends TransmissionRequest {
 
@@ -13,7 +13,7 @@ public interface As4TransmissionRequest extends TransmissionRequest {
 
     String getConversationId();
 
-    Map<String, String> getMessageProperties();
+    As4MessageProperties getMessageProperties();
 
     String getPayloadHref();
 
