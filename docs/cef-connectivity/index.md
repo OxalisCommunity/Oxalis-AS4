@@ -41,7 +41,7 @@ oxalis.keystore {
      # Relative to OXALIS_HOME
      path=ceftestpartyXXgwkeystore.jks
      password = xxx
-     key.alias = ceftestparty93gw
+     key.alias = ceftestpartyXXgw
      key.password = xxx
 }
 
@@ -72,6 +72,8 @@ java -DOXALIS_HOME=/c/dev/cef/.oxalis \
   -classpath "standalone/*;as4/*" \
   eu.sendregning.oxalis.Main \
   -cert ./ceftestpartyXXgw.crt \
+  -s cefsupportgw \
+  -r ceftestpartyXXgw \
   -f payload.xml \
   --protocol peppol-transport-as4-v2_0 \
   -u "<URL of your AP>"
@@ -108,6 +110,8 @@ java -DOXALIS_HOME=/c/dev/cef/.oxalis \
   -classpath "standalone/*;as4/*" \
   eu.sendregning.oxalis.Main \
   -cert ./cefsupportgw.cer \
+  -s ceftestpartyXXgw \
+  -r cefsupportgw \
   -f payload.xml \
   --protocol peppol-transport-as4-v2_0 \
   -u "<replace with the URL in the email you received from CEF-EDELIVERY-SUPPORT>"
@@ -125,12 +129,12 @@ Here is a template for the payload.xml:
         <Sender>
             <!-- This Sender section describes the PEPPOL Sender -->
             <!-- It corresponds to an OriginalSender in AS4 -->
-          <Identifier>urn:oasis:names:tc:ebcore:partyid-type:unregistered:ceftestpartyXXgw</Identifier>
+          <Identifier>urn:oasis:names:tc:ebcore:partyid-type:unregistered:C1</Identifier>
       </Sender>
       <Receiver>
            <!-- This Sender section describes the PEPPOL Receiver -->
            <!-- It corresponds to an FinalRecipient in AS4 -->
-           <Identifier>urn:oasis:names:tc:ebcore:partyid-type:unregistered:cefsupportgw</Identifier>
+           <Identifier>urn:oasis:names:tc:ebcore:partyid-type:unregistered:C4</Identifier>
         </Receiver>
         <DocumentIdentification>
             <!-- This DocumentIdentification section describes the content of the payload -->
@@ -169,7 +173,6 @@ Here is a template for the payload.xml:
 </StandardBusinessDocument>
 ```
 
-You need to change the sender to match the test party you have received from CEF support.
 The DocumentIdentification/InstanceIdentifier should be replaced with a new UUID. You can generate a new one (here)[https://www.uuidgenerator.net/].
 
 After sending the message to CEF, you should do the following:
