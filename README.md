@@ -1,3 +1,10 @@
+
+---
+# Upcoming changes
+* Organizational changes to project - GroupID, Package name refactoring etc.
+
+---
+
 # Oxalis-AS4
 
 This is a release candidate of Oxalis with support for PEPPOL AS4 pMode.

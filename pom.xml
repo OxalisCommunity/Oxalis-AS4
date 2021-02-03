@@ -38,16 +38,16 @@
 
     <name>Oxalis :: AS4</name>
     <description>Extension adding AS4 support to Oxalis</description>
-    <url>https://github.com/difi/Oxalis-AS4</url>
+    <url>https://github.com/OxalisCommunity/Oxalis-AS4</url>
 
     <issueManagement>
-        <url>https://github.com/difi/oxalis-as4/issues</url>
+        <url>https://github.com/OxalisCommunity/Oxalis-AS4/issues</url>
         <system>GitHub Issues</system>
     </issueManagement>
 
     <organization>
-        <name>Norwegian Digitalisation Agency</name>
-        <url>https://www.digdir.no/</url>
+        <name>NorStella</name>
+        <url>https://en.norstella.no/</url>
     </organization>
 
     <developers>
@@ -62,6 +62,14 @@
             <email>martin.wam@digdir.no</email>
             <organization>Norwegian Digitalisation Agency</organization>
             <organizationUrl>https://www.digdir.no/</organizationUrl>
+        </developer>
+        <developer>
+            <name>Arun Kumar</name>
+            <email>arun.kaundal@gmail.com</email>
+            <organization>Norstella</organization>
+            <roles>
+                <role>Oxalis Technical Expert</role>
+            </roles>
         </developer>
     </developers>
 
@@ -79,9 +87,9 @@
     </licenses>
 
     <scm>
-        <connection>scm:git:git@github.com:difi/Oxalis-AS4.git</connection>
-        <developerConnection>scm:git:git@github.com:difi/Oxalis-AS4.git</developerConnection>
-        <url>http://github.com/difi/Oxalis-AS4</url>
+        <connection>scm:git:https://github.com/OxalisCommunity/Oxalis-AS4.git</connection>
+        <developerConnection>scm:git:git@github.com/OxalisCommunity/Oxalis-AS4.git</developerConnection>
+        <url>https://github.com/OxalisCommunity/Oxalis-AS4</url>
     </scm>
 
     <distributionManagement>
