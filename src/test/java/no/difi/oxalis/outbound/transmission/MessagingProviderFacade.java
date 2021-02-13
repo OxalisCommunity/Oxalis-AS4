@@ -1,11 +1,11 @@
 package no.difi.oxalis.outbound.transmission;
 
 import no.difi.oxalis.api.outbound.TransmissionRequest;
-import no.difi.oxalis.as4.api.MessageIdGenerator;
-import no.difi.oxalis.as4.lang.OxalisAs4TransmissionException;
-import no.difi.oxalis.as4.outbound.DefaultActionProvider;
-import no.difi.oxalis.as4.outbound.MessagingProvider;
-import no.difi.oxalis.as4.util.PeppolConfiguration;
+import network.oxalis.as4.api.MessageIdGenerator;
+import network.oxalis.as4.lang.OxalisAs4TransmissionException;
+import network.oxalis.as4.outbound.DefaultActionProvider;
+import network.oxalis.as4.outbound.MessagingProvider;
+import network.oxalis.as4.util.PeppolConfiguration;
 import org.apache.cxf.message.Attachment;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.Messaging;
 
