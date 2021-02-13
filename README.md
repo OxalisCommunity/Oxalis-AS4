@@ -7,6 +7,8 @@
 
 # Oxalis-AS4
 
+[![Oxalis Master Build](https://github.com/OxalisCommunity/oxalis-as4/workflows/oxalis-as4%20Master%20Build/badge.svg?branch=master)](https://github.com/OxalisCommunity/oxalis-as4/actions?query=workflow%3A%22oxalis-as4%20Master%20Build%22)
+
 This is a release candidate of Oxalis with support for PEPPOL AS4 pMode.
 It supports Oxalis v4.0.3, v4.0.4 and v4.1.x and passes the CEF conformance test (excluding tests requiring multiple payloads).
 
