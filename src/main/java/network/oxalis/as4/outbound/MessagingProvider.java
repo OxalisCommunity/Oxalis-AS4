@@ -2,13 +2,13 @@ package network.oxalis.as4.outbound;
 
 import com.google.common.collect.Lists;
 import com.google.inject.Inject;
-import no.difi.oxalis.api.outbound.TransmissionRequest;
+import network.oxalis.api.outbound.TransmissionRequest;
 import network.oxalis.as4.api.MessageIdGenerator;
 import network.oxalis.as4.common.As4MessageProperties;
 import network.oxalis.as4.util.PeppolConfiguration;
 import network.oxalis.as4.util.TransmissionRequestUtil;
-import no.difi.oxalis.commons.security.CertificateUtils;
-import no.difi.vefa.peppol.common.model.ProcessIdentifier;
+import network.oxalis.commons.security.CertificateUtils;
+import network.oxalis.vefa.peppol.common.model.ProcessIdentifier;
 import org.apache.cxf.attachment.AttachmentUtil;
 import org.apache.cxf.message.Attachment;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.*;

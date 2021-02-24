@@ -1,7 +1,7 @@
 package network.oxalis.as4.outbound;
 
 import network.oxalis.as4.util.TransmissionRequestUtil;
-import no.difi.vefa.peppol.common.model.DocumentTypeIdentifier;
+import network.oxalis.vefa.peppol.common.model.DocumentTypeIdentifier;
 
 public class DefaultActionProvider implements ActionProvider {
     @Override

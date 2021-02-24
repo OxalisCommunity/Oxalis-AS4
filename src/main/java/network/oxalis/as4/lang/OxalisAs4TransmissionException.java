@@ -1,6 +1,6 @@
 package network.oxalis.as4.lang;
 
-import no.difi.oxalis.api.lang.OxalisTransmissionException;
+import network.oxalis.api.lang.OxalisTransmissionException;
 import network.oxalis.as4.util.AS4ErrorCode;
 
 import java.net.URI;

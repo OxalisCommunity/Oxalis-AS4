@@ -2,9 +2,9 @@ package network.oxalis.as4.common;
 
 import com.google.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
-import no.difi.oxalis.api.header.HeaderParser;
-import no.difi.oxalis.api.util.Type;
-import no.difi.vefa.peppol.common.model.*;
+import network.oxalis.api.header.HeaderParser;
+import network.oxalis.api.util.Type;
+import network.oxalis.vefa.peppol.common.model.*;
 
 import java.io.IOException;
 import java.io.InputStream;

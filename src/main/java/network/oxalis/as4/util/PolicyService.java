@@ -2,9 +2,9 @@ package network.oxalis.as4.util;
 
 import lombok.extern.slf4j.Slf4j;
 import network.oxalis.as4.lang.OxalisAs4TransmissionException;
-import no.difi.oxalis.api.outbound.TransmissionRequest;
+import network.oxalis.api.outbound.TransmissionRequest;
 import network.oxalis.as4.outbound.ActionProvider;
-import no.difi.vefa.peppol.common.model.ProcessIdentifier;
+import network.oxalis.vefa.peppol.common.model.ProcessIdentifier;
 import org.apache.cxf.Bus;
 import org.apache.cxf.BusFactory;
 import org.apache.cxf.ws.policy.PolicyBuilder;

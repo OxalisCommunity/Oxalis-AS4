@@ -1,6 +1,6 @@
 package network.oxalis.as4.outbound;
 
-import no.difi.vefa.peppol.common.model.DocumentTypeIdentifier;
+import network.oxalis.vefa.peppol.common.model.DocumentTypeIdentifier;
 
 public interface ActionProvider {
 

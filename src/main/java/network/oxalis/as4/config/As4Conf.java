@@ -22,9 +22,9 @@
 
 package network.oxalis.as4.config;
 
-import no.difi.oxalis.api.settings.DefaultValue;
-import no.difi.oxalis.api.settings.Path;
-import no.difi.oxalis.api.settings.Title;
+import network.oxalis.api.settings.DefaultValue;
+import network.oxalis.api.settings.Path;
+import network.oxalis.api.settings.Title;
 
 @Title("AS4")
 public enum As4Conf {

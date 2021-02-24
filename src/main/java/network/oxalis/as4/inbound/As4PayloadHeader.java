@@ -2,7 +2,7 @@ package network.oxalis.as4.inbound;
 
 import lombok.Getter;
 import lombok.ToString;
-import no.difi.vefa.peppol.common.model.*;
+import network.oxalis.vefa.peppol.common.model.*;
 
 import javax.xml.soap.MimeHeader;
 import java.util.Collection;

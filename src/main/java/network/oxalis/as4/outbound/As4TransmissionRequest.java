@@ -1,7 +1,7 @@
 package network.oxalis.as4.outbound;
 
 import network.oxalis.as4.common.As4MessageProperties;
-import no.difi.oxalis.api.outbound.TransmissionRequest;
+import network.oxalis.api.outbound.TransmissionRequest;
 
 import java.nio.charset.Charset;
 

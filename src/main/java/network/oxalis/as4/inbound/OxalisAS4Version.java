@@ -22,7 +22,7 @@
 
 package network.oxalis.as4.inbound;
 
-import no.difi.oxalis.api.lang.OxalisLoadingException;
+import network.oxalis.api.lang.OxalisLoadingException;
 
 import java.io.IOException;
 import java.io.InputStream;

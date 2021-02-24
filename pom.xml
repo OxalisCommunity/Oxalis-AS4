@@ -26,13 +26,13 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>no.difi.oxalis</groupId>
+        <groupId>network.oxalis</groupId>
         <artifactId>oxalis</artifactId>
-        <version>4.1.2</version>
+        <version>5.0.0.RC1</version>
     </parent>
 
     <artifactId>oxalis-as4</artifactId>
-    <version>4.1.9</version>
+    <version>5.0.0.RC1</version>
 
     <packaging>jar</packaging>
 
@@ -52,6 +52,14 @@
 
     <developers>
         <developer>
+            <name>Arun Kumar</name>
+            <email>arun.kaundal@gmail.com</email>
+            <organization>Norstella</organization>
+            <roles>
+                <role>Oxalis Technical Expert</role>
+            </roles>
+        </developer>
+        <developer>
             <name>Frode Bjerkholt</name>
             <email>frode.bjerholt@digdir.no</email>
             <organization>Norwegian Digitalisation Agency</organization>
@@ -62,14 +70,6 @@
             <email>martin.wam@digdir.no</email>
             <organization>Norwegian Digitalisation Agency</organization>
             <organizationUrl>https://www.digdir.no/</organizationUrl>
-        </developer>
-        <developer>
-            <name>Arun Kumar</name>
-            <email>arun.kaundal@gmail.com</email>
-            <organization>Norstella</organization>
-            <roles>
-                <role>Oxalis Technical Expert</role>
-            </roles>
         </developer>
     </developers>
 
@@ -99,8 +99,8 @@
 
         <commons.sbdh>0.9.5</commons.sbdh>
 
-        <cxf.version>3.3.5</cxf.version>
-        <wss4j.version>2.2.4</wss4j.version>
+        <cxf.version>3.3.6</cxf.version>
+        <wss4j.version>2.2.5</wss4j.version>
         <neethi.version>3.1.1</neethi.version>
         <soap.version>1.4.0</soap.version>
 
@@ -111,29 +111,29 @@
     <dependencies>
         <!-- Oxalis -->
         <dependency>
-            <groupId>no.difi.oxalis</groupId>
+            <groupId>network.oxalis</groupId>
             <artifactId>oxalis-commons</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>no.difi.oxalis</groupId>
+            <groupId>network.oxalis</groupId>
             <artifactId>oxalis-api</artifactId>
             <scope>provided</scope>
         </dependency>
 
         <!-- PEPPOL -->
         <dependency>
-            <groupId>no.difi.vefa</groupId>
+            <groupId>network.oxalis.vefa</groupId>
             <artifactId>peppol-common</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>no.difi.vefa</groupId>
+            <groupId>network.oxalis.vefa</groupId>
             <artifactId>peppol-sbdh</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>no.difi.vefa</groupId>
+            <groupId>network.oxalis.vefa</groupId>
             <artifactId>peppol-mode</artifactId>
             <scope>provided</scope>
         </dependency>
@@ -321,12 +321,12 @@
 
         <!-- Test -->
         <dependency>
-            <groupId>no.difi.oxalis</groupId>
+            <groupId>network.oxalis</groupId>
             <artifactId>oxalis-test</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>no.difi.oxalis</groupId>
+            <groupId>network.oxalis</groupId>
             <artifactId>oxalis-outbound</artifactId>
             <scope>test</scope>
         </dependency>
@@ -516,24 +516,25 @@
             <build>
                 <plugins>
                     <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-source-plugin</artifactId>
                         <version>2.4</version>
                         <executions>
                             <execution>
-                                <id>package-sources</id>
+                                <id>attach-sources</id>
                                 <goals>
-                                    <goal>jar</goal>
+                                    <goal>jar-no-fork</goal>
                                 </goals>
                             </execution>
                         </executions>
                     </plugin>
                     <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-javadoc-plugin</artifactId>
-                        <version>2.10.3</version>
+                        <version>3.2.0</version>
                         <executions>
                             <execution>
-                                <id>package-javadoc</id>
-                                <phase>package</phase>
+                                <id>attach-javadocs</id>
                                 <goals>
                                     <goal>jar</goal>
                                 </goals>
@@ -541,12 +542,22 @@
                         </executions>
                         <configuration>
                             <encoding>${java.encoding}</encoding>
+                            <additionalOptions>
+                                <additionalOption>-Xdoclint:none</additionalOption>
+                            </additionalOptions>
                         </configuration>
                     </plugin>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
                         <version>1.6</version>
+                        <configuration>
+                            <!-- Prevent gpg from using pinentry programs -->
+                            <gpgArguments>
+                                <arg>--pinentry-mode</arg>
+                                <arg>loopback</arg>
+                            </gpgArguments>
+                        </configuration>
                         <executions>
                             <execution>
                                 <id>sign-artifacts</id>

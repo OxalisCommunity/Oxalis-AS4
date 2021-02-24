@@ -1,10 +1,10 @@
 package network.oxalis.as4.inbound;
 
-import no.difi.oxalis.api.inbound.InboundMetadata;
-import no.difi.oxalis.api.model.TransmissionIdentifier;
-import no.difi.oxalis.api.tag.Tag;
-import no.difi.oxalis.api.timestamp.Timestamp;
-import no.difi.vefa.peppol.common.model.*;
+import network.oxalis.api.inbound.InboundMetadata;
+import network.oxalis.api.model.TransmissionIdentifier;
+import network.oxalis.api.tag.Tag;
+import network.oxalis.api.timestamp.Timestamp;
+import network.oxalis.vefa.peppol.common.model.*;
 
 import java.security.cert.X509Certificate;
 import java.util.*;

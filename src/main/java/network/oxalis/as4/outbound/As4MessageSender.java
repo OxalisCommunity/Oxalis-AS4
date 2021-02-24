@@ -11,11 +11,11 @@ import network.oxalis.as4.lang.OxalisAs4TransmissionException;
 import network.oxalis.as4.util.CompressionUtil;
 import network.oxalis.as4.util.Constants;
 import network.oxalis.as4.util.PolicyService;
-import no.difi.oxalis.api.outbound.TransmissionRequest;
-import no.difi.oxalis.api.outbound.TransmissionResponse;
-import no.difi.oxalis.api.settings.Settings;
-import no.difi.oxalis.commons.http.HttpConf;
-import no.difi.oxalis.commons.security.KeyStoreConf;
+import network.oxalis.api.outbound.TransmissionRequest;
+import network.oxalis.api.outbound.TransmissionResponse;
+import network.oxalis.api.settings.Settings;
+import network.oxalis.commons.http.HttpConf;
+import network.oxalis.commons.security.KeyStoreConf;
 import org.apache.cxf.attachment.AttachmentUtil;
 import org.apache.cxf.binding.soap.SoapHeader;
 import org.apache.cxf.endpoint.Client;
@@ -48,8 +48,8 @@ import static org.apache.cxf.ws.security.SecurityConstants.USE_ATTACHMENT_ENCRYP
 @Slf4j
 public class As4MessageSender {
 
-    public static final QName SERVICE_NAME = new QName("oxalis.difi.no/", "outbound-service");
-    public static final QName PORT_NAME = new QName("oxalis.difi.no/", "port");
+    public static final QName SERVICE_NAME = new QName("oxalis.network/", "outbound-service");
+    public static final QName PORT_NAME = new QName("oxalis.network/", "port");
 
     private final MessagingProvider messagingProvider;
     private final MessageIdGenerator messageIdGenerator;

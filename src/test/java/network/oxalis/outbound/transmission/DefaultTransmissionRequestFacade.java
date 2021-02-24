@@ -1,10 +1,10 @@
-package no.difi.oxalis.outbound.transmission;
+package network.oxalis.outbound.transmission;
 
-import no.difi.oxalis.api.outbound.TransmissionMessage;
-import no.difi.oxalis.api.outbound.TransmissionRequest;
-import no.difi.oxalis.api.tag.Tag;
-import no.difi.vefa.peppol.common.model.Endpoint;
-import no.difi.vefa.peppol.common.model.Header;
+import network.oxalis.api.outbound.TransmissionMessage;
+import network.oxalis.api.outbound.TransmissionRequest;
+import network.oxalis.api.tag.Tag;
+import network.oxalis.vefa.peppol.common.model.Endpoint;
+import network.oxalis.vefa.peppol.common.model.Header;
 
 import java.io.InputStream;
 import java.io.Serializable;

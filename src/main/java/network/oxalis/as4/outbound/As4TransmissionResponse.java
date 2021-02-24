@@ -1,11 +1,11 @@
 package network.oxalis.as4.outbound;
 
-import no.difi.oxalis.api.model.TransmissionIdentifier;
-import no.difi.oxalis.api.outbound.TransmissionRequest;
-import no.difi.oxalis.api.outbound.TransmissionResponse;
-import no.difi.oxalis.api.timestamp.Timestamp;
+import network.oxalis.api.model.TransmissionIdentifier;
+import network.oxalis.api.outbound.TransmissionRequest;
+import network.oxalis.api.outbound.TransmissionResponse;
+import network.oxalis.api.timestamp.Timestamp;
 import network.oxalis.as4.lang.OxalisAs4TransmissionException;
-import no.difi.vefa.peppol.common.model.*;
+import network.oxalis.vefa.peppol.common.model.*;
 
 import java.util.ArrayList;
 import java.util.Collections;

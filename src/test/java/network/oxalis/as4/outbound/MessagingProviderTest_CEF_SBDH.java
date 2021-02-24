@@ -1,6 +1,6 @@
 package network.oxalis.as4.outbound;
 
-import no.difi.oxalis.api.settings.Settings;
+import network.oxalis.api.settings.Settings;
 import network.oxalis.as4.config.As4Conf;
 import network.oxalis.as4.util.PeppolConfiguration;
 

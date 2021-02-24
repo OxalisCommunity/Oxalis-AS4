@@ -7,8 +7,8 @@ import network.oxalis.as4.common.AS4Constants;
 import network.oxalis.as4.config.As4Conf;
 import network.oxalis.as4.util.CompressionUtil;
 import network.oxalis.as4.util.PeppolConfiguration;
-import no.difi.oxalis.api.outbound.MessageSender;
-import no.difi.oxalis.api.settings.Settings;
+import network.oxalis.api.outbound.MessageSender;
+import network.oxalis.api.settings.Settings;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import java.security.Security;

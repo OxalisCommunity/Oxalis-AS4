@@ -26,8 +26,8 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import lombok.SneakyThrows;
 import network.oxalis.as4.api.MessageIdGenerator;
-import no.difi.oxalis.api.settings.Settings;
-import no.difi.oxalis.api.util.Type;
+import network.oxalis.api.settings.Settings;
+import network.oxalis.api.util.Type;
 import network.oxalis.as4.config.As4Conf;
 
 import java.net.InetAddress;

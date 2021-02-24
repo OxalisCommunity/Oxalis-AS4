@@ -1,7 +1,7 @@
 package network.oxalis.as4.util;
 
 import lombok.Getter;
-import no.difi.oxalis.api.tag.Tag;
+import network.oxalis.api.tag.Tag;
 
 import java.util.Arrays;
 import java.util.List;

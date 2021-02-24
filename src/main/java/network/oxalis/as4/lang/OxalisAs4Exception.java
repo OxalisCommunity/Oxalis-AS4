@@ -1,6 +1,6 @@
 package network.oxalis.as4.lang;
 
-import no.difi.oxalis.api.lang.OxalisException;
+import network.oxalis.api.lang.OxalisException;
 import network.oxalis.as4.util.AS4ErrorCode;
 
 public class OxalisAs4Exception extends OxalisException implements AS4Error {

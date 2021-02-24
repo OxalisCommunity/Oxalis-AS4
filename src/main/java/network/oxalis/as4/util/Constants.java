@@ -17,4 +17,8 @@ public class Constants {
 
     public static final String TEST_SERVICE = "http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/service";
     public static final String TEST_ACTION = "http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/test";
+
+    public static final String OXALIS_ALGORITHM_NAMESPACE = "http://oxalis.network/custom/security-policy";
+    public static final String BASIC_128_GCM_SHA_256 = "Basic128GCMSha256";
+    public static final String BASIC_128_GCM_SHA_256_MGF_SHA_256 = "Basic128GCMSha256MgfSha256";
 }

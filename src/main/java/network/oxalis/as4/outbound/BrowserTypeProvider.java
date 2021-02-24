@@ -4,7 +4,7 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import network.oxalis.as4.inbound.OxalisAS4Version;
-import no.difi.oxalis.commons.util.OxalisVersion;
+import network.oxalis.commons.util.OxalisVersion;
 import org.bouncycastle.asn1.x500.RDN;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.style.BCStyle;

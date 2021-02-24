@@ -24,7 +24,7 @@ package network.oxalis.as4.inbound;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import no.difi.vefa.peppol.mode.Mode;
+import network.oxalis.vefa.peppol.mode.Mode;
 
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;

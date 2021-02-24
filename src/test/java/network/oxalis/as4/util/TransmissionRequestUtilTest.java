@@ -1,9 +1,9 @@
 package network.oxalis.as4.util;
 
 import network.oxalis.as4.common.As4MessageProperty;
-import no.difi.vefa.peppol.common.model.DocumentTypeIdentifier;
-import no.difi.vefa.peppol.common.model.ParticipantIdentifier;
-import no.difi.vefa.peppol.common.model.Scheme;
+import network.oxalis.vefa.peppol.common.model.DocumentTypeIdentifier;
+import network.oxalis.vefa.peppol.common.model.ParticipantIdentifier;
+import network.oxalis.vefa.peppol.common.model.Scheme;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

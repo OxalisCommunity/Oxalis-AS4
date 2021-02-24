@@ -38,7 +38,7 @@
                     <sp:AlgorithmSuite>
                         <wsp:Policy>
                             <sp-cxf:Basic128GCMSha256MgfSha256
-                                    xmlns:sp-cxf="http://oxalis.difi.no/custom/security-policy"/>
+                                    xmlns:sp-cxf="http://oxalis.network/custom/security-policy"/>
                         </wsp:Policy>
                     </sp:AlgorithmSuite>
                 </wsp:Policy>

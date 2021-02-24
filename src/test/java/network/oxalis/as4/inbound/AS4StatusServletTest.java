@@ -26,9 +26,9 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.util.Modules;
-import no.difi.oxalis.api.inbound.InboundService;
-import no.difi.oxalis.commons.guice.GuiceModuleLoader;
-import no.difi.oxalis.test.jetty.AbstractJettyServerTest;
+import network.oxalis.api.inbound.InboundService;
+import network.oxalis.commons.guice.GuiceModuleLoader;
+import network.oxalis.test.jetty.AbstractJettyServerTest;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

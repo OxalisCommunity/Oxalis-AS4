@@ -1,6 +1,6 @@
-package no.difi.oxalis.outbound.transmission;
+package network.oxalis.outbound.transmission;
 
-import no.difi.oxalis.api.outbound.TransmissionRequest;
+import network.oxalis.api.outbound.TransmissionRequest;
 import network.oxalis.as4.api.MessageIdGenerator;
 import network.oxalis.as4.lang.OxalisAs4TransmissionException;
 import network.oxalis.as4.outbound.DefaultActionProvider;

@@ -4,8 +4,8 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import lombok.extern.slf4j.Slf4j;
-import no.difi.oxalis.api.lang.OxalisLoadingException;
-import no.difi.vefa.peppol.mode.Mode;
+import network.oxalis.api.lang.OxalisLoadingException;
+import network.oxalis.vefa.peppol.mode.Mode;
 import org.apache.wss4j.common.crypto.Merlin;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
