@@ -88,7 +88,7 @@
 
     <scm>
         <connection>scm:git:https://github.com/OxalisCommunity/Oxalis-AS4.git</connection>
-        <developerConnection>scm:git:git@github.com/OxalisCommunity/Oxalis-AS4.git</developerConnection>
+        <developerConnection>scm:git:git@github.com:OxalisCommunity/Oxalis-AS4.git</developerConnection>
         <url>https://github.com/OxalisCommunity/Oxalis-AS4</url>
     </scm>
 
