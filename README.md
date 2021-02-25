@@ -1,4 +1,5 @@
 [![Oxalis-AS4 Master Build](https://github.com/OxalisCommunity/Oxalis-AS4/workflows/Oxalis-AS4%20Master%20Build/badge.svg?branch=master)](https://github.com/OxalisCommunity/oxalis-as4/actions?query=workflow%3A%22oxalis-as4%20Master%20Build%22)
+[![Maven Central](https://img.shields.io/maven-central/v/network.oxalis/oxalis-as4.svg)](http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22network.oxalis%22%20AND%20a%3A%22oxalis-as4%22)
 
 The contents of this repository is currently in the process of switching ownership to [NorStella Oxalis Community](https://www.oxalis.network/). You as a user of Oxalis may find it interesting to [join the community](https://www.oxalis.network/join) for access to support, roadmap, early access and more. The founding meeting held online, Thursday November 19, 2020, at 08:30–10:30 CET. 
 
