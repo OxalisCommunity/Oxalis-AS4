@@ -12,7 +12,7 @@ jobs:
       - name: Prepare
         id: prep
         run: |
-          DOCKER_IMAGE=OxalisCommunity/Oxalis-AS4
+          DOCKER_IMAGE=norstella/oxalis-as4
           VERSION=edge
           if [[ $GITHUB_REF == refs/tags/* ]]; then
             VERSION=${GITHUB_REF#refs/tags/v}
