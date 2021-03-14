@@ -22,7 +22,3 @@ java -classpath "standalone/*;as4/*" eu.sendregning.oxalis.Main [followd by the 
 
 All this command does is to tell Java to load the content of both folders, then execute the logic in "_eu.sendregning.oxalis.Main_" (which is the starting point of the Standalone application).
 By looking into the run scripts of Oxalis Server form our previous section we can see that this is in fact the same approach that is used there.
-
-We can see from the start up log that the AS4 v2 transportation profile is loaded together with the v1 we added in our configuration previously.
-``[no.difi.oxalis.outbound.transmission.MessageSenderFactory] => bdxr-transport-ebms3-as4-v1p0``
-``[no.difi.oxalis.outbound.transmission.MessageSenderFactory] => peppol-transport-as4-v2_0``

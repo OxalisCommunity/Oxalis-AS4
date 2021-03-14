@@ -2,12 +2,12 @@
 
 ## Oxalis
 
-First you should download the [oxalis-war-4.1.2.war](https://github.com/difi/oxalis/releases/download/oxalis-4.1.2/oxalis-war-4.1.2.war) file
-from this [page](https://github.com/difi/oxalis/releases) and
+First you should download the [oxalis-war-5.0.0.war](https://github.com/OxalisCommunity/oxalis/releases/download/oxalis-5.0.0/oxalis-war-5.0.0.war) file
+from this [page](https://github.com/OxalisCommunity/oxalis/releases) and
 put it a directory of your choice. We recommend naming the folder oxalis.
 
-Then you should download the [Oxalis-AS4 distribution](https://github.com/difi/Oxalis-AS4/releases/download/4.1.9/oxalis-as4-4.1.9-dist.zip)
-from this [page](https://github.com/difi/Oxalis-AS4/releases) and unzip
+Then you should download the [Oxalis-AS4 distribution](https://github.com/OxalisCommunity/oxalis-as4/releases/download/5.0.0/oxalis-as4-5.0.0-dist.zip)
+from this [page](https://github.com/OxalisCommunity/oxalis-as4/releases) and unzip
 the files to a new folder of your choice. We recommend creating a folder named as4 inside the folder containing the WAR file.
 
 Also create a folder named home inside the oxalis folder and place the oxalis.conf file, together with the necessary JKS files.
