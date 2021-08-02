@@ -1,4 +1,4 @@
-name: "CodeQL"
+name: "CodeQL Analyss for Oxalis AS4"
 
 on:
   push:
