@@ -83,6 +83,7 @@ public class As4InboundHandler {
         // Organize input data
         UserMessage userMessage = SOAPHeaderParser.getUserMessage(soapHeader);
 
+        validateUserMessage(userMessage);
         As4EnvelopeHeader envelopeHeader = parseAs4EnvelopeHeader(userMessage);
         messageContext.put(AS4MessageContextKey.ENVELOPE_HEADER, envelopeHeader);
 
@@ -164,6 +165,20 @@ public class As4InboundHandler {
         }
 
         return response;
+    }
+
+    private void validateUserMessage(UserMessage userMessage) throws OxalisAs4Exception {
+        if (userMessage.getMessageInfo() ==  null){
+            throw new OxalisAs4Exception("Error processing User Message. Message information not found");
+        }else if (userMessage.getCollaborationInfo() == null){
+            throw new OxalisAs4Exception("Error processing User Message. Collaboration information not found");
+        }else if (userMessage.getPartyInfo() == null){
+            throw new OxalisAs4Exception("Error processing User Message. Party information not found");
+        }else if (userMessage.getMessageProperties() == null){
+            throw new OxalisAs4Exception("Error processing User Message. Message properties not found");
+        }else if (userMessage.getPayloadInfo() ==  null){
+            throw new OxalisAs4Exception("Error processing User Message. Payload information not found");
+        }
     }
 
     private X509Certificate getSenderCertificate(SOAPHeader soapHeader) {
