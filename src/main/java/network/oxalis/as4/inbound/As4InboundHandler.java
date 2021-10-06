@@ -168,16 +168,16 @@ public class As4InboundHandler {
     }
 
     private void validateUserMessage(UserMessage userMessage) throws OxalisAs4Exception {
-        if (userMessage.getMessageInfo() ==  null){
-            throw new OxalisAs4Exception("Error processing User Message. Message information not found");
-        }else if (userMessage.getCollaborationInfo() == null){
-            throw new OxalisAs4Exception("Error processing User Message. Collaboration information not found");
-        }else if (userMessage.getPartyInfo() == null){
-            throw new OxalisAs4Exception("Error processing User Message. Party information not found");
-        }else if (userMessage.getMessageProperties() == null){
-            throw new OxalisAs4Exception("Error processing User Message. Message properties not found");
-        }else if (userMessage.getPayloadInfo() ==  null){
-            throw new OxalisAs4Exception("Error processing User Message. Payload information not found");
+
+        boolean isNull = Stream.of(userMessage.getMessageInfo(),
+                userMessage.getCollaborationInfo(),
+                userMessage.getPartyInfo(),
+                userMessage.getMessageProperties(),
+                userMessage.getPayloadInfo()).
+                anyMatch(Objects::isNull);
+
+        if(isNull){
+            throw new OxalisAs4Exception("Error processing User Message. Incomplete Data.");
         }
     }
 
