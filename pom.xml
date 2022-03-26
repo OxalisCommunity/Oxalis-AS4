@@ -97,7 +97,7 @@
 
         <commons.sbdh>0.9.5</commons.sbdh>
 
-        <cxf.version>3.3.6</cxf.version>
+        <cxf.version>3.3.8</cxf.version>
         <wss4j.version>2.2.7</wss4j.version>
         <neethi.version>3.2.0</neethi.version>
         <soap.version>1.4.0</soap.version>
