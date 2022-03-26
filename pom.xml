@@ -99,7 +99,7 @@
 
         <cxf.version>3.3.6</cxf.version>
         <wss4j.version>2.2.5</wss4j.version>
-        <neethi.version>3.1.1</neethi.version>
+        <neethi.version>3.2.0</neethi.version>
         <soap.version>1.4.0</soap.version>
 
         <powermock.version>2.0.0</powermock.version>
