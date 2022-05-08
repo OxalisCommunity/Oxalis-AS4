@@ -11,6 +11,7 @@ import java.util.UUID;
 
 import static org.mockito.BDDMockito.given;
 import static org.powermock.api.mockito.PowerMockito.mockStatic;
+import static org.powermock.api.mockito.PowerMockito.when;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest(DefaultMessageIdGenerator.class)
@@ -20,8 +21,10 @@ public class DefaultMessageIdGeneratorTest {
 
     @Before
     public void before() {
+        // Build UUID before UUID.class is mocked
+        UUID uuid = UUID.fromString("8196c8e2-820f-4aec-a1ca-288a4d1d4020");
         mockStatic(UUID.class);
-        given(UUID.randomUUID()).willReturn(UUID.fromString("8196c8e2-820f-4aec-a1ca-288a4d1d4020"));
+        when(UUID.randomUUID()).thenReturn(uuid);
     }
 
     @Test
