@@ -1,7 +1,7 @@
 package network.oxalis.as4.util;
 
 import lombok.experimental.UtilityClass;
-import no.difi.commons.sbdh.jaxb.StandardBusinessDocument;
+import network.oxalis.peppol.sbdh.jaxb.StandardBusinessDocument;
 import org.oasis_open.docs.ebxml_bp.ebbp_signals_2.NonRepudiationInformation;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.Messaging;
 import org.w3.xmldsig.ReferenceType;

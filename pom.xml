@@ -27,7 +27,7 @@
     <parent>
         <groupId>network.oxalis</groupId>
         <artifactId>oxalis</artifactId>
-        <version>5.3.0</version>
+        <version>5.4.0</version>
     </parent>
 
     <artifactId>oxalis-as4</artifactId>
@@ -88,14 +88,14 @@
         <developerConnection>scm:git:git@github.com:OxalisCommunity/Oxalis-AS4.git</developerConnection>
         <url>https://github.com/OxalisCommunity/Oxalis-AS4</url>
       <tag>HEAD</tag>
-  </scm>
+    </scm>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
 
-        <commons.sbdh>0.9.5</commons.sbdh>
+        <peppol.sbdh.version>1.0.0</peppol.sbdh.version>
 
         <cxf.version>3.3.8</cxf.version>
         <wss4j.version>2.2.7</wss4j.version>
@@ -137,9 +137,9 @@
         </dependency>
 
         <dependency>
-            <groupId>no.difi.commons</groupId>
-            <artifactId>commons-sbdh</artifactId>
-            <version>${commons.sbdh}</version>
+            <groupId>network.oxalis.peppol</groupId>
+            <artifactId>peppol-sbdh</artifactId>
+            <version>${peppol.sbdh.version}</version>
             <scope>provided</scope>
         </dependency>
 
