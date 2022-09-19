@@ -55,9 +55,9 @@ oxalis.as4.type=cef-connectivity
 oxalis.header.parser=dummy
 
 lookup.locator.hostname="acc.edelivery.tech.ec.europa.eu/edelivery-sml/"
-lookup.locator.class = no.difi.vefa.peppol.lookup.locator.BusdoxLocator
+lookup.locator.class = network.oxalis.vefa.peppol.lookup.locator.BusdoxLocator
 
-security.validator.class = no.difi.vefa.peppol.security.util.EmptyCertificateValidator
+security.validator.class = network.oxalis.vefa.peppol.security.util.EmptyCertificateValidator
 
 oxalis.path.inbound = /var/peppol/IN
 
