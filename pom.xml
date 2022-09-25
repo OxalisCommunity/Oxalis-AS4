@@ -706,6 +706,19 @@
         </profile>
     </profiles>
 
+    <!--
+        When Oxalis-AS4 is built in Docker with SNAPSHOT parent version of Oxalis (and without having it already
+        in local repo), parent POM cannot be found without explicitly defined repository.
+
+        Potentially, on release this part should be removed or expanded with release repo
+    -->
+    <repositories>
+        <repository>
+            <id>ossrh-snap</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </repository>
+    </repositories>
+
     <distributionManagement>
         <snapshotRepository>
             <id>ossrh</id>

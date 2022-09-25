@@ -3,7 +3,7 @@ FROM maven:3.8.5-openjdk-17 AS mvn
 ADD . $MAVEN_HOME
 
 RUN cd $MAVEN_HOME \
- && mvn -B clean package -DskipTests=true \
+ && mvn -B -U clean package -DskipTests=false \
  && cp -r target/$(ls target | grep "\-dist$" | head -1) /dist
 
 
