@@ -6,7 +6,6 @@ RUN cd $MAVEN_HOME \
  && mvn -B -U clean package -DskipTests=false \
  && cp -r target/$(ls target | grep "\-dist$" | head -1) /dist
 
-
 FROM norstella/oxalis:latest-17
 
 COPY --from=mvn /dist /oxalis/ext
