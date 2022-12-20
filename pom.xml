@@ -97,8 +97,8 @@
 
         <peppol.sbdh.version>1.0.0</peppol.sbdh.version>
 
-        <cxf.version>3.3.8</cxf.version>
-        <wss4j.version>2.2.7</wss4j.version>
+        <cxf.version>3.5.5</cxf.version>
+        <wss4j.version>2.4.1</wss4j.version>
         <neethi.version>3.2.0</neethi.version>
         <soap.version>1.4.0</soap.version>
 

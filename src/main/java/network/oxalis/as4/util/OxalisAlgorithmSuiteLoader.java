@@ -70,13 +70,14 @@ public class OxalisAlgorithmSuiteLoader implements AlgorithmSuiteLoader {
                             128, 128, 128, 256, 1024, 4096
                     )
             );
-            ALGORITHM_SUITE_TYPES.get(BASIC_128_GCM_SHA_256_MGF_SHA_256).setMGFAlgo(MGF_SHA256);
-            ALGORITHM_SUITE_TYPES.get(BASIC_128_GCM_SHA_256_MGF_SHA_256).setEncryptionDigest(SPConstants.SHA256);
+            AlgorithmSuiteType algorithmSuiteType = ALGORITHM_SUITE_TYPES.get(BASIC_128_GCM_SHA_256_MGF_SHA_256);
+            algorithmSuiteType.setMGFAlgo(MGF_SHA256);
+            algorithmSuiteType.setEncryptionDigest(SPConstants.SHA256);
+            algorithmSuiteType.setAsymmetricSignature("http://www.w3.org/2001/04/xmldsig-more#rsa-sha256");
         }
 
         OxalisAlgorithmSuite(final SPConstants.SPVersion version, final Policy nestedPolicy) {
             super(version, nestedPolicy);
-            this.setAsymmetricSignature("http://www.w3.org/2001/04/xmldsig-more#rsa-sha256");
         }
 
         @Override
