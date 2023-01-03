@@ -97,6 +97,8 @@
         <peppol.sbdh.version>1.1.0</peppol.sbdh.version>
         <cxf.version>3.5.5</cxf.version>
         <wss4j.version>2.4.1</wss4j.version>
+        <jakarta.xml.soap-api.version>1.4.2</jakarta.xml.soap-api.version>
+        <saaj-impl.version>1.5.3</saaj-impl.version>
         <jakarta.xml.bind-api.version>2.3.3</jakarta.xml.bind-api.version>
         <jakarta.activation-api.version>1.2.1</jakarta.activation-api.version>
         <bouncycastle.version>1.70</bouncycastle.version>
@@ -313,12 +315,12 @@
         <dependency>
             <groupId>jakarta.xml.soap</groupId>
             <artifactId>jakarta.xml.soap-api</artifactId>
-            <version>1.4.2</version>
+            <version>${jakarta.xml.soap-api.version}</version>
         </dependency>
         <dependency>
             <groupId>com.sun.xml.messaging.saaj</groupId>
             <artifactId>saaj-impl</artifactId>
-            <version>1.5.3</version>
+            <version>${saaj-impl.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.sun.activation</groupId>
