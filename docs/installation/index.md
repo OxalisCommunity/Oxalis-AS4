@@ -14,13 +14,11 @@ Depending upon how you are using/integrated those artifacts, you can download th
  
 
 # Inbound
-
 * [Oxalis Inbound (Server)](server.md)
 * [Oxalis Inbound (Tomcat 8+)](tomcat.md)
 * [Oxalis Inbound (Docker)](https://hub.docker.com/r/norstella/oxalis-as4/)
 
 # Outbound
-
 * [Oxalis Outbound (Standalone)](standalone.md)
 
 
