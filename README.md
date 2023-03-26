@@ -2,7 +2,6 @@
 [![Maven Central](https://img.shields.io/maven-central/v/network.oxalis/oxalis-as4.svg)](http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22network.oxalis%22%20AND%20a%3A%22oxalis-as4%22)
 
 # Oxalis-AS4
-
 This repo implement PEPPOL AS4 pMode.
 It supports Oxalis version v5.0.0 and above 
 
@@ -12,7 +11,6 @@ For general instructions on how to install and use Oxalis, please refer to [oxal
 * [Installation guide](docs/installation/index.md)
 * [OpenPEPPOL Test Bed](docs/peppol-test-bed/index.md)
 * [CEF connectivity test](docs/cef-connectivity/index.md)
-
 
 ---
 # Are you Contributor?
