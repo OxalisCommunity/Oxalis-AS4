@@ -27,7 +27,7 @@
     <parent>
         <groupId>network.oxalis</groupId>
         <artifactId>oxalis</artifactId>
-        <version>6.0.0-RC1-SNAPSHOT</version>
+        <version>6.0.0.RC1</version>
     </parent>
 
     <artifactId>oxalis-as4</artifactId>
@@ -95,7 +95,7 @@
         <java.version>11</java.version>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
-        <peppol.sbdh.version>2.0.0-RC1-SNAPSHOT</peppol.sbdh.version>
+        <peppol.sbdh.version>2.0.0</peppol.sbdh.version>
         <cxf.version>3.5.5</cxf.version>
         <wss4j.version>2.4.1</wss4j.version>
         <jakarta.xml.soap-api.version>1.4.2</jakarta.xml.soap-api.version>
@@ -762,14 +762,6 @@
             </build>
         </profile>
     </profiles>
-
-    <!-- Only for building from SNAPSHOT of other Oxalis repos. Remove it once released version of those Oxalis repos will be available -->
-    <repositories>
-        <repository>
-            <id>ossrh-snap</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </repository>
-    </repositories>
 
     <distributionManagement>
         <snapshotRepository>
