@@ -1,4 +1,7 @@
 .idea/
+.settings/
 target/
 oxalis-as4.iml
 output.mime
+/.classpath
+/.project
