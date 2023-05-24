@@ -39,5 +39,14 @@ public enum As4Conf {
 
     @Path("oxalis.as4.type")
     @DefaultValue("peppol")
-    TYPE
+    TYPE,
+
+    /**
+     * Defines maximum possible size of SBDH header in bytes. It is needed to limit 
+     * parsing of SBD to prevent DOS attack, and be able to rewind the input 
+     * stream to the start before passing it to persister.
+     */
+    @Path("oxalis.as4.sbdh.limit")
+    @DefaultValue("65536")
+    SBDH_LIMIT
 }
