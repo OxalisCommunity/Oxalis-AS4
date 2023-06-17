@@ -2,11 +2,11 @@
 
 ## Oxalis
 
-First you should download the [oxalis-war-5.0.0.war](https://github.com/OxalisCommunity/oxalis/releases/download/oxalis-5.0.0/oxalis-war-5.0.0.war) file
+First you should download the [oxalis-war-6.0.0.war](https://github.com/OxalisCommunity/oxalis/releases/download/oxalis-6.0.0/oxalis-war-6.0.0.war) file
 from this [page](https://github.com/OxalisCommunity/oxalis/releases) and
 put it a directory of your choice. We recommend naming the folder oxalis.
 
-Then you should download the [Oxalis-AS4 distribution](https://github.com/OxalisCommunity/oxalis-as4/releases/download/5.0.0/oxalis-as4-5.0.0-dist.zip)
+Then you should download the [Oxalis-AS4 distribution](https://github.com/OxalisCommunity/oxalis-as4/releases/download/6.0.0/oxalis-as4-6.0.0-dist.zip)
 from this [page](https://github.com/OxalisCommunity/oxalis-as4/releases) and unzip
 the files to a new folder of your choice. We recommend creating a folder named as4 inside the folder containing the WAR file.
 

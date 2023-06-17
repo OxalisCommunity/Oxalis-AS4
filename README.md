@@ -3,7 +3,7 @@
 
 # Oxalis-AS4
 This repo implement PEPPOL AS4 pMode.
-It supports Oxalis version v5.0.0 and above 
+It supports Oxalis version v6.0.0 and above 
 
 AS4 messages is triggered by setting the _transport profile identifier_ of one of your endpoints to "_peppol-transport-as4-v2_0_" in the SMP. No further configuration is needed beyond the standard Oxalis setup.
 For general instructions on how to install and use Oxalis, please refer to [oxalis installation guide](https://github.com/difi/oxalis/blob/master/doc/installation.md).
