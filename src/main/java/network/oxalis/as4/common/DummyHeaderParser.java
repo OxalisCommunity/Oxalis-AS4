@@ -32,6 +32,7 @@ public class DummyHeaderParser implements HeaderParser {
                 ParticipantIdentifier.of("DummyReceiver"),
                 ProcessIdentifier.of("DummyProcess"),
                 DocumentTypeIdentifier.of("DummyDocument"),
+                C1CountryIdentifier.of("DummyCountry"),
                 InstanceIdentifier.of("DummyInstance"),
                 InstanceType.of("Dummy", "InstanceType", "1.0"),
                 new Date(0L));
