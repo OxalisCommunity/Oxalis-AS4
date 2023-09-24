@@ -1,4 +1,4 @@
-FROM maven:3.3.9-jdk-8 AS mvn
+FROM maven:3.8.6-jdk-11 AS mvn
 
 ADD . $MAVEN_HOME
 
@@ -7,6 +7,6 @@ RUN cd $MAVEN_HOME \
  && cp -r target/$(ls target | grep "\-dist$" | head -1) /dist
 
 
-FROM norstella/oxalis:latest
+norstella/oxalis:6.0.0
 
 COPY --from=mvn /dist /oxalis/ext
