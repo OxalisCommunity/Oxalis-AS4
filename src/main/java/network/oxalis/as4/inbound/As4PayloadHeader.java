@@ -62,6 +62,11 @@ public class As4PayloadHeader extends Header {
     }
 
     @Override
+    public Header c1CountryIdentifier(C1CountryIdentifier c1CountryIdentifier) {
+        return header.c1CountryIdentifier(c1CountryIdentifier);
+    }
+
+    @Override
     public Header argument(ArgumentIdentifier identifier) {
         return header.argument(identifier);
     }
@@ -124,5 +129,10 @@ public class As4PayloadHeader extends Header {
     @Override
     public Date getCreationTimestamp() {
         return header.getCreationTimestamp();
+    }
+
+    @Override
+    public C1CountryIdentifier getC1CountryIdentifier() {
+        return header.getC1CountryIdentifier();
     }
 }
