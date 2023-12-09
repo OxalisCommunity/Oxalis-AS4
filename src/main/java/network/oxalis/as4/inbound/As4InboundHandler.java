@@ -14,11 +14,13 @@ import network.oxalis.api.lang.VerifierException;
 import network.oxalis.api.model.Direction;
 import network.oxalis.api.model.TransmissionIdentifier;
 import network.oxalis.api.persist.PersisterHandler;
+import network.oxalis.api.settings.Settings;
 import network.oxalis.api.timestamp.Timestamp;
 import network.oxalis.api.timestamp.TimestampProvider;
 import network.oxalis.api.transmission.TransmissionVerifier;
 import network.oxalis.as4.common.As4MessageProperties;
 import network.oxalis.as4.common.As4MessageProperty;
+import network.oxalis.as4.config.As4Conf;
 import network.oxalis.commons.header.SbdhHeaderParser;
 import network.oxalis.commons.io.UnclosableInputStream;
 import network.oxalis.vefa.peppol.common.code.DigestMethod;
@@ -63,9 +65,10 @@ public class As4InboundHandler {
     private final As4MessageFactory as4MessageFactory;
     private final PolicyService policyService;
     private final InboundService inboundService;
+    private final Settings<As4Conf> as4Settings;
 
     @Inject
-    public As4InboundHandler(TransmissionVerifier transmissionVerifier, PersisterHandler persisterHandler, TimestampProvider timestampProvider, HeaderParser headerParser, As4MessageFactory as4MessageFactory, PolicyService policyService, InboundService inboundService) {
+    public As4InboundHandler(TransmissionVerifier transmissionVerifier, PersisterHandler persisterHandler, TimestampProvider timestampProvider, HeaderParser headerParser, As4MessageFactory as4MessageFactory, PolicyService policyService, InboundService inboundService, Settings<As4Conf> as4Settings) {
         this.transmissionVerifier = transmissionVerifier;
         this.persisterHandler = persisterHandler;
         this.timestampProvider = timestampProvider;
@@ -73,6 +76,7 @@ public class As4InboundHandler {
         this.as4MessageFactory = as4MessageFactory;
         this.policyService = policyService;
         this.inboundService = inboundService;
+        this.as4Settings = as4Settings;
     }
 
     public SOAPMessage handle(SOAPMessage request, MessageContext messageContext) throws OxalisAs4Exception {
@@ -359,7 +363,7 @@ public class As4InboundHandler {
 
                 Header sbdh;
                 if (headerParser instanceof SbdhHeaderParser) {
-                    bis.mark(65536);
+                    bis.mark(as4Settings.getInt(As4Conf.SBDH_LIMIT));
                     sbdh = readHeader(contentId, bis);
                     bis.reset();
                 } else {
