@@ -83,6 +83,7 @@ public class As4InboundHandler {
         // Organize input data
         UserMessage userMessage = SOAPHeaderParser.getUserMessage(soapHeader);
 
+        validateUserMessage(userMessage);
         As4EnvelopeHeader envelopeHeader = parseAs4EnvelopeHeader(userMessage);
         messageContext.put(AS4MessageContextKey.ENVELOPE_HEADER, envelopeHeader);
 
@@ -164,6 +165,20 @@ public class As4InboundHandler {
         }
 
         return response;
+    }
+
+    private void validateUserMessage(UserMessage userMessage) throws OxalisAs4Exception {
+
+        boolean isNull = Stream.of(userMessage.getMessageInfo(),
+                userMessage.getCollaborationInfo(),
+                userMessage.getPartyInfo(),
+                userMessage.getMessageProperties(),
+                userMessage.getPayloadInfo()).
+                anyMatch(Objects::isNull);
+
+        if(isNull){
+            throw new OxalisAs4Exception("Error processing User Message. Incomplete Data.");
+        }
     }
 
     private X509Certificate getSenderCertificate(SOAPHeader soapHeader) {
