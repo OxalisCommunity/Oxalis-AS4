@@ -4,9 +4,6 @@ import com.google.common.io.ByteStreams;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
-import network.oxalis.as4.lang.OxalisAs4Exception;
-import network.oxalis.as4.lang.OxalisAs4TransmissionException;
-import network.oxalis.as4.util.*;
 import network.oxalis.api.header.HeaderParser;
 import network.oxalis.api.inbound.InboundService;
 import network.oxalis.api.lang.TimestampException;
@@ -19,12 +16,18 @@ import network.oxalis.api.timestamp.TimestampProvider;
 import network.oxalis.api.transmission.TransmissionVerifier;
 import network.oxalis.as4.common.As4MessageProperties;
 import network.oxalis.as4.common.As4MessageProperty;
+import network.oxalis.as4.lang.OxalisAs4Exception;
+import network.oxalis.as4.lang.OxalisAs4TransmissionException;
+import network.oxalis.as4.util.*;
 import network.oxalis.commons.header.SbdhHeaderParser;
 import network.oxalis.commons.io.UnclosableInputStream;
+import network.oxalis.commons.mode.OxalisCertificateValidator;
 import network.oxalis.vefa.peppol.common.code.DigestMethod;
+import network.oxalis.vefa.peppol.common.code.Service;
 import network.oxalis.vefa.peppol.common.model.*;
 import network.oxalis.vefa.peppol.sbdh.SbdReader;
 import network.oxalis.vefa.peppol.sbdh.lang.SbdhException;
+import network.oxalis.vefa.peppol.security.lang.PeppolSecurityException;
 import org.apache.cxf.attachment.AttachmentUtil;
 import org.apache.cxf.helpers.CastUtils;
 import org.apache.cxf.message.Attachment;
@@ -63,9 +66,12 @@ public class As4InboundHandler {
     private final As4MessageFactory as4MessageFactory;
     private final PolicyService policyService;
     private final InboundService inboundService;
+    private final OxalisCertificateValidator certificateValidator;
 
     @Inject
-    public As4InboundHandler(TransmissionVerifier transmissionVerifier, PersisterHandler persisterHandler, TimestampProvider timestampProvider, HeaderParser headerParser, As4MessageFactory as4MessageFactory, PolicyService policyService, InboundService inboundService) {
+    public As4InboundHandler(TransmissionVerifier transmissionVerifier, PersisterHandler persisterHandler,
+                             TimestampProvider timestampProvider, HeaderParser headerParser, As4MessageFactory as4MessageFactory,
+                             PolicyService policyService, InboundService inboundService, OxalisCertificateValidator certificateValidator) {
         this.transmissionVerifier = transmissionVerifier;
         this.persisterHandler = persisterHandler;
         this.timestampProvider = timestampProvider;
@@ -73,10 +79,14 @@ public class As4InboundHandler {
         this.as4MessageFactory = as4MessageFactory;
         this.policyService = policyService;
         this.inboundService = inboundService;
+        this.certificateValidator = certificateValidator;
     }
 
     public SOAPMessage handle(SOAPMessage request, MessageContext messageContext) throws OxalisAs4Exception {
         SOAPHeader soapHeader = getSoapHeader(request);
+
+        X509Certificate senderCertificate = getSenderCertificate(soapHeader);
+
         Timestamp timestamp = getTimestamp(soapHeader);
         Iterator<AttachmentPart> attachments = CastUtils.cast(request.getAttachments());
 
@@ -89,6 +99,13 @@ public class As4InboundHandler {
         TransmissionIdentifier messageId = TransmissionIdentifier.of(envelopeHeader.getMessageId());
 
         validateMessageId(messageId.getIdentifier()); // Validate UserMessage
+
+        try {
+            certificateValidator.validate(Service.AP, senderCertificate);
+        } catch (PeppolSecurityException peppolSecurityException) {
+            throw new OxalisAs4Exception("PEPPOL:NOT_SERVICED", AS4ErrorCode.EBMS_0004, AS4ErrorCode.Severity.FAILURE);
+        }
+
         validatePayloads(userMessage.getPayloadInfo()); // Validate Payloads
 
         List<ReferenceType> referenceList = SOAPHeaderParser.getReferenceListFromSignedInfo(soapHeader);
@@ -122,8 +139,6 @@ public class As4InboundHandler {
             As4PayloadHeader firstHeader = payloads.entrySet().iterator().next().getValue();
             String firstAttachmentId = envelopeHeader.getPayloadCIDs().get(0);
             Digest firstAttachmentDigest = Digest.of(DigestMethod.SHA256, SOAPHeaderParser.getAttachmentDigest(firstAttachmentId, soapHeader));
-
-            X509Certificate senderCertificate = getSenderCertificate(soapHeader);
 
             As4InboundMetadata as4InboundMetadata = new As4InboundMetadata(
                     messageId,
@@ -166,11 +181,11 @@ public class As4InboundHandler {
         return response;
     }
 
-    private X509Certificate getSenderCertificate(SOAPHeader soapHeader) {
+    private X509Certificate getSenderCertificate(SOAPHeader soapHeader) throws OxalisAs4Exception {
         try {
             return SOAPHeaderParser.getSenderCertificate(soapHeader);
         } catch (OxalisAs4Exception e) {
-            return null;
+            throw new OxalisAs4Exception("PEPPOL:NOT_SERVICED", AS4ErrorCode.EBMS_0004, AS4ErrorCode.Severity.FAILURE);
         }
     }
 
@@ -186,7 +201,7 @@ public class As4InboundHandler {
         }
 
         return Optional.ofNullable(collaborationInfo.getService())
-                .map(Service::getValue)
+                .map(org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.Service::getValue)
                 .map(service -> Optional.ofNullable(collaborationInfo.getAction())
                         .map(action ->
                                 Constants.TEST_SERVICE.equals(service) && Constants.TEST_ACTION.equals(action)

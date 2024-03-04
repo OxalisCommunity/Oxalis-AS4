@@ -34,6 +34,10 @@ public class As4FaultInHandler implements SOAPHandler<SOAPMessageContext> {
     private final As4MessageFactory as4MessageFactory;
     private final PersisterHandler persisterHandler;
 
+    private static final String CERTIFICATE_ERROR_MSG = "Cannot find key for certificate";
+    private static final String ERROR_CODE_FAILED_CHECK = "FAILED_CHECK";
+    private static final String FAULT_CODE_FAILED_CHECK = "FailedCheck";
+
     @Inject
     public As4FaultInHandler(As4MessageFactory as4MessageFactory, PersisterHandler persisterHandler) {
         this.as4MessageFactory = as4MessageFactory;
@@ -110,6 +114,27 @@ public class As4FaultInHandler implements SOAPHandler<SOAPMessageContext> {
         }
 
         if (t instanceof WSSecurityException && inMessage.isPresent()) {
+
+            boolean IsSecurityException = false;
+            String detailSecurityExceptionMessage = "";
+
+            if(null != t.getMessage()) {
+                detailSecurityExceptionMessage = t.getMessage();
+            }
+
+            if(null != ((WSSecurityException) t).getErrorCode()) {
+                String errorCode = ((WSSecurityException) t).getErrorCode().name();
+                IsSecurityException = errorCode.equalsIgnoreCase(ERROR_CODE_FAILED_CHECK);
+            }
+
+            if(null != ((WSSecurityException) t).getFaultCode()) {
+                String faultCode = (null == ((WSSecurityException) t).getFaultCode().getLocalPart() ? "" : ((WSSecurityException) t).getFaultCode().getLocalPart());
+                IsSecurityException = faultCode.equalsIgnoreCase(FAULT_CODE_FAILED_CHECK);
+            }
+
+            if(IsSecurityException || detailSecurityExceptionMessage.equalsIgnoreCase(CERTIFICATE_ERROR_MSG)) {
+                return new OxalisAs4Exception("PEPPOL:NOT_SERVICED", AS4ErrorCode.EBMS_0004, AS4ErrorCode.Severity.FAILURE);
+            }
 
             boolean isCompressionError = (boolean) inMessage.get().getOrDefault("oxalis.as4.compressionErrorDetected", false);
             if (isCompressionError) {
