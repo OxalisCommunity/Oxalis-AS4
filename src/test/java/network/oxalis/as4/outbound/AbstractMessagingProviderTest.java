@@ -203,7 +203,7 @@ public abstract class AbstractMessagingProviderTest {
     public static X509Certificate generateSelfSignedCertificate(String subjectDN) throws Exception
     {
         KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-        keyPairGenerator.initialize(512);
+        keyPairGenerator.initialize(2048);
         KeyPair kp = keyPairGenerator.generateKeyPair();
 
 
