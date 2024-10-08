@@ -1,12 +1,14 @@
 package network.oxalis.as4.outbound;
 
-import io.opentracing.noop.NoopTracerFactory;
+import io.opentelemetry.api.trace.SpanBuilder;
+import io.opentelemetry.api.trace.Tracer;
 import network.oxalis.api.outbound.TransmissionMessage;
 import network.oxalis.api.outbound.TransmissionRequest;
 import network.oxalis.as4.common.DefaultMessageIdGenerator;
 import network.oxalis.as4.util.PeppolConfiguration;
 import network.oxalis.commons.header.SbdhHeaderParser;
 import network.oxalis.commons.tag.NoopTagGenerator;
+import network.oxalis.commons.tracing.NoopSpanProcessorProvider;
 import network.oxalis.commons.transformer.NoopContentDetector;
 import network.oxalis.commons.transformer.NoopContentWrapper;
 import network.oxalis.outbound.transmission.DefaultTransmissionRequestFacade;
@@ -98,7 +100,12 @@ public abstract class AbstractMessagingProviderTest {
                 new NoopContentWrapper(),
                 new NoopTagGenerator(),
                 new SbdhHeaderParser(),
-                NoopTracerFactory.create()
+                new Tracer() {
+                    @Override
+                    public SpanBuilder spanBuilder(String spanName) {
+                        return null;
+                    }
+                }
         );
 
         TransmissionMessage transmissionMessage;

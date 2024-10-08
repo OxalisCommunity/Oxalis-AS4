@@ -14,28 +14,30 @@ public class As4InboundHandlerTest {
     @Test()
     public void testValidateMessageId_withValidHref() throws Exception{
 
-        PayloadInfo payloadInfo = PayloadInfo.builder()
-                .addPartInfo(PartInfo.builder()
-                        .withHref("cid:attachedPayload")
-                        .withPartProperties(PartProperties.builder().
-                                withProperty(Property.builder()
-                                        .withName("MimeType")
-                                        .withValue("Dummy").build()).build()
-                        )
-                        .build())
-                .build();
+        Property property = new Property();
+        property.setName("MimeType");
+        property.setValue("Dummy");
+
+        PartProperties partProperties = new PartProperties();
+        partProperties.getProperty().add(property);
+
+        PartInfo partInfo = new PartInfo();
+        partInfo.setHref("cid:attachedPayload");
+        partInfo.setPartProperties(partProperties);
+
+        PayloadInfo payloadInfo = new PayloadInfo();
+        payloadInfo.getPartInfo().add(partInfo);
 
         As4InboundHandler.validatePayloads(payloadInfo);
     }
 
     @Test( expectedExceptions = {OxalisAs4Exception.class} )
     public void testValidateMessageId_withInvalidHref() throws Exception{
+        PartInfo partInfo = new PartInfo();
+        partInfo.setHref("http://difi.no");
 
-        PayloadInfo payloadInfo = PayloadInfo.builder()
-                .addPartInfo(PartInfo.builder()
-                        .withHref("http://difi.no")
-                        .build())
-                .build();
+        PayloadInfo payloadInfo = new PayloadInfo();
+        payloadInfo.getPartInfo().add(partInfo);
 
         As4InboundHandler.validatePayloads(payloadInfo);
 

@@ -2,7 +2,7 @@ package org.apache.cxf.attachment;
 
 import org.apache.cxf.message.Attachment;
 
-import javax.activation.DataHandler;
+import jakarta.activation.DataHandler;
 import java.io.IOException;
 import java.util.*;
 

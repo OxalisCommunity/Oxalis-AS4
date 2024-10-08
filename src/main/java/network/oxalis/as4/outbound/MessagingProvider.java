@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.GregorianCalendar;
 import java.util.Spliterator;
-import java.util.stream.Collectors;
 
 import static network.oxalis.as4.util.Constants.TEST_ACTION;
 import static network.oxalis.as4.util.Constants.TEST_SERVICE;
@@ -45,19 +44,19 @@ public class MessagingProvider {
     }
 
     public Messaging createMessagingHeader(TransmissionRequest request, Collection<Attachment> attachments) {
-        return Messaging.builder()
-                .addUserMessage(getUserMessage(request, attachments))
-                .build();
+        Messaging messaging = new Messaging();
+        messaging.getUserMessage().add(getUserMessage(request, attachments));
+        return messaging;
     }
 
     public UserMessage getUserMessage(TransmissionRequest request, Collection<Attachment> attachments) {
-        return UserMessage.builder()
-                .withMessageInfo(createMessageInfo(request))
-                .withPartyInfo(createPartyInfo(request))
-                .withCollaborationInfo(createCollaborationInfo(request))
-                .withMessageProperties(createMessageProperties(request))
-                .withPayloadInfo(createPayloadInfo(request, attachments))
-                .build();
+        UserMessage userMessage = new UserMessage();
+        userMessage.setMessageInfo(createMessageInfo(request));
+        userMessage.setPartyInfo(createPartyInfo(request));
+        userMessage.setCollaborationInfo(createCollaborationInfo(request));
+        userMessage.setMessageProperties(createMessageProperties(request));
+        userMessage.setPayloadInfo(createPayloadInfo(request, attachments));
+        return userMessage;
     }
 
     private PayloadInfo createPayloadInfo(TransmissionRequest request, Collection<Attachment> attachments) {
@@ -65,46 +64,46 @@ public class MessagingProvider {
         ArrayList<PartInfo> partInfos = Lists.newArrayList();
         for (Attachment attachment : attachments) {
 
-            PartProperties.Builder<Void> partProperties = PartProperties.builder();
+            PartProperties partProperties = new PartProperties();
 
             String cid = "cid:" + AttachmentUtil.cleanContentId(attachment.getId());
 
             iteratorToStreamOfUnknownSize(attachment.getHeaderNames(), Spliterator.ORDERED, false)
                     .filter(header -> !"Content-ID".equals(header))
-                    .map(header -> Property.builder().withName(header).withValue(attachment.getHeader(header)).build())
-                    .forEach(partProperties::addProperty);
+                    .map(header -> {
+                        Property property = new Property();
+                        property.setName(header);
+                        property.setValue(attachment.getHeader(header));
+                        return property;
+                    })
+                    .forEach(partProperties.getProperty()::add);
 
             if (request instanceof As4TransmissionRequest) {
                 As4TransmissionRequest as4TransmissionRequest = (As4TransmissionRequest) request;
                 if (null != as4TransmissionRequest.getPayloadCharset()) {
-                    partProperties.addProperty(
-                            Property.builder()
-                                    .withName("CharacterSet")
-                                    .withValue(as4TransmissionRequest.getPayloadCharset().name().toLowerCase())
-                                    .build()
-                    );
+                    Property property = new Property();
+                    property.setName("CharacterSet");
+                    property.setValue(as4TransmissionRequest.getPayloadCharset().name().toLowerCase());
+                    partProperties.getProperty().add(property);
                 }
 
                 if (null != as4TransmissionRequest.getCompressionType()) {
-                    partProperties.addProperty(
-                            Property.builder()
-                                    .withName("CompressionType")
-                                    .withValue(as4TransmissionRequest.getCompressionType())
-                                    .build()
-                    );
+                    Property property = new Property();
+                    property.setName("CompressionType");
+                    property.setValue(as4TransmissionRequest.getCompressionType());
+                    partProperties.getProperty().add(property);
                 }
             }
 
-            PartInfo partInfo = PartInfo.builder()
-                    .withHref(cid)
-                    .withPartProperties(partProperties.build())
-                    .build();
+            PartInfo partInfo = new PartInfo();
+            partInfo.setHref(cid);
+            partInfo.setPartProperties(partProperties);
             partInfos.add(partInfo);
         }
 
-        return PayloadInfo.builder()
-                .withPartInfo(partInfos)
-                .build();
+        PayloadInfo payloadInfo = new PayloadInfo();
+        payloadInfo.getPartInfo().addAll(partInfos);
+        return payloadInfo;
     }
 
 
@@ -126,16 +125,17 @@ public class MessagingProvider {
             properties.add(TransmissionRequestUtil.toAs4MessageProperty("finalRecipient", request.getHeader().getReceiver()));
         }
 
-        return MessageProperties.builder()
-                .withProperty(properties.stream()
-                        .map(p -> Property.builder()
-                                .withName(p.getName())
-                                .withType(p.getType())
-                                .withValue(p.getValue())
-                                .build())
-                        .collect(Collectors.toList())
-                )
-                .build();
+        MessageProperties messageProperties = new MessageProperties();
+        properties.stream()
+                .map(p -> {
+                    Property property = new Property();
+                    property.setName(p.getName());
+                    property.setType(p.getType());
+                    property.setValue(p.getValue());
+                    return property;
+                })
+                .forEach(messageProperties.getProperty()::add);
+        return messageProperties;
     }
 
     private PartyInfo createPartyInfo(TransmissionRequest request) {
@@ -146,22 +146,28 @@ public class MessagingProvider {
         PeppolConfiguration outboundConfiguration = request.getTag() instanceof PeppolConfiguration ?
                 (PeppolConfiguration) request.getTag() : defaultOutboundConfiguration;
 
-        return PartyInfo.builder()
-                .withFrom(From.builder()
-                        .withPartyId(PartyId.builder()
-                                .withType(outboundConfiguration.getPartyIDType())
-                                .withValue(fromName)
-                                .build())
-                        .withRole(outboundConfiguration.getFromRole())
-                        .build())
-                .withTo(To.builder()
-                        .withPartyId(PartyId.builder()
-                                .withType(outboundConfiguration.getPartyIDType())
-                                .withValue(toName)
-                                .build())
-                        .withRole(outboundConfiguration.getToRole())
-                        .build()
-                ).build();
+
+        PartyId fromPartyId = new PartyId();
+        fromPartyId.setType(outboundConfiguration.getPartyIDType());
+        fromPartyId.setValue(fromName);
+
+        From from = new From();
+        from.getPartyId().add(fromPartyId);
+        from.setRole(outboundConfiguration.getFromRole());
+
+        PartyId toPartyId = new PartyId();
+        toPartyId.setType(outboundConfiguration.getPartyIDType());
+        toPartyId.setValue(toName);
+
+        To to = new To();
+        to.getPartyId().add(toPartyId);
+        to.setRole(outboundConfiguration.getToRole());
+
+        PartyInfo partyInfo = new PartyInfo();
+        partyInfo.setFrom(from);
+        partyInfo.setTo(to);
+
+        return partyInfo;
     }
 
     public CollaborationInfo createCollaborationInfo(TransmissionRequest request) {
@@ -169,30 +175,29 @@ public class MessagingProvider {
 
         ProcessIdentifier process = request.getHeader().getProcess();
 
-        CollaborationInfo.Builder<Void> cib = CollaborationInfo.builder()
-                .withConversationId(getConversationId(request))
-                .withAction(action)
-                .withService(Service.builder()
-                        .withType(process.getScheme().getIdentifier())
-                        .withValue(process.getIdentifier())
-                        .build()
-                );
+        Service service = new Service();
+        service.setType(process.getScheme().getIdentifier());
+        service.setValue(process.getIdentifier());
+
+        CollaborationInfo ci = new CollaborationInfo();
+        ci.setConversationId(getConversationId(request));
+        ci.setAction(action);
+        ci.setService(service);
 
         if (request instanceof As4TransmissionRequest && ((As4TransmissionRequest) request).isPing()) {
-            cib = cib.withAction(TEST_ACTION)
-                    .withService(Service.builder()
-                            .withValue(TEST_SERVICE)
-                            .build());
+            ci.setAction(TEST_ACTION);
+            Service testActionService = new Service();
+            testActionService.setValue(TEST_SERVICE);
+            ci.setService(testActionService);
         }
 
         if (defaultOutboundConfiguration.getAgreementRef() != null) {
-            cib = cib.withAgreementRef(AgreementRef.builder()
-                    .withValue(defaultOutboundConfiguration.getAgreementRef())
-                    .build()
-            );
+            AgreementRef agreementRef = new AgreementRef();
+            agreementRef.setValue(defaultOutboundConfiguration.getAgreementRef());
+            ci.setAgreementRef(agreementRef);
         }
 
-        return cib.build();
+        return ci;
     }
 
     private MessageInfo createMessageInfo(TransmissionRequest request) {
@@ -204,18 +209,18 @@ public class MessagingProvider {
             throw new RuntimeException("Error getting xml date", e);
         }
 
-        MessageInfo.Builder<Void> builder = MessageInfo.builder()
-                .withMessageId(getMessageId(request))
-                .withTimestamp(xmlDate);
+        MessageInfo messageInfo = new MessageInfo();
+        messageInfo.setMessageId(getMessageId(request));
+        messageInfo.setTimestamp(xmlDate);
 
         if (request instanceof As4TransmissionRequest) {
             As4TransmissionRequest as4TransmissionRequest = (As4TransmissionRequest) request;
             if (as4TransmissionRequest.getRefToMessageId() != null) {
-                builder.withRefToMessageId(as4TransmissionRequest.getRefToMessageId());
+                messageInfo.setRefToMessageId(as4TransmissionRequest.getRefToMessageId());
             }
         }
 
-        return builder.build();
+        return messageInfo;
     }
 
     private String getMessageId(TransmissionRequest request) {

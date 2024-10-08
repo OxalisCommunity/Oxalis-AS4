@@ -4,7 +4,7 @@ import network.oxalis.api.settings.Settings;
 import network.oxalis.as4.config.As4Conf;
 import network.oxalis.as4.util.PeppolConfiguration;
 
-import javax.inject.Named;
+import jakarta.inject.Named;
 import java.nio.file.Path;
 
 public class MessagingProviderTest_CEF_SBDH extends AbstractMessagingProviderTest {
