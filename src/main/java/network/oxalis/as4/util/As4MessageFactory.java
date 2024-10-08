@@ -12,10 +12,10 @@ import org.oasis_open.docs.ebxml_bp.ebbp_signals_2.NonRepudiationInformation;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.Error;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.*;
 
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBElement;
 import javax.xml.datatype.XMLGregorianCalendar;
-import javax.xml.soap.*;
+import jakarta.xml.soap.*;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -48,24 +48,28 @@ public class As4MessageFactory {
                 prosessingContext.getReceiptTimestamp().getDate()
         );
 
-        MessageInfo messageInfo = MessageInfo.builder()
-                .withTimestamp(xmlGc)
-                .withMessageId(messageIdGenerator.generate())
-                .withRefToMessageId(inUserMessage.getMessageInfo().getMessageId())
-                .build();
+        MessageInfo messageInfo = new MessageInfo();
+        messageInfo.setTimestamp(xmlGc);
+        messageInfo.setMessageId(messageIdGenerator.generate());
+        messageInfo.setRefToMessageId(inUserMessage.getMessageInfo().getMessageId());
 
         List<MessagePartNRInformation> mpList = prosessingContext.getReferenceList().stream()
-                .map(reference -> MessagePartNRInformation.builder().withReference(reference).build())
+                .map(reference -> {
+                    MessagePartNRInformation messagePartNRInformation = new MessagePartNRInformation();
+                    messagePartNRInformation.setReference(reference);
+                    return messagePartNRInformation;
+                })
                 .collect(Collectors.toList());
 
-        NonRepudiationInformation nri = NonRepudiationInformation.builder()
-                .addMessagePartNRInformation(mpList)
-                .build();
+        NonRepudiationInformation nri = new NonRepudiationInformation();
+        nri.getMessagePartNRInformation().addAll(mpList);
 
-        SignalMessage signalMessage = SignalMessage.builder()
-                .withMessageInfo(messageInfo)
-                .withReceipt(Receipt.builder().withAny(nri).build())
-                .build();
+        Receipt receipt = new Receipt();
+        receipt.getAny().add(nri);
+
+        SignalMessage signalMessage = new SignalMessage();
+        signalMessage.setMessageInfo(messageInfo);
+        signalMessage.setReceipt(receipt);
 
         return marshalSignalMessage(signalMessage);
     }
@@ -77,31 +81,23 @@ public class As4MessageFactory {
             XMLGregorianCalendar currentDate = XMLUtil.dateToXMLGeorgianCalendar(new Date());
 
 
-            MessageInfo messageInfo = MessageInfo.builder()
-                    .withRefToMessageId(messageId)
-                    .withTimestamp(currentDate)
-                    .withMessageId(messageIdGenerator.generate())
-                    .build();
+            MessageInfo messageInfo = new MessageInfo();
+            messageInfo.setRefToMessageId(messageId);
+            messageInfo.setTimestamp(currentDate);
+            messageInfo.setMessageId(messageIdGenerator.generate());
 
-            Error error = Error.builder()
-                    .withRefToMessageInError(messageId)
+            Error error = new Error();
+            error.setRefToMessageInError(messageId);
+            error.setErrorCode(as4Error.getErrorCode().toString());
+            error.setErrorDetail(getErrorDetail(as4Error));
+            error.setShortDescription(as4Error.getErrorCode().getShortDescription());
+            error.setOrigin(as4Error.getErrorCode().getOrigin().toString());
+            error.setCategory(as4Error.getErrorCode().getCatgory().toString());
+            error.setSeverity(as4Error.getSeverity().toString());
 
-                    .withErrorCode(as4Error.getErrorCode().toString())
-                    .withErrorDetail(getErrorDetail(as4Error))
-                    .withShortDescription(as4Error.getErrorCode().getShortDescription())
-                    //                .withDescription()
-
-                    .withOrigin(as4Error.getErrorCode().getOrigin().toString())
-                    .withCategory(as4Error.getErrorCode().getCatgory().toString())
-                    .withSeverity(as4Error.getSeverity().toString())
-
-                    .build();
-
-            SignalMessage signalMessage = SignalMessage.builder()
-                    .withMessageInfo(messageInfo)
-                    .withError(error)
-                    .build();
-
+            SignalMessage signalMessage = new SignalMessage();
+            signalMessage.setMessageInfo(messageInfo);
+            signalMessage.getError().add(error);
 
             return marshalSignalMessage(signalMessage);
 

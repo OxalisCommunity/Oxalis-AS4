@@ -5,12 +5,12 @@ import com.google.inject.Singleton;
 import network.oxalis.as4.lang.OxalisAs4Exception;
 import org.apache.cxf.transport.http.AbstractHTTPDestination;
 
-import javax.annotation.Resource;
-import javax.servlet.http.HttpServletResponse;
-import javax.xml.soap.SOAPMessage;
-import javax.xml.ws.*;
-import javax.xml.ws.handler.MessageContext;
-import javax.xml.ws.soap.SOAPBinding;
+import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.xml.soap.SOAPMessage;
+import jakarta.xml.ws.*;
+import jakarta.xml.ws.handler.MessageContext;
+import jakarta.xml.ws.soap.SOAPBinding;
 
 @WebServiceProvider
 @ServiceMode(value = Service.Mode.MESSAGE)

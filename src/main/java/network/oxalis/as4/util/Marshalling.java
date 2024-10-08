@@ -7,8 +7,8 @@ import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.Messaging;
 import org.w3.xmldsig.ReferenceType;
 import org.xmlsoap.schemas.soap.envelope.Envelope;
 
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBException;
 
 @UtilityClass
 public class Marshalling {

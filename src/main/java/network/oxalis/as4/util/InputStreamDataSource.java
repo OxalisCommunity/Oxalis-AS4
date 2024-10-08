@@ -1,6 +1,6 @@
 package network.oxalis.as4.util;
 
-import javax.activation.DataSource;
+import jakarta.activation.DataSource;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
