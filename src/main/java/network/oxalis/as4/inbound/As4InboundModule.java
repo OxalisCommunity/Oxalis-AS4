@@ -6,7 +6,7 @@ import com.google.inject.servlet.ServletModule;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.cxf.wsdl.interceptors.AbstractEndpointSelectionInterceptor;
 
-import javax.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServlet;
 
 @Slf4j
 public class As4InboundModule extends ServletModule {

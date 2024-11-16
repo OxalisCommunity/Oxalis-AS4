@@ -4,8 +4,8 @@ import org.apache.cxf.common.util.StringUtils;
 import org.apache.cxf.helpers.FileUtils;
 import org.apache.cxf.message.Attachment;
 
-import javax.activation.DataHandler;
-import javax.activation.DataSource;
+import jakarta.activation.DataHandler;
+import jakarta.activation.DataSource;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;

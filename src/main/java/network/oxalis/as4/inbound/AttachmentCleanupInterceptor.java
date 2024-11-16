@@ -10,7 +10,7 @@ import org.apache.cxf.message.Message;
 import org.apache.cxf.phase.AbstractPhaseInterceptor;
 import org.apache.cxf.phase.Phase;
 
-import javax.activation.DataSource;
+import jakarta.activation.DataSource;
 
 public class AttachmentCleanupInterceptor extends AbstractPhaseInterceptor<Message> {
 

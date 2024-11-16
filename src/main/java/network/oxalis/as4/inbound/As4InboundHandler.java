@@ -37,8 +37,8 @@ import org.apache.neethi.Policy;
 import org.oasis_open.docs.ebxml_msg.ebms.v3_0.ns.core._200704.*;
 import org.w3.xmldsig.ReferenceType;
 
-import javax.xml.soap.*;
-import javax.xml.ws.handler.MessageContext;
+import jakarta.xml.soap.*;
+import jakarta.xml.ws.handler.MessageContext;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

@@ -4,7 +4,7 @@ import lombok.Getter;
 import lombok.ToString;
 import network.oxalis.vefa.peppol.common.model.*;
 
-import javax.xml.soap.MimeHeader;
+import jakarta.xml.soap.MimeHeader;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;

@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bindings version="2.1"
-          xmlns="http://java.sun.com/xml/ns/jaxb"
+<bindings xmlns="https://jakarta.ee/xml/ns/jaxb"
+		  xmlns:xjc="https://jakarta.ee/xml/ns/jaxb/xjc"
           xmlns:xs="http://www.w3.org/2001/XMLSchema"
-          extensionBindingPrefixes="xjc">
+          extensionBindingPrefixes="xjc"
+		  version="3.0">
 
 	<bindings schemaLocation="ebxml/ebms-header-3_0-200704.xsd" node="//xs:attribute[@ref='S12:mustUnderstand']">
 		<property name="mustUnderstand12" />

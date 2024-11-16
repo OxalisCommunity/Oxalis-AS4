@@ -18,7 +18,7 @@ import org.apache.cxf.transport.MultipleEndpointObserver;
 import org.apache.cxf.ws.policy.WSPolicyFeature;
 import org.apache.cxf.wsdl.interceptors.AbstractEndpointSelectionInterceptor;
 
-import javax.xml.ws.Endpoint;
+import jakarta.xml.ws.Endpoint;
 import java.util.Arrays;
 
 import static org.apache.cxf.ws.security.SecurityConstants.ENABLE_STREAMING_SECURITY;
