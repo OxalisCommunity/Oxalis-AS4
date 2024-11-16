@@ -28,7 +28,7 @@
     <parent>
         <groupId>network.oxalis</groupId>
         <artifactId>oxalis</artifactId>
-        <version>6.7.1-SNAPSHOT</version>
+        <version>7.0.0-alpha</version>
     </parent>
 
     <artifactId>oxalis-as4</artifactId>
@@ -96,7 +96,7 @@
         <java.version>11</java.version>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
-        <peppol.sbdh.version>2.2.1-SNAPSHOT</peppol.sbdh.version>
+        <peppol.sbdh.version>2.3.0</peppol.sbdh.version>
         <cxf.version>4.0.5</cxf.version>
         <wss4j.version>3.0.3</wss4j.version>
         <jakarta.xml.soap-api.version>3.0.2</jakarta.xml.soap-api.version>
