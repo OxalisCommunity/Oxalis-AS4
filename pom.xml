@@ -97,8 +97,8 @@
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
         <peppol.sbdh.version>2.3.0</peppol.sbdh.version>
-        <cxf.version>4.0.5</cxf.version>
-        <wss4j.version>3.0.3</wss4j.version>
+        <cxf.version>4.0.6</cxf.version>
+        <wss4j.version>3.0.4</wss4j.version>
         <jakarta.xml.soap-api.version>3.0.2</jakarta.xml.soap-api.version>
         <saaj-impl.version>3.0.4</saaj-impl.version>
         <jakarta.xml.bind-api.version>4.0.2</jakarta.xml.bind-api.version>
@@ -106,8 +106,8 @@
         <jakarta.annotation-api.version>3.0.0</jakarta.annotation-api.version>
         <jakarta.xml.ws-api.version>4.0.2</jakarta.xml.ws-api.version>
         <bouncycastle.version>1.78.1</bouncycastle.version>
-        <commons-io.version>2.14.0</commons-io.version>
-        <neethi.version>3.2.0</neethi.version>
+        <commons-io.version>2.18.0</commons-io.version>
+        <neethi.version>3.2.1</neethi.version>
         <junit.version>4.13.2</junit.version>
         <powermock.version>2.0.0</powermock.version>
         <mockito.version>2.23.4</mockito.version>
