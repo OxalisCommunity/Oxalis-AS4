@@ -28,11 +28,11 @@
     <parent>
         <groupId>network.oxalis</groupId>
         <artifactId>oxalis</artifactId>
-        <version>6.7.0</version>
+        <version>6.8.0-RC1</version>
     </parent>
 
     <artifactId>oxalis-as4</artifactId>
-    <version>6.7.0</version>
+    <version>6.8.0-RC1</version>
     <packaging>jar</packaging>
     <name>Oxalis :: AS4</name>
     <description>Extension adding AS4 support to Oxalis</description>
