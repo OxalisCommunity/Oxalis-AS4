@@ -3,6 +3,7 @@ package network.oxalis.as4.inbound;
 import com.google.common.io.ByteStreams;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.typesafe.config.Config;
 import lombok.extern.slf4j.Slf4j;
 import network.oxalis.api.header.HeaderParser;
 import network.oxalis.api.inbound.InboundService;
@@ -24,7 +25,13 @@ import network.oxalis.commons.io.UnclosableInputStream;
 import network.oxalis.commons.mode.OxalisCertificateValidator;
 import network.oxalis.vefa.peppol.common.code.DigestMethod;
 import network.oxalis.vefa.peppol.common.code.Service;
+import network.oxalis.vefa.peppol.common.lang.EndpointNotFoundException;
+import network.oxalis.vefa.peppol.common.lang.PeppolLoadingException;
 import network.oxalis.vefa.peppol.common.model.*;
+import network.oxalis.vefa.peppol.lookup.LookupClient;
+import network.oxalis.vefa.peppol.lookup.LookupClientBuilder;
+import network.oxalis.vefa.peppol.lookup.api.LookupException;
+import network.oxalis.vefa.peppol.mode.Mode;
 import network.oxalis.vefa.peppol.sbdh.SbdReader;
 import network.oxalis.vefa.peppol.sbdh.lang.SbdhException;
 import network.oxalis.vefa.peppol.security.lang.PeppolSecurityException;
@@ -67,11 +74,14 @@ public class As4InboundHandler {
     private final PolicyService policyService;
     private final InboundService inboundService;
     private final OxalisCertificateValidator certificateValidator;
+    private final Mode mode;
+    private final Config config;
 
     @Inject
     public As4InboundHandler(TransmissionVerifier transmissionVerifier, PersisterHandler persisterHandler,
                              TimestampProvider timestampProvider, HeaderParser headerParser, As4MessageFactory as4MessageFactory,
-                             PolicyService policyService, InboundService inboundService, OxalisCertificateValidator certificateValidator) {
+                             PolicyService policyService, InboundService inboundService,
+                             OxalisCertificateValidator certificateValidator, Mode mode, Config config) {
         this.transmissionVerifier = transmissionVerifier;
         this.persisterHandler = persisterHandler;
         this.timestampProvider = timestampProvider;
@@ -80,6 +90,8 @@ public class As4InboundHandler {
         this.policyService = policyService;
         this.inboundService = inboundService;
         this.certificateValidator = certificateValidator;
+        this.mode = mode;
+        this.config = config;
     }
 
     public SOAPMessage handle(SOAPMessage request, MessageContext messageContext) throws OxalisAs4Exception {
@@ -152,6 +164,16 @@ public class As4InboundHandler {
                     envelopeHeader);
 
             try {
+                if (config.hasPath("access.point.isReceiverCheckEnabled")) {
+                    isThisMessageForUs(config, firstHeader, mode);
+                }
+            } catch (EndpointNotFoundException | LookupException | PeppolLoadingException | PeppolSecurityException ex) {
+                log.warn("Error checking whether this message is for us: " + ex.getMessage());
+            } catch (OxalisAs4Exception OxalisAs4Exception) {
+                throw new OxalisAs4Exception("PEPPOL:NOT_SERVICED", AS4ErrorCode.EBMS_0004, AS4ErrorCode.Severity.FAILURE);
+            }
+
+            try {
                 persisterHandler.persist(as4InboundMetadata, firstPayloadPath);
             } catch (IOException e) {
                 throw new OxalisAs4Exception("Error persisting AS4 metadata", e, AS4ErrorCode.EBMS_0202);
@@ -186,6 +208,48 @@ public class As4InboundHandler {
             return SOAPHeaderParser.getSenderCertificate(soapHeader);
         } catch (OxalisAs4Exception e) {
             throw new OxalisAs4Exception("PEPPOL:NOT_SERVICED", AS4ErrorCode.EBMS_0004, AS4ErrorCode.Severity.FAILURE);
+        }
+    }
+
+    private void isThisMessageForUs(Config config, As4PayloadHeader firstHeader, Mode mode)
+            throws PeppolLoadingException, PeppolSecurityException, LookupException,
+            EndpointNotFoundException, OxalisAs4Exception {
+
+        LookupClient lookupClient = LookupClientBuilder.forMode(mode).build();
+        int pintWildcardMigrationPhase = 0;
+        if (config.hasPath("oxalis.pint.wildcard.migration.phase")) {
+            pintWildcardMigrationPhase = config.getInt("oxalis.pint.wildcard.migration.phase");
+        }
+
+        if (config.getBoolean("access.point.isReceiverCheckEnabled")) {
+            Header header = firstHeader.getHeader();
+            Endpoint endpoint = lookupClient.getEndpoint(
+                    ParticipantIdentifier.of(header.getReceiver().getIdentifier()),
+                    DocumentTypeIdentifier.of(header.getDocumentType().getIdentifier()),
+                    ProcessIdentifier.of(header.getProcess().getIdentifier()),
+                    pintWildcardMigrationPhase,
+                    TransportProfile.PEPPOL_AS4_2_0
+            );
+
+            String receiverAPEndPointUrlInSMP = endpoint.getAddress().toString();
+            if (log.isDebugEnabled())
+                log.debug("Receiver AP URL retrieved from SMP metadata: " + receiverAPEndPointUrlInSMP);
+
+            String ourOwnAPUrlInOxalisConfig = config.getString("my.access.point.url");
+            if (log.isDebugEnabled())
+                log.debug("Our Receiver AP URL configured in Oxalis Configuration: " + ourOwnAPUrlInOxalisConfig);
+
+            if (ourOwnAPUrlInOxalisConfig == null) {
+                log.warn("Oxalis configuration property 'access.point.isReceiverCheckEnabled' is set to true " +
+                        "but value is Not provided for configuration property 'my.access.point.url', " +
+                        "skipping whether message is for our Access Point. Please ensure that required configuration" +
+                        " properties set correctly.");
+                return;
+            }
+
+            if (receiverAPEndPointUrlInSMP == null || !receiverAPEndPointUrlInSMP.contains(ourOwnAPUrlInOxalisConfig)) {
+                throw new OxalisAs4Exception("PEPPOL:NOT_SERVICED", AS4ErrorCode.EBMS_0004, AS4ErrorCode.Severity.FAILURE);
+            }
         }
     }
 
