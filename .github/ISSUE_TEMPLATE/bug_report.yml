@@ -38,7 +38,7 @@ body:
     id: Oxalis-AS4-version
     attributes:
       label: Oxalis-AS4 version
-      description: Mention Oxalis-AS$ version
+      description: Mention Oxalis-AS4 version
       render: bash
       placeholder: |
         E.g. "...."
