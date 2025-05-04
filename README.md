@@ -1,6 +1,10 @@
 [![Oxalis-AS4 Master Build](https://github.com/OxalisCommunity/Oxalis-AS4/workflows/Oxalis-AS4%20Master%20Build/badge.svg)](https://github.com/OxalisCommunity/oxalis-as4/actions?query=workflow%3A%22oxalis-as4%20Master%20Build%22)
 [![Maven Central](https://img.shields.io/maven-central/v/network.oxalis/oxalis-as4.svg)](http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22network.oxalis%22%20AND%20a%3A%22oxalis-as4%22)
+---
+# Upcoming Migration Notice: Deprecation of Current Repository
+Please be advised that this GitHub repository will no longer be supported after **December 31, 2025**. We strongly encourage all Oxalis users and contributors to begin planning their upgrade to **[Oxalis-NG](https://github.com/OxalisCommunity/oxalis-ng)**.
 
+---
 # Oxalis-AS4
 This repo implement PEPPOL AS4 pMode.
 It supports Oxalis version v6.0.0 and above 
