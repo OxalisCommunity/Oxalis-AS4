@@ -28,7 +28,7 @@
     <parent>
         <groupId>network.oxalis</groupId>
         <artifactId>oxalis</artifactId>
-        <version>7.1.0</version>
+        <version>7.2.0-RC1</version>
     </parent>
 
     <artifactId>oxalis-as4</artifactId>
@@ -96,17 +96,17 @@
         <java.version>11</java.version>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
-        <peppol.sbdh.version>2.4.0</peppol.sbdh.version>
-        <cxf.version>4.0.6</cxf.version>
+        <peppol.sbdh.version>2.5.0</peppol.sbdh.version>
+        <cxf.version>4.0.8</cxf.version>
         <wss4j.version>3.0.4</wss4j.version>
         <jakarta.xml.soap-api.version>3.0.2</jakarta.xml.soap-api.version>
         <saaj-impl.version>3.0.4</saaj-impl.version>
         <jakarta.xml.bind-api.version>4.0.2</jakarta.xml.bind-api.version>
-        <jaxb-impl-version>4.0.0</jaxb-impl-version>
+        <jaxb-impl-version>4.0.5</jaxb-impl-version>
         <jakarta.annotation-api.version>3.0.0</jakarta.annotation-api.version>
         <jakarta.xml.ws-api.version>4.0.2</jakarta.xml.ws-api.version>
         <bouncycastle.version>1.80</bouncycastle.version>
-        <commons-io.version>2.18.0</commons-io.version>
+        <commons-io.version>2.19.0</commons-io.version>
         <neethi.version>3.2.1</neethi.version>
         <com.typesafe.config.version>1.4.3</com.typesafe.config.version>
         <junit.version>4.13.2</junit.version>
@@ -196,6 +196,12 @@
             <groupId>org.apache.cxf</groupId>
             <artifactId>cxf-rt-frontend-jaxws</artifactId>
             <version>${cxf.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.eclipse.angus</groupId>
+                    <artifactId>angus-mail</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.cxf</groupId>
@@ -503,7 +509,6 @@
                                 <usedDependency>com.sun.xml.bind:jaxb-impl</usedDependency>
                                 <usedDependency>commons-codec:commons-codec</usedDependency>
                                 <usedDependency>org.kohsuke.metainf-services:metainf-services</usedDependency>
-                                <usedDependency>org.projectlombok:lombok</usedDependency>
                             </usedDependencies>
                         </configuration>
                     </execution>
