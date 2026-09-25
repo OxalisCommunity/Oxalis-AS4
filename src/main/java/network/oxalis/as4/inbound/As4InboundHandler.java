@@ -478,7 +478,7 @@ public class As4InboundHandler {
                 );
             }
 
-            cause = e.getCause();
+            cause = cause.getCause();
         }
     }
 
